@@ -27,18 +27,29 @@ const accountNumberClient = () =>
   ({
     id: "account-number",
     $InferServerPlugin: {} as ReturnType<typeof accountNumber>,
+    pathMethods: {
+      // Without this the client guesses from the arguments, and a call with no
+      // body — `signUp.accountNumber()` — would go out as a GET.
+      "/sign-up/account-number": "POST",
+      "/sign-in/account-number": "POST",
+    },
   }) satisfies BetterAuthClientPlugin;
 
 const demoClient = () =>
   ({
     id: "demo",
     $InferServerPlugin: {} as ReturnType<typeof demo>,
+    pathMethods: { "/sign-in/demo": "POST" },
   }) satisfies BetterAuthClientPlugin;
 
 const solanaClient = () =>
   ({
     id: "solana",
     $InferServerPlugin: {} as ReturnType<typeof solana>,
+    pathMethods: {
+      "/solana/challenge": "POST",
+      "/sign-in/solana": "POST",
+    },
   }) satisfies BetterAuthClientPlugin;
 
 /**

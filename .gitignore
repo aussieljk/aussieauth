@@ -26,3 +26,6 @@ dist-ssr
 
 # Apple signing keys — never commit these
 *.p8
+
+*storybook.log
+storybook-static

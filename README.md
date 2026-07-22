@@ -19,7 +19,7 @@ bun dev
 
 `bun dev` runs vite through [portless](https://github.com/tobias-tengler/portless),
 which serves the app at `https://aussieauth.localhost`. `SITE_URL` points at
-the *deployed* origin, not this one — it's the relying party id for passkeys and
+the _deployed_ origin, not this one — it's the relying party id for passkeys and
 the base for emailed links, so it has to be the one real users are on. Local
 origins go in `TRUSTED_ORIGINS` instead.
 
@@ -33,13 +33,13 @@ is written to the Convex logs instead of an inbox.
 Each provider is registered only when its variables are set, and the sign-in
 card badges the rest as "needs setup". Set them with `bunx convex env set`.
 
-| Method            | Variables                                                               | Callback / redirect URL                                     |
-| ----------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Google, One Tap   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                              | `https://<deployment>.convex.site/api/auth/callback/google` |
-| GitHub            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                              | `https://<deployment>.convex.site/api/auth/callback/github` |
-| Apple             | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | `https://<deployment>.convex.site/api/auth/callback/apple`  |
-| Email (links/OTP) | `RESEND_API_KEY`, `EMAIL_FROM`                                          | —                                                           |
-| SMS (OTP)         | `MOBILE_MESSAGE_API_USERNAME`, `MOBILE_MESSAGE_API_PASSWORD`, `MOBILE_MESSAGE_SENDER` | —                                             |
+| Method            | Variables                                                                             | Callback / redirect URL                                     |
+| ----------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Google, One Tap   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                                            | `https://<deployment>.convex.site/api/auth/callback/google` |
+| GitHub            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                                            | `https://<deployment>.convex.site/api/auth/callback/github` |
+| Apple             | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`               | `https://<deployment>.convex.site/api/auth/callback/apple`  |
+| Email (links/OTP) | `RESEND_API_KEY`, `EMAIL_FROM`                                                        | —                                                           |
+| SMS (OTP)         | `MOBILE_MESSAGE_API_USERNAME`, `MOBILE_MESSAGE_API_PASSWORD`, `MOBILE_MESSAGE_SENDER` | —                                                           |
 
 Google One Tap also needs the client id on the frontend, as
 `VITE_GOOGLE_CLIENT_ID` in `.env.local`, plus your app origins listed under
