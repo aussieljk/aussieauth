@@ -39,7 +39,7 @@ card badges the rest as "needs setup". Set them with `bunx convex env set`.
 | GitHub            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                              | `https://<deployment>.convex.site/api/auth/callback/github` |
 | Apple             | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | `https://<deployment>.convex.site/api/auth/callback/apple`  |
 | Email (links/OTP) | `RESEND_API_KEY`, `EMAIL_FROM`                                          | —                                                           |
-| SMS (OTP)         | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`        | —                                                           |
+| SMS (OTP)         | `MOBILE_MESSAGE_API_USERNAME`, `MOBILE_MESSAGE_API_PASSWORD`, `MOBILE_MESSAGE_SENDER` | —                                             |
 
 Google One Tap also needs the client id on the frontend, as
 `VITE_GOOGLE_CLIENT_ID` in `.env.local`, plus your app origins listed under

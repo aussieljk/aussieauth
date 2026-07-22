@@ -39,27 +39,37 @@ export const sendEmail = async ({
 };
 
 export const sendSms = async ({ to, body }: { to: string; body: string }) => {
-  const sid = process.env.TWILIO_ACCOUNT_SID;
-  const token = process.env.TWILIO_AUTH_TOKEN;
-  const sender = process.env.TWILIO_PHONE_NUMBER;
-  if (!sid || !token || !sender) {
+  const username = process.env.MOBILE_MESSAGE_API_USERNAME;
+  const password = process.env.MOBILE_MESSAGE_API_PASSWORD;
+  const sender = process.env.MOBILE_MESSAGE_SENDER;
+  if (!username || !password || !sender) {
     console.log(`[sms → ${to}] ${body}`);
     return;
   }
-  const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${btoa(`${sid}:${token}`)}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ To: to, From: sender, Body: body }),
+  const res = await fetch("https://api.mobilemessage.com.au/v1/messages", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+      "Content-Type": "application/json",
     },
-  );
+    body: JSON.stringify({
+      messages: [{ to, message: body, sender }],
+    }),
+  });
   if (!res.ok) {
     throw new Error(
-      `Twilio rejected the message: ${res.status} ${await res.text()}`,
+      `Mobile Message rejected the request: ${res.status} ${await res.text()}`,
+    );
+  }
+  // A 200 only means the batch was accepted — each message carries its own
+  // status, so a bad number still needs to surface as a failure here.
+  const result = (await res.json()) as {
+    results?: { status?: string; error?: string }[];
+  };
+  const failed = result.results?.find((r) => r.status !== "success");
+  if (failed) {
+    throw new Error(
+      `Mobile Message could not send to ${to}: ${failed.error ?? failed.status}`,
     );
   }
 };

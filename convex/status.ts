@@ -22,7 +22,9 @@ export const setup = query({
     // Without these, codes and links are written to the Convex logs instead.
     email: Boolean(process.env.RESEND_API_KEY),
     sms: Boolean(
-      process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN,
+      process.env.MOBILE_MESSAGE_API_USERNAME &&
+      process.env.MOBILE_MESSAGE_API_PASSWORD &&
+      process.env.MOBILE_MESSAGE_SENDER,
     ),
   }),
 });
