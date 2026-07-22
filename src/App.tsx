@@ -1,134 +1,103 @@
 import { useState } from "react";
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { useAuthActions } from "@convex-dev/auth/react";
-import { Avatar, Button, Callout, Heading, Text, TextField } from "frosted-ui";
-import { api } from "@/convex/_generated/api";
+import { Badge, Button, ScrollArea, Text, Theme } from "frosted-ui";
+import { PROVIDERS } from "./auth/providers";
+import { VARIANTS } from "./auth/variants";
 
+/**
+ * Mock gallery. Ten alternative layouts for the same sixteen auth methods —
+ * pick one on the left, it renders on the right. No network calls anywhere.
+ */
 export default function App() {
-  return (
-    <main className="p-8">
-      <Authenticated>
-        <SignedIn />
-      </Authenticated>
-      <Unauthenticated>
-        <SignInForm />
-      </Unauthenticated>
-    </main>
-  );
-}
-
-function SignInForm() {
-  const { signIn } = useAuthActions();
-  const [flow, setFlow] = useState<"signIn" | "signUp">("signIn");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await signIn("password", { name: name || email, email, password, flow });
-    } catch {
-      // Convex Auth deliberately returns opaque errors here so the form can't
-      // be used to probe which emails exist.
-      setError(
-        flow === "signIn"
-          ? "Wrong email or password"
-          : "Could not create that account",
-      );
-    }
-    setBusy(false);
-  };
+  const [activeId, setActiveId] = useState(VARIANTS[0].id);
+  const [appearance, setAppearance] = useState<"light" | "dark">("light");
+  const variant = VARIANTS.find((v) => v.id === activeId) ?? VARIANTS[0];
 
   return (
-    <div className="mx-auto mt-24 flex w-96 flex-col gap-4">
-      <Heading size="6">
-        {flow === "signIn" ? "Sign in" : "Create your account"}
-      </Heading>
-      {error && (
-        <Callout.Root color="red">
-          <Callout.Description>{error}</Callout.Description>
-        </Callout.Root>
-      )}
-      <form
-        className="flex flex-col gap-3"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-      >
-        {flow === "signUp" && (
-          <TextField.Input
-            placeholder="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        )}
-        <TextField.Input
-          type="email"
-          placeholder="Email"
-          autoComplete="username"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField.Input
-          type="password"
-          placeholder="Password"
-          autoComplete={flow === "signIn" ? "current-password" : "new-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {/* frosted-ui buttons wrap Base UI, which defaults to type="button" —
-            without this the form never submits. */}
-        <Button
-          type="submit"
-          variant="classic"
-          disabled={busy || !email || !password}
-        >
-          {flow === "signIn" ? "Sign in" : "Sign up"}
-        </Button>
-      </form>
-      <button
-        className="text-sm text-[var(--gray-11)] underline"
-        onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}
-      >
-        {flow === "signIn" ? "No account? Sign up" : "Have an account? Sign in"}
-      </button>
-    </div>
-  );
-}
-
-function SignedIn() {
-  const { signOut } = useAuthActions();
-  const user = useQuery(api.auth.currentUser);
-
-  if (!user) return null;
-
-  return (
-    <div className="mx-auto mt-24 flex w-96 flex-col gap-4">
-      <div className="flex min-w-0 items-center gap-3">
-        <Avatar
-          size="3"
-          src={user.image ?? undefined}
-          fallback={(user.name?.[0] ?? user.email?.[0] ?? "?").toUpperCase()}
-        />
-        <div className="flex min-w-0 flex-col">
-          {user.name && (
-            <Text size="2" weight="medium">
-              {user.name}
+    <Theme appearance={appearance} accentColor="indigo" grayColor="slate">
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <aside className="flex w-[280px] shrink-0 flex-col border-r border-[var(--gray-a5)] bg-[var(--gray-a2)]">
+          <div className="flex flex-col gap-1 p-4">
+            <div className="flex items-center justify-between">
+              <Text size="3" weight="bold">
+                AussieAuth
+              </Text>
+              <Button
+                variant="soft"
+                color="gray"
+                size="1"
+                onClick={() =>
+                  setAppearance(appearance === "light" ? "dark" : "light")
+                }
+              >
+                {appearance === "light" ? "Dark" : "Light"}
+              </Button>
+            </div>
+            <Text size="1" color="gray">
+              {VARIANTS.length} mock layouts · {PROVIDERS.length} methods
             </Text>
-          )}
-          <Text size="1" color="gray" className="truncate">
-            {user.email}
-          </Text>
-        </div>
+          </div>
+
+          <ScrollArea type="auto" className="flex-1">
+            <nav className="flex flex-col gap-1 p-2">
+              {VARIANTS.map((v, i) => {
+                const active = v.id === activeId;
+                return (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setActiveId(v.id)}
+                    className={`flex flex-col gap-0.5 rounded-[var(--radius-3)] px-3 py-2 text-left transition-colors ${
+                      active
+                        ? "bg-[var(--accent-a4)]"
+                        : "hover:bg-[var(--gray-a3)]"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Text size="1" color="gray" className="font-mono">
+                        {String(i + 1).padStart(2, "0")}
+                      </Text>
+                      <Text size="2" weight={active ? "bold" : "medium"}>
+                        {v.name}
+                      </Text>
+                    </span>
+                    <Text size="1" color="gray" className="leading-snug">
+                      {v.tagline}
+                    </Text>
+                  </button>
+                );
+              })}
+            </nav>
+          </ScrollArea>
+
+          <div className="border-t border-[var(--gray-a5)] p-3">
+            <Text size="1" color="gray">
+              Logos from svgl.app · UI from frosted-ui
+            </Text>
+          </div>
+        </aside>
+
+        {/* Stage */}
+        <main className="flex min-w-0 flex-1 flex-col">
+          <header className="flex items-center gap-3 border-b border-[var(--gray-a5)] px-6 py-3">
+            <Text size="2" weight="bold">
+              {variant.name}
+            </Text>
+            <Badge size="1" color="gray">
+              mock
+            </Badge>
+            <Text size="1" color="gray" className="truncate">
+              {variant.tagline}
+            </Text>
+          </header>
+
+          <ScrollArea type="auto" className="flex-1">
+            <div className="p-10">
+              <variant.Component />
+            </div>
+          </ScrollArea>
+        </main>
       </div>
-      <Button variant="soft" color="gray" onClick={() => void signOut()}>
-        Sign out
-      </Button>
-    </div>
+    </Theme>
   );
 }
