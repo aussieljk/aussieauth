@@ -79,6 +79,10 @@ const socialProviders = () => {
         keyId: APPLE_KEY_ID,
         privateKey: APPLE_PRIVATE_KEY,
       }),
+      // Apple only accepts return URLs on a domain registered to the Services
+      // ID, and the Convex hostname isn't one. vercel.json proxies this path
+      // back here; every other provider still calls the deployment directly.
+      redirectURI: `${siteUrl}/api/auth/callback/apple`,
       // Only used by native iOS apps signing in with an id token.
       appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER,
     });

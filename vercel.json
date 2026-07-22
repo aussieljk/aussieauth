@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/auth/callback/apple",
+      "destination": "https://giddy-dinosaur-765.convex.site/api/auth/callback/apple"
+    },
+    {
+      "source": "/.well-known/apple-developer-domain-association.txt",
+      "destination": "https://giddy-dinosaur-765.convex.site/.well-known/apple-developer-domain-association.txt"
+    }
+  ]
+}
