@@ -223,18 +223,3 @@ export const byCategory = (category: ProviderCategory): Provider[] =>
 /** The button label a variant should use for a given method. */
 export const ctaFor = (p: Provider): string =>
   p.cta ?? `Continue with ${p.label}`;
-
-/**
- * Renders a provider's mark, or nothing when the method has no real logo.
- * Keeps `{provider.Logo && …}` out of every layout.
- */
-export function ProviderMark({
-  provider,
-  size = 18,
-}: {
-  provider: Provider;
-  size?: number;
-}) {
-  if (!provider.Logo) return null;
-  return <provider.Logo size={size} />;
-}
