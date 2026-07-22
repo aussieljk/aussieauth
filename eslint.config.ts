@@ -14,6 +14,8 @@ export default defineConfig([
       "convex/_generated",
       "convex/**/*.ts",
       "vite.config.ts",
+      // Build tooling, outside the app tsconfig project.
+      "scripts",
     ],
   },
   {

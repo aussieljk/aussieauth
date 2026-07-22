@@ -1,0 +1,39 @@
+import type { ComponentType } from "react";
+import {
+  AccountNumberPanel,
+  AgentPanel,
+  AnonymousPanel,
+  ApplePanel,
+  DemoPanel,
+  EmailOtpPanel,
+  EmailPasswordPanel,
+  GitHubPanel,
+  GooglePanel,
+  MagicLinkPanel,
+  OneTapPanel,
+  PasskeyPanel,
+  PhonePasswordPanel,
+  SmsOtpPanel,
+  SolanaPanel,
+  UsernamePasswordPanel,
+} from "./panels";
+
+/** Provider id → the panel that drives it. Mirrors `PROVIDERS` in providers.ts. */
+export const PANELS: Record<string, ComponentType> = {
+  google: GooglePanel,
+  "google-one-tap": OneTapPanel,
+  github: GitHubPanel,
+  apple: ApplePanel,
+  solana: SolanaPanel,
+  passkey: PasskeyPanel,
+  "email-password": EmailPasswordPanel,
+  "phone-password": PhonePasswordPanel,
+  "username-password": UsernamePasswordPanel,
+  "magic-link": MagicLinkPanel,
+  "email-otp": EmailOtpPanel,
+  "ios-otp": SmsOtpPanel,
+  demo: DemoPanel,
+  anonymous: AnonymousPanel,
+  "account-number": AccountNumberPanel,
+  agent: AgentPanel,
+};

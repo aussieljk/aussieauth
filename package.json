@@ -5,16 +5,23 @@
   "type": "module",
   "scripts": {
     "dev": "portless run vite",
+    "dev:backend": "convex dev",
     "build": "tsc && vite build",
     "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "auth:schema": "bun run scripts/generate-auth-schema.ts"
   },
   "dependencies": {
+    "@better-auth/api-key": "^1.6.23",
+    "@better-auth/passkey": "^1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
+    "@noble/curves": "^2.2.0",
     "better-auth": "~1.6.15",
+    "bs58": "^6.0.0",
     "convex": "^1.42.3",
     "frosted-ui": "^0.0.1-canary.153",
+    "jose": "^6.2.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

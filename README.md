@@ -1,63 +1,136 @@
 # AussieAuth
 
-A minimal Convex + Convex Auth starter: email/password sign-up, sign-in, and
-sign-out, and nothing else. React + Vite on the front, frosted-ui for the form.
+A self-hosted auth server on Convex + Better Auth, with sixteen sign-in methods
+and no consent screen of its own.
+
+The point: an app that uses AussieAuth talks to this Convex deployment straight
+from its own origin. There's no redirect to an AussieAuth-hosted page, so
+signing in with Google shows Google's consent screen and nothing else.
 
 ## Setup
 
 ```sh
 bun install
-bunx convex dev        # creates the Convex project, writes .env.local
-```
-
-Convex Auth needs a signing keypair. In a second terminal (leave `convex dev`
-running):
-
-```sh
-bunx @convex-dev/auth  # generates and sets JWT_PRIVATE_KEY + JWKS
+bunx convex dev                                    # creates the project, writes .env.local
+bunx convex env set BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
 bunx convex env set SITE_URL https://aussieauth.localhost
 bun dev
 ```
 
 `bun dev` runs vite through [portless](https://github.com/tobias-tengler/portless),
-which serves the app at `https://aussieauth.localhost`. Keep `SITE_URL` in sync
-with whatever origin you actually load — it's what Convex Auth uses for
-redirects.
+which serves the app at `https://aussieauth.localhost`. `SITE_URL` points at
+the *deployed* origin, not this one — it's the relying party id for passkeys and
+the base for emailed links, so it has to be the one real users are on. Local
+origins go in `TRUSTED_ORIGINS` instead.
+
+That's enough for every method that doesn't need a third party: email/password,
+username, passkeys, Solana, anonymous, account numbers, demo, and agent keys.
+Magic links and OTP codes work too — without `RESEND_API_KEY` the link or code
+is written to the Convex logs instead of an inbox.
+
+### Third-party credentials
+
+Each provider is registered only when its variables are set, and the sign-in
+card badges the rest as "needs setup". Set them with `bunx convex env set`.
+
+| Method            | Variables                                                               | Callback / redirect URL                                     |
+| ----------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Google, One Tap   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`                              | `https://<deployment>.convex.site/api/auth/callback/google` |
+| GitHub            | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`                              | `https://<deployment>.convex.site/api/auth/callback/github` |
+| Apple             | `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` | `https://<deployment>.convex.site/api/auth/callback/apple`  |
+| Email (links/OTP) | `RESEND_API_KEY`, `EMAIL_FROM`                                          | —                                                           |
+| SMS (OTP)         | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`        | —                                                           |
+
+Google One Tap also needs the client id on the frontend, as
+`VITE_GOOGLE_CLIENT_ID` in `.env.local`, plus your app origins listed under
+"Authorized JavaScript origins".
+
+#### Apple
+
+Apple is the fiddly one, for three reasons.
+
+**The client id is a Services ID, not the App ID.** Register one under
+Identifiers → Services IDs (`com.aussieauth.app` is fine), enable Sign In with
+Apple, and configure it with the callback URL above. That identifier is
+`APPLE_CLIENT_ID`.
+
+**The "client secret" is a JWT you sign, and Apple rejects one dated more than
+six months out.** So we don't store a secret at all — set the key material
+instead and `convex/lib/apple.ts` mints a fresh token per request:
+
+- `APPLE_TEAM_ID` — top right of the developer portal
+- `APPLE_KEY_ID` — from Keys → `+` → tick "Sign In with Apple"
+- `APPLE_PRIVATE_KEY` — the whole `.p8` file including the BEGIN/END lines.
+  Escaped `\n` are fine; they're unescaped before parsing.
+
+Set `APPLE_APP_BUNDLE_IDENTIFIER` too if a native iOS app will sign in with an
+id token.
+
+**Apple verifies the domain before it accepts a return URL,** and it won't take
+`localhost` or anything without TLS — so the return URL must be the
+`.convex.site` deployment, never the dev origin. Paste the file contents Apple
+gives you into `APPLE_DOMAIN_ASSOCIATION`; `convex/http.ts` serves it at
+`/.well-known/apple-developer-domain-association.txt` for the Verify button.
+
+### Using it from another app
+
+Add the app's origin to `TRUSTED_ORIGINS` (comma separated):
+
+```sh
+bunx convex env set TRUSTED_ORIGINS "https://myapp.com,http://localhost:3000"
+```
+
+Then in that app, point a Better Auth client at this deployment's `.convex.site`
+URL with the `crossDomainClient()` and `convexClient()` plugins — see
+`src/lib/auth-client.ts`. The app never redirects here.
 
 ## How it fits together
 
-- `convex/auth.ts` — `convexAuth()` with the `Password` provider. A custom
-  `profile` captures a name on sign-up. Also exports `requireUserId`, the
-  helper your own functions should use to scope data to a user.
-- `convex/auth.config.ts` — points Convex at its own site URL as the JWT
-  issuer. Without this, `ctx.auth.getUserIdentity()` is always `null`.
-- `convex/http.ts` — mounts the auth routes.
-- `convex/schema.ts` — spreads `authTables`. Add your tables here.
-- `src/main.tsx` — `ConvexAuthProvider` wraps the app; the client is created
-  with `expectAuth: true` so queries wait for the token.
-- `src/App.tsx` — `<Authenticated>` / `<Unauthenticated>` around a form that
-  calls `signIn("password", { email, password, flow })`.
+- `convex/auth.ts` — the whole Better Auth configuration: providers, plugins,
+  trusted origins. `createAuthOptions` is split out from `createAuth` because
+  the component directory needs the options without env-var access.
+- `convex/betterAuth/` — a **local install** of the Better Auth component. The
+  packaged component ships a fixed schema with no passkey, wallet or API-key
+  tables, so we own the schema instead.
+- `convex/lib/` — the plugins that aren't in Better Auth: Sign In With Solana,
+  Mullvad-style account numbers, and the shared demo account. Plus `notify.ts`,
+  which sends via Resend/Twilio or falls back to logging.
+- `convex/status.ts` — reports which credentials are set, so the UI can say
+  "needs setup" instead of failing on click.
+- `src/auth/providers.ts` — display metadata per method; `src/auth/panels.tsx` —
+  the matching behaviour; `src/auth/methods.ts` wires the two together by id.
+- `src/account/Account.tsx` — signed-in view: profile, passkey management, and
+  agent API keys.
 
-## Adding user-owned data
+### Changing the auth schema
 
-Store `Id<"users">` on your documents, not `identity.tokenIdentifier` — under
-Convex Auth the token identifier embeds the session id, so it changes on every
-sign-in and is useless as an owner key.
+Adding or removing a Better Auth plugin can change the tables it needs:
 
-```ts
-import { requireUserId } from "./auth";
-
-export const listMine = query({
-  args: {},
-  handler: async (ctx) => {
-    const userId = await requireUserId(ctx);
-    return await ctx.db
-      .query("things")
-      .withIndex("by_ownerId", (q) => q.eq("ownerId", userId))
-      .collect();
-  },
-});
+```sh
+bun run auth:schema     # regenerates convex/betterAuth/schema.ts from convex/auth.ts
 ```
+
+This replaces the documented `npx auth generate`, whose published CLI still
+targets Better Auth 1.4.
+
+## Method notes
+
+- **Solana** — Better Auth's `siwe` plugin only accepts `0x…` addresses, so
+  `convex/lib/solana.ts` implements Sign In With Solana directly. The server
+  composes the message and stores it; verification consumes it, so a signature
+  can't be replayed.
+- **Account numbers** — sign-up returns a 16-digit number once and stores it as
+  the user's `username`. There is no email, password or recovery path.
+- **SMS / email OTP** — the code fields use `autocomplete="one-time-code"`,
+  which is what makes iOS Passwords and Android offer the code above the
+  keyboard.
+- **Agent auth** — API keys, not sessions. Mint one on the account page; the
+  agent sends it as an `x-api-key` header.
+- **Passkeys** — bound to `SITE_URL`'s hostname as the relying party id. A
+  consumer app on a different domain needs its own registration.
+- **Apple** — `https://appleid.apple.com` is a permanent trusted origin,
+  because Apple returns its callback as a form POST and the browser sends
+  Apple's origin rather than ours.
 
 ## Gotcha worth knowing
 
