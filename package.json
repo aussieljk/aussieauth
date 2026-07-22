@@ -11,8 +11,8 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@auth/core": "0.41.1",
-    "@convex-dev/auth": "^0.0.94",
+    "@convex-dev/better-auth": "^0.12.5",
+    "better-auth": "~1.6.15",
     "convex": "^1.42.3",
     "frosted-ui": "^0.0.1-canary.153",
     "react": "^19.2.5",
