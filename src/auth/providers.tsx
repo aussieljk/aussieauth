@@ -1,21 +1,11 @@
 import type { ComponentType } from "react";
 import {
-  AccountNumberLogo,
   AgentLogo,
-  AnonymousLogo,
   AppleLogo,
-  DemoLogo,
-  EmailOtpLogo,
   GitHubLogo,
   GoogleLogo,
   GoogleOneTapLogo,
-  IosPasswordsLogo,
-  MagicLinkLogo,
-  MailLogo,
-  PasskeyLogo,
-  PhoneLogo,
   SolanaLogo,
-  UsernameLogo,
 } from "./logos";
 
 export type ProviderCategory =
@@ -49,9 +39,11 @@ export type Provider = {
   hint: string;
   category: ProviderCategory;
   form: ProviderForm;
-  Logo: ComponentType<{ size?: number; className?: string }>;
-  /** frosted-ui accent used when a variant tints this method. */
-  accent: "blue" | "gray" | "iris" | "jade" | "purple" | "amber" | "orange";
+  /**
+   * Only set for methods that have a real brand mark. Everything else renders
+   * as a plain label rather than an invented icon.
+   */
+  Logo?: ComponentType<{ size?: number; className?: string }>;
   /** Verb for the primary button, e.g. "Continue with Google". */
   cta?: string;
 };
@@ -65,7 +57,6 @@ export const PROVIDERS: Provider[] = [
     category: "social",
     form: "none",
     Logo: GoogleLogo,
-    accent: "blue",
   },
   {
     id: "google-one-tap",
@@ -75,7 +66,6 @@ export const PROVIDERS: Provider[] = [
     category: "social",
     form: "none",
     Logo: GoogleOneTapLogo,
-    accent: "blue",
     cta: "One Tap sign-in",
   },
   {
@@ -86,7 +76,6 @@ export const PROVIDERS: Provider[] = [
     category: "social",
     form: "none",
     Logo: GitHubLogo,
-    accent: "gray",
   },
   {
     id: "apple",
@@ -96,7 +85,6 @@ export const PROVIDERS: Provider[] = [
     category: "social",
     form: "none",
     Logo: AppleLogo,
-    accent: "gray",
   },
   {
     id: "solana",
@@ -106,7 +94,6 @@ export const PROVIDERS: Provider[] = [
     category: "wallet",
     form: "none",
     Logo: SolanaLogo,
-    accent: "purple",
     cta: "Connect wallet",
   },
   {
@@ -116,8 +103,6 @@ export const PROVIDERS: Provider[] = [
     hint: "Face ID, Touch ID or a security key",
     category: "passwordless",
     form: "none",
-    Logo: PasskeyLogo,
-    accent: "iris",
     cta: "Use a passkey",
   },
   {
@@ -127,8 +112,6 @@ export const PROVIDERS: Provider[] = [
     hint: "The classic credential pair",
     category: "password",
     form: "email-password",
-    Logo: MailLogo,
-    accent: "blue",
   },
   {
     id: "phone-password",
@@ -137,8 +120,6 @@ export const PROVIDERS: Provider[] = [
     hint: "Mobile number instead of an email address",
     category: "password",
     form: "phone-password",
-    Logo: PhoneLogo,
-    accent: "jade",
   },
   {
     id: "username-password",
@@ -147,8 +128,6 @@ export const PROVIDERS: Provider[] = [
     hint: "No email on file at all",
     category: "password",
     form: "username-password",
-    Logo: UsernameLogo,
-    accent: "amber",
   },
   {
     id: "magic-link",
@@ -157,8 +136,6 @@ export const PROVIDERS: Provider[] = [
     hint: "We email you a one-click sign-in link",
     category: "passwordless",
     form: "email-only",
-    Logo: MagicLinkLogo,
-    accent: "iris",
     cta: "Email me a link",
   },
   {
@@ -168,8 +145,6 @@ export const PROVIDERS: Provider[] = [
     hint: "Six digits sent to your inbox",
     category: "passwordless",
     form: "otp",
-    Logo: EmailOtpLogo,
-    accent: "iris",
     cta: "Send code",
   },
   {
@@ -179,8 +154,6 @@ export const PROVIDERS: Provider[] = [
     hint: "Autofilled from the iOS Passwords app",
     category: "passwordless",
     form: "otp",
-    Logo: IosPasswordsLogo,
-    accent: "gray",
     cta: "Autofill code",
   },
   {
@@ -190,8 +163,6 @@ export const PROVIDERS: Provider[] = [
     hint: "Prefilled sandbox data, resets nightly",
     category: "instant",
     form: "none",
-    Logo: DemoLogo,
-    accent: "jade",
     cta: "Try the demo",
   },
   {
@@ -201,8 +172,6 @@ export const PROVIDERS: Provider[] = [
     hint: "A throwaway session you can upgrade later",
     category: "instant",
     form: "none",
-    Logo: AnonymousLogo,
-    accent: "gray",
     cta: "Continue anonymously",
   },
   {
@@ -212,8 +181,6 @@ export const PROVIDERS: Provider[] = [
     hint: "Mullvad-style — we generate a number, you keep it",
     category: "instant",
     form: "token",
-    Logo: AccountNumberLogo,
-    accent: "orange",
     cta: "Generate an account",
   },
   {
@@ -224,7 +191,6 @@ export const PROVIDERS: Provider[] = [
     category: "machine",
     form: "token",
     Logo: AgentLogo,
-    accent: "orange",
     cta: "Authorise agent",
   },
 ];
@@ -234,7 +200,7 @@ export const CATEGORY_LABEL: Record<ProviderCategory, string> = {
   wallet: "Wallet",
   password: "Password",
   passwordless: "Passwordless",
-  instant: "Instant",
+  instant: "No account needed",
   machine: "Machine",
 };
 
@@ -257,3 +223,18 @@ export const byCategory = (category: ProviderCategory): Provider[] =>
 /** The button label a variant should use for a given method. */
 export const ctaFor = (p: Provider): string =>
   p.cta ?? `Continue with ${p.label}`;
+
+/**
+ * Renders a provider's mark, or nothing when the method has no real logo.
+ * Keeps `{provider.Logo && …}` out of every layout.
+ */
+export function ProviderMark({
+  provider,
+  size = 18,
+}: {
+  provider: Provider;
+  size?: number;
+}) {
+  if (!provider.Logo) return null;
+  return <provider.Logo size={size} />;
+}

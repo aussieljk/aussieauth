@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Callout, OTPField, Spinner, Text, TextField } from "frosted-ui";
-import { ctaFor, type Provider } from "./providers";
+import { ctaFor, ProviderMark, type Provider } from "./providers";
 
 /**
  * Fake sign-in state. Every variant is a mock, so "submitting" just spins for a
@@ -186,7 +186,7 @@ export function MethodForm({
       {/* frosted-ui buttons wrap Base UI, which defaults to type="button" —
           without this the form never submits. */}
       <Button type="submit" variant="classic" size={size} disabled={status === "pending"}>
-        {status === "pending" ? <Spinner /> : <provider.Logo size={16} />}
+        {status === "pending" ? <Spinner /> : <ProviderMark provider={provider} size={16} />}
         {ctaFor(provider)}
       </Button>
     </form>
