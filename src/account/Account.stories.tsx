@@ -13,11 +13,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Passkeys and agent keys are plain fetches, not Convex subscriptions. */
+/**
+ * Passkeys and agent keys are plain fetches, not Convex subscriptions.
+ * Passkeys arrive already named by the authenticator; keys are numbered, and
+ * the create button always offers the next free number.
+ */
 export const Loaded: Story = {
   play: async ({ canvas }) => {
-    await expect(await canvas.findByText("MacBook")).toBeVisible();
-    await expect(await canvas.findByText("Deploy bot")).toBeVisible();
+    await expect(await canvas.findByText("iCloud Keychain")).toBeVisible();
+    await expect(await canvas.findByText("Key 2")).toBeVisible();
+    await expect(
+      await canvas.findByRole("button", { name: "Create key 3" }),
+    ).toBeVisible();
   },
 };
 

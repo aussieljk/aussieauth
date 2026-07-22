@@ -97,11 +97,18 @@ export function SolanaPanel() {
   );
 }
 
+/**
+ * A method that starts from an address or handle. The sign-in screen passes
+ * one when a returning account's saved session has lapsed, so you land on the
+ * form already knowing who you are.
+ */
+export type PanelProps = { prefill?: string };
+
 /** Email + password, with a create-account mode. */
-export function EmailPasswordPanel() {
+export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
   const { pending, error, notice, run } = useRunner();
   const [creating, setCreating] = useState(false);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefill);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
@@ -158,10 +165,10 @@ export function EmailPasswordPanel() {
   );
 }
 
-export function UsernamePasswordPanel() {
+export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
   const { pending, error, run } = useRunner();
   const [creating, setCreating] = useState(false);
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(prefill);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
 
@@ -219,9 +226,9 @@ export function UsernamePasswordPanel() {
   );
 }
 
-export function PhonePasswordPanel() {
+export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
   const { pending, error, run } = useRunner();
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(prefill);
   const [password, setPassword] = useState("");
 
   return (
@@ -261,9 +268,9 @@ export function PhonePasswordPanel() {
   );
 }
 
-export function MagicLinkPanel() {
+export function MagicLinkPanel({ prefill = "" }: PanelProps) {
   const { pending, error, notice, run } = useRunner();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefill);
 
   return (
     <div className="flex flex-col gap-3">
@@ -304,6 +311,7 @@ function OtpPanel({
   placeholder,
   autoComplete,
   type,
+  prefill,
   send,
   verify,
 }: {
@@ -311,11 +319,12 @@ function OtpPanel({
   placeholder: string;
   autoComplete: string;
   type: string;
+  prefill?: string;
   send: (identity: string) => Promise<unknown>;
   verify: (identity: string, code: string) => Promise<unknown>;
 }) {
   const { pending, error, notice, run } = useRunner();
-  const [identity, setIdentity] = useState("");
+  const [identity, setIdentity] = useState(prefill ?? "");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
 
@@ -363,13 +372,14 @@ function OtpPanel({
   );
 }
 
-export function EmailOtpPanel() {
+export function EmailOtpPanel({ prefill }: PanelProps) {
   return (
     <OtpPanel
       label="Email"
       type="email"
       autoComplete="username"
       placeholder="you@example.com"
+      prefill={prefill}
       send={(email) =>
         authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" })
       }
@@ -378,13 +388,14 @@ export function EmailOtpPanel() {
   );
 }
 
-export function SmsOtpPanel() {
+export function SmsOtpPanel({ prefill }: PanelProps) {
   return (
     <OtpPanel
       label="Phone number"
       type="tel"
       autoComplete="tel"
       placeholder="+61 400 000 000"
+      prefill={prefill}
       send={(phoneNumber) => authClient.phoneNumber.sendOtp({ phoneNumber })}
       verify={(phoneNumber, code) =>
         authClient.phoneNumber.verify({ phoneNumber, code })

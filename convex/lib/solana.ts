@@ -1,5 +1,9 @@
-import type { BetterAuthPlugin } from "better-auth";
-import { APIError, createAuthEndpoint } from "better-auth/api";
+import type { BetterAuthPlugin, GenericEndpointContext } from "better-auth";
+import {
+  APIError,
+  createAuthEndpoint,
+  sessionMiddleware,
+} from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { ed25519 } from "@noble/curves/ed25519.js";
@@ -49,6 +53,35 @@ const verifySignature = (
   }
 };
 
+const walletBody = z.object({
+  address: z.string().min(32).max(64),
+  signature: z.string(),
+});
+
+/**
+ * Consumes the outstanding challenge for `address` and checks the signature
+ * against it. Shared by sign-in and by linking a wallet to an existing user,
+ * because "prove you hold this key" is the same proof either way.
+ */
+const proveOwnership = async (
+  ctx: GenericEndpointContext,
+  { address, signature }: { address: string; signature: string },
+) => {
+  const challenge = await ctx.context.internalAdapter.consumeVerificationValue(
+    identifier(address),
+  );
+  if (!challenge) {
+    throw new APIError("UNAUTHORIZED", {
+      message: "Challenge expired — try again",
+    });
+  }
+  if (!verifySignature(challenge.value, signature, address)) {
+    throw new APIError("UNAUTHORIZED", {
+      message: "Signature doesn't match that wallet",
+    });
+  }
+};
+
 export const solana = ({ domain }: { domain: string }) =>
   ({
     id: "solana",
@@ -89,30 +122,10 @@ export const solana = ({ domain }: { domain: string }) =>
 
       signInSolana: createAuthEndpoint(
         "/sign-in/solana",
-        {
-          method: "POST",
-          body: z.object({
-            address: z.string().min(32).max(64),
-            signature: z.string(),
-          }),
-        },
+        { method: "POST", body: walletBody },
         async (ctx) => {
-          const { address, signature } = ctx.body;
-
-          const challenge =
-            await ctx.context.internalAdapter.consumeVerificationValue(
-              identifier(address),
-            );
-          if (!challenge) {
-            throw new APIError("UNAUTHORIZED", {
-              message: "Challenge expired — try again",
-            });
-          }
-          if (!verifySignature(challenge.value, signature, address)) {
-            throw new APIError("UNAUTHORIZED", {
-              message: "Signature doesn't match that wallet",
-            });
-          }
+          const { address } = ctx.body;
+          await proveOwnership(ctx, ctx.body);
 
           const wallet = await ctx.context.adapter.findOne<{ userId: string }>({
             model: "solanaWallet",
@@ -142,6 +155,75 @@ export const solana = ({ domain }: { domain: string }) =>
           );
           await setSessionCookie(ctx, { session, user });
           return ctx.json({ token: session.token, user });
+        },
+      ),
+
+      /**
+       * The same proof, but attached to whoever is already signed in — this is
+       * how a Google account grows a wallet instead of becoming a second user.
+       */
+      linkSolana: createAuthEndpoint(
+        "/solana/link",
+        { method: "POST", body: walletBody, use: [sessionMiddleware] },
+        async (ctx) => {
+          const { address } = ctx.body;
+          await proveOwnership(ctx, ctx.body);
+
+          const taken = await ctx.context.adapter.findOne<{ userId: string }>({
+            model: "solanaWallet",
+            where: [{ field: "address", value: address }],
+          });
+          if (taken && taken.userId !== ctx.context.session.user.id) {
+            throw new APIError("CONFLICT", {
+              message: "That wallet already belongs to another account",
+            });
+          }
+          if (!taken) {
+            await ctx.context.adapter.create({
+              model: "solanaWallet",
+              data: {
+                userId: ctx.context.session.user.id,
+                address,
+                createdAt: new Date(),
+              },
+            });
+          }
+          return ctx.json({ address });
+        },
+      ),
+
+      listSolana: createAuthEndpoint(
+        "/solana/list",
+        { method: "GET", use: [sessionMiddleware] },
+        async (ctx) =>
+          ctx.json(
+            await ctx.context.adapter.findMany<{ id: string; address: string }>(
+              {
+                model: "solanaWallet",
+                where: [
+                  { field: "userId", value: ctx.context.session.user.id },
+                ],
+              },
+            ),
+          ),
+      ),
+
+      unlinkSolana: createAuthEndpoint(
+        "/solana/unlink",
+        {
+          method: "POST",
+          body: z.object({ address: z.string() }),
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          await ctx.context.adapter.deleteMany({
+            model: "solanaWallet",
+            where: [
+              { field: "userId", value: ctx.context.session.user.id },
+              { field: "address", value: ctx.body.address },
+            ],
+          });
+          return ctx.json({ status: true });
         },
       ),
     },

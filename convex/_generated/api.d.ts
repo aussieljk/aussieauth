@@ -13,6 +13,7 @@ import type * as http from "../http.js";
 import type * as lib_accountNumber from "../lib/accountNumber.js";
 import type * as lib_apple from "../lib/apple.js";
 import type * as lib_demo from "../lib/demo.js";
+import type * as lib_linking from "../lib/linking.js";
 import type * as lib_notify from "../lib/notify.js";
 import type * as lib_solana from "../lib/solana.js";
 import type * as status from "../status.js";
@@ -30,6 +31,7 @@ declare const fullApi: ApiFromModules<{
   "lib/accountNumber": typeof lib_accountNumber;
   "lib/apple": typeof lib_apple;
   "lib/demo": typeof lib_demo;
+  "lib/linking": typeof lib_linking;
   "lib/notify": typeof lib_notify;
   "lib/solana": typeof lib_solana;
   status: typeof status;

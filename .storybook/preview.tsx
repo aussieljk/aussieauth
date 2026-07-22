@@ -3,7 +3,10 @@ import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { Theme } from "frosted-ui";
 import { initialize, mswLoader } from "msw-storybook-addon";
 import "../src/index.css";
-import { PENDING_ACCOUNT_NUMBER } from "../src/lib/storage";
+import {
+  PENDING_ACCOUNT_NUMBER,
+  REMEMBERED_ACCOUNTS,
+} from "../src/lib/storage";
 
 initialize({ onUnhandledRequest: "bypass" });
 
@@ -17,7 +20,7 @@ const preview: Preview = {
   decorators: [
     (Story) => (
       // The theme `App` mounts, so frosted-ui tokens like `--gray-11` resolve.
-      <Theme appearance="light" accentColor="indigo" grayColor="slate">
+      <Theme appearance="dark" accentColor="indigo" grayColor="slate">
         <ConvexProvider client={convex}>
           <Story />
         </ConvexProvider>
@@ -26,10 +29,12 @@ const preview: Preview = {
   ],
   loaders: [mswLoader],
   async beforeEach() {
-    // The only browser-state key the app reads at render.
+    // The browser-state keys the app reads at render.
     localStorage.removeItem(PENDING_ACCOUNT_NUMBER);
+    localStorage.removeItem(REMEMBERED_ACCOUNTS);
   },
   parameters: {
+    backgrounds: { default: "dark" },
     controls: {
       matchers: {
         color: /(background|color)$/i,

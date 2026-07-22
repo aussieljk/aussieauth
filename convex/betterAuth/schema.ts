@@ -26,6 +26,7 @@ export const tables = {
     phoneNumber: v.optional(v.union(v.null(), v.string())),
     phoneNumberVerified: v.optional(v.union(v.null(), v.boolean())),
     isAnonymous: v.optional(v.union(v.null(), v.boolean())),
+    lastLoginMethod: v.optional(v.union(v.null(), v.string())),
     userId: v.optional(v.union(v.null(), v.string())),
   })
     .index("email_name", ["email", "name"])

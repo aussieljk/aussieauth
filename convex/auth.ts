@@ -1,11 +1,12 @@
 import { apiKey } from "@better-auth/api-key";
-import { passkey } from "@better-auth/passkey";
+import { getAuthenticatorName, passkey } from "@better-auth/passkey";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
 import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
 import {
   anonymous,
   emailOTP,
+  lastLoginMethod,
   magicLink,
   oneTap,
   phoneNumber,
@@ -18,6 +19,7 @@ import authSchema from "./betterAuth/schema";
 import { accountNumber } from "./lib/accountNumber";
 import { appleClientSecret } from "./lib/apple";
 import { demo } from "./lib/demo";
+import { linking } from "./lib/linking";
 import { sendEmail, sendSms } from "./lib/notify";
 import { solana } from "./lib/solana";
 
@@ -49,6 +51,73 @@ const hostname = (url: string) => {
   } catch {
     return "localhost";
   }
+};
+
+/**
+ * "Safari on macOS" from a User-Agent string — the fallback label for a
+ * passkey whose authenticator didn't identify itself. Deliberately coarse:
+ * it only has to tell two of your devices apart in a list.
+ */
+const describeClient = (ua: string | null | undefined) => {
+  if (!ua) return "Passkey";
+  const os = /iPhone|iPad/.test(ua)
+    ? "iOS"
+    : /Android/.test(ua)
+      ? "Android"
+      : /Mac OS X/.test(ua)
+        ? "macOS"
+        : /Windows/.test(ua)
+          ? "Windows"
+          : /Linux/.test(ua)
+            ? "Linux"
+            : null;
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /OPR\//.test(ua)
+      ? "Opera"
+      : /Firefox\//.test(ua)
+        ? "Firefox"
+        : /Chrome\//.test(ua)
+          ? "Chrome"
+          : /Safari\//.test(ua)
+            ? "Safari"
+            : null;
+  if (browser && os) return `${browser} on ${os}`;
+  return browser ?? os ?? "Passkey";
+};
+
+/**
+ * Which of our sixteen methods a request represents. The stock resolver only
+ * knows the handful Better Auth ships, and answers in its own vocabulary; this
+ * covers every endpoint and answers in `PROVIDERS` ids, so the sign-in screen
+ * can offer a returning account the exact button it used last time.
+ */
+const LOGIN_METHOD_PATHS: Record<string, string> = {
+  "/sign-in/email": "email-password",
+  "/sign-up/email": "email-password",
+  "/sign-in/username": "username-password",
+  "/sign-in/phone-number": "phone-password",
+  "/phone-number/verify": "ios-otp",
+  "/sign-in/email-otp": "email-otp",
+  "/magic-link/verify": "magic-link",
+  "/passkey/verify-authentication": "passkey",
+  "/sign-in/solana": "solana",
+  "/sign-in/anonymous": "anonymous",
+  "/sign-in/demo": "demo",
+  "/sign-in/account-number": "account-number",
+  "/sign-up/account-number": "account-number",
+  "/one-tap/callback": "google-one-tap",
+};
+
+const resolveLoginMethod = (ctx: { path?: string; params?: unknown }) => {
+  const path = ctx.path;
+  if (!path) return null;
+  if (path.startsWith("/callback/") || path.startsWith("/oauth2/callback/")) {
+    const params = ctx.params as
+      { id?: string; providerId?: string } | undefined;
+    return params?.id ?? params?.providerId ?? path.split("/").pop() ?? null;
+  }
+  return LOGIN_METHOD_PATHS[path] ?? null;
 };
 
 /** Only register a social provider when its credentials are actually set. */
@@ -108,9 +177,15 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     database: authComponent.adapter(ctx),
 
     // Signing in with Google and later with GitHub on the same address should
-    // land on one account, not a duplicate-email error.
+    // land on one account, not a duplicate-email error. `trustedProviders` is
+    // what makes that merge happen automatically at sign-in rather than only
+    // through an explicit link from the account page.
     account: {
-      accountLinking: { enabled: true, allowDifferentEmails: true },
+      accountLinking: {
+        enabled: true,
+        allowDifferentEmails: true,
+        trustedProviders: ["google", "github", "apple", "email-password"],
+      },
     },
 
     emailAndPassword: {
@@ -179,6 +254,17 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       passkey({
         rpID: hostname(siteUrl),
         rpName: "AussieAuth",
+        registration: {
+          // Nobody should have to name their own passkey. The authenticator
+          // says what it is in the AAGUID; when it doesn't (Apple zeroes it
+          // under `attestation: "none"`) the browser's UA is the next best
+          // description of where the key ended up.
+          afterVerification: ({ ctx, verification }) => ({
+            name:
+              getAuthenticatorName(verification.registrationInfo?.aaguid) ??
+              describeClient(ctx.headers?.get("user-agent")),
+          }),
+        },
       }),
       oneTap(),
 
@@ -192,6 +278,15 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
 
       // Machine.
       apiKey({ defaultPrefix: "aussie_" }),
+
+      // Growing one account extra credentials rather than making a new user.
+      linking(),
+      // Recorded on the user row (not just a cookie) so the sign-in screen can
+      // offer a returning account the method it actually used last time.
+      lastLoginMethod({
+        storeInDatabase: true,
+        customResolveMethod: resolveLoginMethod,
+      }),
 
       crossDomain({ siteUrl }),
       convex({ authConfig }),

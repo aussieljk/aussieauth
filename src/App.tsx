@@ -1,22 +1,18 @@
-import { Authenticated, AuthLoading, Unauthenticated } from "convex/react";
-import { Spinner, Theme } from "frosted-ui";
+import { useConvexAuth } from "convex/react";
+import { Theme } from "frosted-ui";
 import { Account } from "./account/Account";
 import { SignIn } from "./auth/SignIn";
+import { useRememberSignedInAccount } from "./lib/rememberedAccounts";
 
 export default function App() {
+  // `useConvexAuth` rather than `<AuthLoading>`: while auth is settling we want
+  // the sign-in form itself on screen, not a spinner standing in for it.
+  const { isAuthenticated } = useConvexAuth();
+  useRememberSignedInAccount(isAuthenticated);
+
   return (
-    <Theme appearance="light" accentColor="indigo" grayColor="slate">
-      <AuthLoading>
-        <div className="flex min-h-screen items-center justify-center">
-          <Spinner size="3" />
-        </div>
-      </AuthLoading>
-      <Unauthenticated>
-        <SignIn />
-      </Unauthenticated>
-      <Authenticated>
-        <Account />
-      </Authenticated>
+    <Theme appearance="dark" accentColor="indigo" grayColor="slate">
+      {isAuthenticated ? <Account /> : <SignIn />}
     </Theme>
   );
 }

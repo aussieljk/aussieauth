@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
+import { RememberedAccounts } from "./RememberedAccounts";
 import { useRunner } from "./useRunner";
 import { authClient } from "@/lib/auth-client";
 import { BigButton, Feedback } from "./ui";
@@ -19,16 +20,29 @@ const REST: Provider[] = PROVIDERS.filter(
 );
 
 /**
- * The sign-in card. The front shows the three social buttons plus the email
- * form; picking anything from "more ways to sign in" swaps the body for that
- * method's panel.
+ * Whether One Tap can prompt at all. Read from the bundle rather than from
+ * `api.status.setup`, because a Convex query resolves a beat after first paint
+ * — and a button that appears late shoves everything under it down the page.
+ */
+const ONE_TAP_AVAILABLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
+/**
+ * The sign-in card. The front shows any accounts this browser already knows,
+ * then the three social buttons plus the email form; picking anything from
+ * "more ways to sign in" swaps the body for that method's panel.
  */
 export function SignIn() {
   const [method, setMethod] = useState<string | null>(null);
+  const [prefill, setPrefill] = useState("");
   const setup = useQuery(api.status.setup);
 
   const needsSetup = (id: string) =>
     setup !== undefined && id in setup && !setup[id as keyof typeof setup];
+
+  const open = (id: string, withPrefill = "") => {
+    setPrefill(withPrefill);
+    setMethod(id);
+  };
 
   if (method) {
     const provider = byId(method);
@@ -49,7 +63,7 @@ export function SignIn() {
           </Heading>
         </div>
         {needsSetup(method) && <SetupHint id={method} />}
-        <Panel />
+        <Panel prefill={prefill} />
       </Shell>
     );
   }
@@ -63,11 +77,13 @@ export function SignIn() {
         </Text>
       </div>
 
+      <RememberedAccounts onNeedsPanel={open} />
+
       <div className="flex flex-col gap-2">
         {FEATURED.map((id) => (
           <SocialButton key={id} id={id} disabled={needsSetup(id)} />
         ))}
-        {setup?.google && <OneTapButton />}
+        {ONE_TAP_AVAILABLE && <OneTapButton />}
       </div>
 
       <OrDivider label="or continue with email" />
@@ -81,7 +97,7 @@ export function SignIn() {
           <button
             key={p.id}
             type="button"
-            onClick={() => setMethod(p.id)}
+            onClick={() => open(p.id)}
             className="flex items-center gap-1.5 text-[13px] text-[var(--gray-11)] underline decoration-[var(--gray-a6)] underline-offset-4 transition-colors hover:text-[var(--gray-12)]"
           >
             {p.Logo && <p.Logo size={13} />}

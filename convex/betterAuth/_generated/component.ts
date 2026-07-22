@@ -37,6 +37,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified: boolean;
                   image?: null | string;
                   isAnonymous?: null | boolean;
+                  lastLoginMethod?: null | string;
                   name: string;
                   phoneNumber?: null | string;
                   phoneNumberVerified?: null | boolean;
@@ -166,6 +167,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "phoneNumber"
                     | "phoneNumberVerified"
                     | "isAnonymous"
+                    | "lastLoginMethod"
                     | "userId"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
@@ -478,6 +480,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "phoneNumber"
                     | "phoneNumberVerified"
                     | "isAnonymous"
+                    | "lastLoginMethod"
                     | "userId"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
@@ -862,6 +865,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified?: boolean;
                   image?: null | string;
                   isAnonymous?: null | boolean;
+                  lastLoginMethod?: null | string;
                   name?: string;
                   phoneNumber?: null | string;
                   phoneNumberVerified?: null | boolean;
@@ -883,6 +887,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "phoneNumber"
                     | "phoneNumberVerified"
                     | "isAnonymous"
+                    | "lastLoginMethod"
                     | "userId"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
@@ -1264,6 +1269,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   emailVerified?: boolean;
                   image?: null | string;
                   isAnonymous?: null | boolean;
+                  lastLoginMethod?: null | string;
                   name?: string;
                   phoneNumber?: null | string;
                   phoneNumberVerified?: null | boolean;
@@ -1285,6 +1291,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "phoneNumber"
                     | "phoneNumberVerified"
                     | "isAnonymous"
+                    | "lastLoginMethod"
                     | "userId"
                     | "_id";
                   mode?: "sensitive" | "insensitive";

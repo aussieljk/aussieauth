@@ -126,8 +126,10 @@ export const PROVIDERS: Provider[] = [
   },
 ];
 
-export const byId = (id: string): Provider =>
-  PROVIDERS.find((p) => p.id === id) ?? PROVIDERS[0];
+export const tryById = (id: string | null | undefined): Provider | undefined =>
+  PROVIDERS.find((p) => p.id === id);
+
+export const byId = (id: string): Provider => tryById(id) ?? PROVIDERS[0];
 
 /** The button label a panel should use for a given method. */
 export const ctaFor = (p: Provider): string =>

@@ -48,17 +48,28 @@ export const mswHandlers = {
     ),
   ],
   account: [
+    // Names come from the authenticator's AAGUID, not from the user.
     http.get(auth("passkey/list-user-passkeys"), () =>
       HttpResponse.json([
-        { id: "pk_1", name: "MacBook" },
-        { id: "pk_2", name: "iPhone" },
+        { id: "pk_1", name: "iCloud Keychain" },
+        { id: "pk_2", name: "Chrome on macOS" },
       ]),
     ),
     // `apiKey.list` answers with a paginated envelope, not a bare array.
     http.get(auth("api-key/list"), () =>
       HttpResponse.json({
-        apiKeys: [{ id: "key_1", name: "Deploy bot", start: "aa_9f2c" }],
+        apiKeys: [
+          { id: "key_1", name: "1", start: "aa_9f2c" },
+          { id: "key_2", name: "2", start: "aa_3d81" },
+        ],
       }),
     ),
+    http.get(auth("list-accounts"), () =>
+      HttpResponse.json([
+        { id: "acc_1", providerId: "google", accountId: "g_1" },
+        { id: "acc_2", providerId: "credential", accountId: "user_storybook" },
+      ]),
+    ),
+    http.get(auth("solana/list"), () => HttpResponse.json([])),
   ],
 };

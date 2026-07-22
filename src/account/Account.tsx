@@ -12,10 +12,12 @@ import {
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { authClient } from "@/lib/auth-client";
-import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
+import { forgetRemembered, localSignOut } from "@/lib/rememberedAccounts";
+import { AUTH_COOKIE, PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
 import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
-import { Feedback, Field, PanelForm, Submit } from "@/auth/ui";
+import { Feedback } from "@/auth/ui";
+import { SignInMethods } from "./SignInMethods";
 
 /** What you see once you're in: who you are, and the credentials you can add. */
 export function Account() {
@@ -23,15 +25,31 @@ export function Account() {
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col gap-5 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <Heading size="6">Your account</Heading>
-        <Button
-          variant="surface"
-          size="2"
-          onClick={() => void authClient.signOut()}
-        >
-          Sign out
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* Leaves the session valid so this account stays one click away on
+              the sign-in screen. "Sign out everywhere" is the real revoke. */}
+          <Button variant="surface" size="2" onClick={localSignOut}>
+            Sign out
+          </Button>
+          <Button
+            variant="ghost"
+            size="2"
+            color="gray"
+            onClick={() =>
+              void forgetRemembered({
+                id: user?._id ?? "",
+                name: user?.name ?? "",
+                email: user?.email ?? "",
+                cookie: localStorage.getItem(AUTH_COOKIE) ?? undefined,
+                savedAt: Date.now(),
+              })
+            }
+          >
+            Sign out everywhere
+          </Button>
+        </div>
       </div>
 
       <AccountNumberReveal />
@@ -64,6 +82,7 @@ export function Account() {
         )}
       </Card>
 
+      <SignInMethods user={user ?? null} />
       <Passkeys />
       <AgentKeys />
     </div>
@@ -131,14 +150,18 @@ function AccountNumberReveal() {
   );
 }
 
-type Passkey = { id: string; name?: string | null };
+type Passkey = { id: string; name?: string | null; createdAt?: string | Date };
 
 const listPasskeys = () => authClient.passkey.listUserPasskeys();
 
+/**
+ * Passkeys name themselves. The authenticator identifies itself in the AAGUID
+ * it returns at registration, and the server turns that into a label — see the
+ * `registration.afterVerification` hook in convex/auth.ts. Nothing to type.
+ */
 function Passkeys() {
   const { pending, error, run } = useRunner();
   const { items: passkeys, reload } = useRemoteList<Passkey>(listPasskeys);
-  const [name, setName] = useState("");
 
   return (
     <Card size="3">
@@ -154,11 +177,12 @@ function Passkeys() {
             key={passkey.id}
             className="flex items-center justify-between gap-3"
           >
-            <Text size="2">{passkey.name || "Unnamed passkey"}</Text>
+            <Text size="2">{passkey.name || "Passkey"}</Text>
             <Button
               variant="ghost"
               size="1"
               color="red"
+              disabled={pending}
               onClick={() =>
                 void run(() =>
                   authClient.passkey.deletePasskey({ id: passkey.id }),
@@ -172,24 +196,17 @@ function Passkeys() {
 
         <Separator className="w-full" />
 
-        <PanelForm
-          onSubmit={() =>
-            void run(() =>
-              authClient.passkey.addPasskey({ name: name || "Passkey" }),
-            ).then(() => {
-              setName("");
-              reload();
-            })
+        <Button
+          variant="surface"
+          size="2"
+          className="self-start"
+          disabled={pending}
+          onClick={() =>
+            void run(() => authClient.passkey.addPasskey()).then(reload)
           }
         >
-          <Field
-            label="Name this passkey"
-            value={name}
-            placeholder="MacBook"
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Submit pending={pending}>Add a passkey</Submit>
-        </PanelForm>
+          Add a passkey
+        </Button>
         <Feedback error={error} />
       </div>
     </Card>
@@ -205,13 +222,25 @@ const listApiKeys = async () => {
 };
 
 /**
+ * Keys are numbered, not named: the next one is always one past the highest
+ * number in use, so revoking key 2 leaves 1 and 3 alone rather than handing
+ * the number out twice.
+ */
+const nextKeyName = (keys: ApiKey[]) =>
+  String(
+    keys.reduce((highest, key) => {
+      const n = Number(key.name);
+      return Number.isInteger(n) && n > highest ? n : highest;
+    }, 0) + 1,
+  );
+
+/**
  * Agent auth. A key is shown once at creation; agents send it as an
  * `x-api-key` header and Better Auth resolves it to this user's session.
  */
 function AgentKeys() {
   const { pending, error, run } = useRunner();
   const { items: keys, reload } = useRemoteList<ApiKey>(listApiKeys);
-  const [name, setName] = useState("");
   const [fresh, setFresh] = useState<string | null>(null);
 
   return (
@@ -237,7 +266,7 @@ function AgentKeys() {
         {keys.map((key) => (
           <div key={key.id} className="flex items-center justify-between gap-3">
             <Text size="2">
-              {key.name || "Unnamed key"}{" "}
+              Key {key.name}{" "}
               <Text size="1" color="gray">
                 {key.start ? `${key.start}…` : ""}
               </Text>
@@ -246,6 +275,7 @@ function AgentKeys() {
               variant="ghost"
               size="1"
               color="red"
+              disabled={pending}
               onClick={() =>
                 void run(() =>
                   authClient.apiKey.delete({ keyId: key.id }),
@@ -259,27 +289,24 @@ function AgentKeys() {
 
         <Separator className="w-full" />
 
-        <PanelForm
-          onSubmit={() =>
+        <Button
+          variant="surface"
+          size="2"
+          className="self-start"
+          disabled={pending}
+          onClick={() =>
             void run(async () => {
               const { data, error } = await authClient.apiKey.create({
-                name: name || "Agent",
+                name: nextKeyName(keys),
               });
               if (error) return { error };
               setFresh(data.key);
-              setName("");
               reload();
             })
           }
         >
-          <Field
-            label="Name this key"
-            value={name}
-            placeholder="Deploy bot"
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Submit pending={pending}>Create key</Submit>
-        </PanelForm>
+          Create key {nextKeyName(keys)}
+        </Button>
         <Feedback error={error} />
       </div>
     </Card>

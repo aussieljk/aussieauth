@@ -16,6 +16,7 @@ import {
 import { createAuthClient } from "better-auth/react";
 import type { accountNumber } from "@/convex/lib/accountNumber";
 import type { demo } from "@/convex/lib/demo";
+import type { linking } from "@/convex/lib/linking";
 import type { solana } from "@/convex/lib/solana";
 
 /**
@@ -49,7 +50,16 @@ const solanaClient = () =>
     pathMethods: {
       "/solana/challenge": "POST",
       "/sign-in/solana": "POST",
+      "/solana/link": "POST",
+      "/solana/unlink": "POST",
     },
+  }) satisfies BetterAuthClientPlugin;
+
+const linkingClient = () =>
+  ({
+    id: "linking",
+    $InferServerPlugin: {} as ReturnType<typeof linking>,
+    pathMethods: { "/linking/set-password": "POST" },
   }) satisfies BetterAuthClientPlugin;
 
 /**
@@ -69,6 +79,7 @@ export const authClient = createAuthClient({
     anonymousClient(),
     accountNumberClient(),
     demoClient(),
+    linkingClient(),
     apiKeyClient(),
     // Registered unconditionally so the client's type stays stable; the UI
     // hides the One Tap entry when there's no client id to prompt with.

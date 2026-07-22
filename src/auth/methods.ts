@@ -11,6 +11,7 @@ import {
   GooglePanel,
   MagicLinkPanel,
   OneTapPanel,
+  type PanelProps,
   PasskeyPanel,
   PhonePasswordPanel,
   SmsOtpPanel,
@@ -19,7 +20,7 @@ import {
 } from "./panels";
 
 /** Provider id → the panel that drives it. Mirrors `PROVIDERS` in providers.ts. */
-export const PANELS: Record<string, ComponentType> = {
+export const PANELS: Record<string, ComponentType<PanelProps>> = {
   google: GooglePanel,
   "google-one-tap": OneTapPanel,
   github: GitHubPanel,

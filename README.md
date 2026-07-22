@@ -93,14 +93,17 @@ URL with the `crossDomainClient()` and `convexClient()` plugins — see
   packaged component ships a fixed schema with no passkey, wallet or API-key
   tables, so we own the schema instead.
 - `convex/lib/` — the plugins that aren't in Better Auth: Sign In With Solana,
-  Mullvad-style account numbers, and the shared demo account. Plus `notify.ts`,
+  Mullvad-style account numbers, the shared demo account, and `linking.ts`
+  (adding a password to an account that arrived without one). Plus `notify.ts`,
   which sends via Resend/Twilio or falls back to logging.
 - `convex/status.ts` — reports which credentials are set, so the UI can say
   "needs setup" instead of failing on click.
 - `src/auth/providers.ts` — display metadata per method; `src/auth/panels.tsx` —
   the matching behaviour; `src/auth/methods.ts` wires the two together by id.
-- `src/account/Account.tsx` — signed-in view: profile, passkey management, and
-  agent API keys.
+- `src/account/Account.tsx` — signed-in view: profile, passkeys and agent API
+  keys; `src/account/SignInMethods.tsx` — linking extra credentials onto the
+  account you're already signed in as.
+- `src/lib/rememberedAccounts.ts` — the returning-account chooser (below).
 
 ### Changing the auth schema
 
@@ -131,6 +134,29 @@ targets Better Auth 1.4.
 - **Apple** — `https://appleid.apple.com` is a permanent trusted origin,
   because Apple returns its callback as a form POST and the browser sends
   Apple's origin rather than ours.
+- **Passkey names** — nobody types one. The authenticator identifies itself in
+  the AAGUID it returns at registration and the server turns that into a label
+  ("iCloud Keychain", "1Password"); when it doesn't say — Apple zeroes the
+  AAGUID under `attestation: "none"` — the User-Agent stands in.
+- **Agent key names** — numbered, never named. The next key is one past the
+  highest number in use, so revoking key 2 doesn't hand the number out twice.
+
+## Coming back
+
+The sign-in card lists accounts this browser has used before and gets you back
+into one without a prompt.
+
+`crossDomainClient` can't be handed a session cookie on a `.convex.site`
+response, so it keeps the whole cookie jar as JSON in localStorage. Signing in
+copies that jar into `aussieauth.accounts` alongside your name and avatar;
+clicking the account puts it back and asks the server whether it still holds.
+If it does you're in with no round trip to any provider. If it's expired we
+re-run the method `lastLoginMethod` recorded — a silent redirect for a social
+provider, or the right panel with your address already filled in.
+
+Which is why **Sign out** doesn't revoke: it clears the local jar and leaves
+the session alive, so the account stays one click away. **Sign out everywhere**
+is the real thing, and so is the ✕ next to a remembered account.
 
 ## Gotcha worth knowing
 
