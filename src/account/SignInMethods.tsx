@@ -1,6 +1,7 @@
 import { Badge, Button, Card, Heading, Text, TextField } from "@aussieljk/frosted";
+import { Icons } from "@aussieljk/frosted/icons";
 import { type ReactNode, useCallback, useState } from "react";
-import { CodeInput, Feedback } from "@/auth/ui";
+import { CodeInput, Destructive, Feedback } from "@/auth/ui";
 import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
 import { authClient } from "@/lib/auth-client";
@@ -142,9 +143,9 @@ function Social({
             status={account ? <Linked /> : undefined}
             action={
               account ? (
-                <Button
-                  variant="ghost"
-                  color="red"
+                <Destructive
+                  label={`Unlink ${label}`}
+                  icon={Icons.Close}
                   disabled={busy}
                   onClick={() =>
                     void run(() =>
@@ -154,9 +155,7 @@ function Social({
                       }),
                     ).then(reload)
                   }
-                >
-                  Unlink
-                </Button>
+                />
               ) : (
                 <Button
                   variant="surface"
@@ -430,16 +429,14 @@ function Wallets({ locked }: { locked: boolean }) {
           <Text color="gray" className="truncate font-mono">
             {wallet.address.slice(0, 6)}…{wallet.address.slice(-6)}
           </Text>
-          <Button
-            variant="ghost"
-            color="red"
+          <Destructive
+            label={`Unlink wallet ${wallet.address.slice(0, 6)}…`}
+            icon={Icons.Close}
             disabled={busy}
             onClick={() =>
               void run(() => authClient.solana.unlink({ address: wallet.address })).then(reload)
             }
-          >
-            Unlink
-          </Button>
+          />
         </div>
       ))}
       <Feedback error={error} />

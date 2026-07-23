@@ -27,14 +27,5 @@
       "@/*": ["./src/*"]
     }
   },
-  // TypeScript skips dot-directories in wildcards, so `.storybook` files are
-  // listed one by one.
-  "include": [
-    "src",
-    "vite.config.ts",
-    "vitest.shims.d.ts",
-    ".storybook/main.ts",
-    ".storybook/preview.tsx",
-    ".storybook/msw-handlers.ts"
-  ]
+  "include": ["src", "vite.config.ts", "vitest.shims.d.ts"]
 }

@@ -3,17 +3,9 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { playwright } from "@vitest/browser-playwright";
 
 // https://vite.dev/config/
-import { fileURLToPath } from "node:url";
-import { storybookTest } from "@storybook/addon-vitest/vitest-plugin";
-import { playwright } from "@vitest/browser-playwright";
-const dirname =
-  typeof __dirname !== "undefined"
-    ? __dirname
-    : path.dirname(fileURLToPath(import.meta.url));
-
-// More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
@@ -36,25 +28,19 @@ export default defineConfig({
         },
       },
       {
+        // The components, driven in a real browser through the same fixtures
+        // `bun run cosmos` renders. `.tsx` is the whole selector: anything that
+        // needs a DOM is JSX, anything that doesn't is `.ts` and runs above.
         extends: true,
-        plugins: [
-          // The plugin will run tests for the stories defined in your Storybook config
-          // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-          storybookTest({
-            configDir: path.join(dirname, ".storybook"),
-          }),
-        ],
         test: {
-          name: "storybook",
+          name: "component",
+          include: ["src/**/*.test.tsx"],
+          setupFiles: ["./src/testing/setup.ts"],
           browser: {
             enabled: true,
             headless: true,
             provider: playwright({}),
-            instances: [
-              {
-                browser: "chromium",
-              },
-            ],
+            instances: [{ browser: "chromium" }],
           },
         },
       },

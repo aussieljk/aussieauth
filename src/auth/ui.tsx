@@ -1,5 +1,6 @@
-import { Button, Callout, Text, TextField } from "@aussieljk/frosted";
-import type { ComponentProps, ReactNode } from "react";
+import { Button, Callout, IconButton, Text, TextField, Tooltip } from "@aussieljk/frosted";
+import { Icons, type IconProps } from "@aussieljk/frosted/icons";
+import type { ComponentProps, ComponentType, ReactNode } from "react";
 
 /** A labelled text input. Everything else is a plain `<input>` prop. */
 export function Field({
@@ -86,6 +87,39 @@ export function BigButton({
       <span className="flex w-5 shrink-0 justify-center">{icon}</span>
       <span>{children}</span>
     </Button>
+  );
+}
+
+/**
+ * The control that takes something away: unlinking a provider, revoking a key,
+ * forgetting an account. Every one of these lives at the end of a list row, so
+ * the label goes in a tooltip and the button carries a danger fill instead — a
+ * word of prose there would compete with the thing being acted on, and a ghost
+ * button would leave the one irreversible control the quietest on screen.
+ */
+export function Destructive({
+  label,
+  icon: Icon = Icons.Trash,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  icon?: ComponentType<IconProps>;
+  disabled?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Tooltip content={label}>
+      <IconButton
+        variant="soft"
+        color="danger"
+        aria-label={label}
+        disabled={disabled}
+        onClick={onClick}
+      >
+        <Icon size={16} />
+      </IconButton>
+    </Tooltip>
   );
 }
 

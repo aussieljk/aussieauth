@@ -234,8 +234,9 @@ under Expo Go the app runs as Expo's own bundle id and none of it applies.
 ### Tests
 
 ```sh
-bun run test        # everything
-bun run test:unit   # just the fast node ones
+bun run test             # everything
+bun run test:unit        # just the fast node ones
+bun run test:component   # just the browser ones
 ```
 
 (`bun run test`, not `bun test` — the latter is Bun's own runner, not vitest.)
@@ -244,8 +245,20 @@ Two projects. **unit** is plain node and covers the logic where a bug is a
 security bug and there's no UI to notice it through: Solana signature
 verification, the demo lockdown's path matcher, account-number generation, the
 registration secret and body validation, the path→method map, and the WebAuthn
-site-limit arithmetic. **storybook** renders the sign-in card and account page
+site-limit arithmetic. **component** renders the sign-in card and account page
 in a real browser against mocked endpoints.
+
+The component tests render React Cosmos fixtures — the same `*.fixture.tsx`
+files the workbench shows — through the same `src/cosmos.decorator.tsx`, so a
+state you can look at is a state that's covered:
+
+```sh
+bun run cosmos      # the workbench, at localhost:7007
+```
+
+A fixture is a component in a named state; `src/testing/MockApi.tsx` gives it
+the endpoints and localStorage it needs. Anything worth asserting about goes in
+a colocated `*.test.tsx` that imports the fixture.
 
 ### Changing the auth schema
 

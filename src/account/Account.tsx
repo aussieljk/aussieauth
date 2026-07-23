@@ -1,10 +1,11 @@
 import { useQuery } from "convex/react";
 import { Badge, Button, Card, Code, Heading, Text } from "@aussieljk/frosted";
+import { Icons } from "@aussieljk/frosted/icons";
 import type { FunctionReturnType } from "convex/server";
 import { type ReactNode, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isDemoUser } from "@/convex/lib/demo";
-import { Feedback } from "@/auth/ui";
+import { Destructive, Feedback } from "@/auth/ui";
 import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
 import { authClient } from "@/lib/auth-client";
@@ -69,9 +70,11 @@ function Identity({ user, demo }: { user: User | undefined; demo: boolean }) {
         <Button variant="surface" onClick={localSignOut}>
           Sign out
         </Button>
+        {/* Kept as a labelled button rather than an icon: it's the one control
+            here that ends sessions on other devices, and no glyph says that. */}
         <Button
-          variant="ghost"
-          color="gray"
+          variant="soft"
+          color="danger"
           // Revoking the demo account's sessions would sign out every other
           // visitor. The server refuses; don't offer it.
           disabled={demo}
@@ -85,6 +88,7 @@ function Identity({ user, demo }: { user: User | undefined; demo: boolean }) {
             })
           }
         >
+          <Icons.LogOut size={16} />
           Sign out everywhere
         </Button>
       </div>
@@ -191,16 +195,13 @@ function Passkeys({ locked }: { locked: boolean }) {
       {passkeys.map((passkey) => (
         <div key={passkey.id} className="flex items-center justify-between gap-3">
           <Text className="truncate">{passkey.name || "Passkey"}</Text>
-          <Button
-            variant="ghost"
-            color="red"
+          <Destructive
+            label={`Remove ${passkey.name || "passkey"}`}
             disabled={busy}
             onClick={() =>
               void run(() => authClient.passkey.deletePasskey({ id: passkey.id })).then(reload)
             }
-          >
-            Remove
-          </Button>
+          />
         </div>
       ))}
       <Feedback error={error} />
@@ -276,14 +277,11 @@ function AgentKeys({ locked }: { locked: boolean }) {
           <Text className="truncate">
             Key {key.name} <Text color="gray">{key.start ? `${key.start}…` : ""}</Text>
           </Text>
-          <Button
-            variant="ghost"
-            color="red"
+          <Destructive
+            label={`Revoke key ${key.name}`}
             disabled={busy}
             onClick={() => void run(() => authClient.apiKey.delete({ keyId: key.id })).then(reload)}
-          >
-            Revoke
-          </Button>
+          />
         </div>
       ))}
       <Feedback error={error} />

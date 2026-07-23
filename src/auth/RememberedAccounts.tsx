@@ -1,4 +1,5 @@
-import { Avatar, Button, Spinner, Text } from "@aussieljk/frosted";
+import { Avatar, Spinner, Text } from "@aussieljk/frosted";
+import { Icons } from "@aussieljk/frosted/icons";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -8,7 +9,7 @@ import {
   type RememberedAccount,
 } from "@/lib/rememberedAccounts";
 import { tryById } from "./providers";
-import { Feedback } from "./ui";
+import { Destructive, Feedback } from "./ui";
 
 /**
  * Re-runs the method an account used last time, for when its stored session
@@ -99,15 +100,12 @@ export function RememberedAccounts({
             </span>
             {busy === account.id && <Spinner />}
           </button>
-          <Button
-            variant="ghost"
-            color="gray"
-            aria-label={`Forget ${account.name || account.email}`}
+          <Destructive
+            label={`Forget ${account.name || account.email}`}
+            icon={Icons.Close}
             disabled={busy !== null}
             onClick={() => void forgetRemembered(account).then(() => setAccounts(listRemembered))}
-          >
-            ✕
-          </Button>
+          />
         </div>
       ))}
       <Feedback error={error} />

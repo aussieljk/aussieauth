@@ -10,11 +10,12 @@
     "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",
     "test:unit": "vitest run --project=unit",
+    "test:component": "vitest run --project=component",
     "preview": "vite preview",
     "format": "prettier --write .",
     "auth:schema": "bun run scripts/generate-auth-schema.ts",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "cosmos": "cosmos",
+    "cosmos:export": "cosmos-export"
   },
   "dependencies": {
     "@aussieljk/frosted": "^0.0.1-1",
@@ -27,19 +28,14 @@
     "bs58": "^6.0.0",
     "convex": "^1.42.3",
     "jose": "^6.2.4",
+    "lucide-react": "^1.26.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@chromatic-com/storybook": "^5.2.1",
     "@convex-dev/eslint-plugin": "^2.0.0",
     "@eslint/js": "^9.39.4",
-    "@storybook/addon-a11y": "^10.5.3",
-    "@storybook/addon-docs": "^10.5.3",
-    "@storybook/addon-mcp": "^0.7.0",
-    "@storybook/addon-vitest": "^10.5.3",
-    "@storybook/react-vite": "^10.5.3",
     "@tailwindcss/vite": "^4.2.2",
     "@types/node": "^24.12.2",
     "@types/react": "^19.2.14",
@@ -53,15 +49,16 @@
     "globals": "^17.5.0",
     "jiti": "^2.7.0",
     "msw": "^2.15.0",
-    "msw-storybook-addon": "^2.0.7",
     "playwright": "^1.61.1",
     "prettier": "^3.8.3",
-    "storybook": "^10.5.3",
+    "react-cosmos": "^7.3.0",
+    "react-cosmos-plugin-vite": "^7.3.0",
     "tailwindcss": "^4.2.2",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.58.2",
     "vite": "^8.0.9",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "vitest-browser-react": "^2.2.0"
   },
   "msw": {
     "workerDirectory": [

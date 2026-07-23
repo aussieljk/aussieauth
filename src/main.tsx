@@ -6,6 +6,9 @@ import { ConvexReactClient } from "convex/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "@aussieljk/frosted/styles.css";
+// Registers the library `Icons.Trash` and friends resolve through. Without an
+// adapter every canonical icon renders as nothing.
+import "@aussieljk/frosted/icons/lucide";
 import "./index.css";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./ErrorBoundary.tsx";
