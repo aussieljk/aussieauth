@@ -74,14 +74,41 @@ gives you into `APPLE_DOMAIN_ASSOCIATION`; `convex/http.ts` serves it at
 
 ### Using it from another app
 
-Add the app's origin to `TRUSTED_ORIGINS` (comma separated):
+Nothing in this repo changes. The new app registers itself.
+
+Set the provisioning secret in **that** app's Convex, then have it POST its own
+config once — origins first, everything else optional:
 
 ```sh
-bunx convex env set TRUSTED_ORIGINS "https://myapp.com,http://localhost:3000"
+# in the new app
+bunx convex env set AUSSIEAUTH_SECRET "<the value from this deployment>"
 ```
 
-Then copy `src/auth/` and `src/lib/auth-client.ts` into that app and point the
-client at this deployment:
+```ts
+await fetch(`${AUSSIEAUTH_URL}/apps/register`, {
+  method: "POST",
+  headers: {
+    authorization: `Bearer ${process.env.AUSSIEAUTH_SECRET}`,
+    "content-type": "application/json",
+  },
+  body: JSON.stringify({
+    slug: "portfolio", // stable id; survives a domain move
+    name: "Portfolio",
+    origins: ["https://portfolio.com", "http://localhost:5173"],
+    methods: ["google", "passkey"], // omit for all sixteen
+  }),
+});
+```
+
+From then on those origins are trusted, they're in the passkey related-origins
+list, and sessions created from them are stamped with the slug. Registration is
+idempotent, so calling it on boot and letting it re-run is the intended usage —
+that's what makes a wiped table repair itself.
+
+`POST /apps/unregister` with `{slug}` takes it all back.
+
+The rest of the setup is the client. Copy `src/auth/` and
+`src/lib/auth-client.ts` into that app and point it at this deployment:
 
 ```tsx
 // src/lib/auth-client.ts — the one line that changes per app
@@ -107,11 +134,14 @@ so copy that folder too (or keep both apps pointed at one checkout). Nothing
 under `src/auth/` imports Convex — the card talks to the auth server over HTTP
 like any other client, so it works in a non-Convex app as well.
 
-`TRUSTED_ORIGINS` does double duty: it's the CORS allow-list _and_ the WebAuthn
-related-origins list, so adding an app there is also what lets a passkey
-registered on `aussieauth.com` be used from it. That list is served through
-`aussieauth.com/.well-known/webauthn`, which `vercel.json` already proxies —
-nothing further to configure per app.
+`TRUSTED_ORIGINS` still works and is now the _bootstrap_ list — this site and
+whatever you're developing against, so a fresh checkout works with an empty
+`apps` table. Registered apps are added on top of it, per request.
+
+An app's origins do double duty: they're the CORS allow-list _and_ the WebAuthn
+related-origins list, so registering is also what lets a passkey created on
+`aussieauth.com` be used from that app. The list is served through
+`aussieauth.com/.well-known/webauthn`, which `vercel.json` already proxies.
 
 ## How it fits together
 
@@ -128,8 +158,13 @@ nothing further to configure per app.
   `status.ts` (which credentials are set, so the card can say "needs setup").
   Plus `apple.ts`, which mints Apple's client secret, and `notify.ts`, which
   sends via Resend / Mobile Message or falls back to logging.
-- `convex/http.ts` — the two files a third party fetches from us: Apple's
-  domain association, and the WebAuthn related-origins list.
+- `convex/http.ts` — the two files a third party fetches from us (Apple's
+  domain association, the WebAuthn related-origins list), plus
+  `/apps/register` and `/apps/unregister`.
+- `convex/apps.ts` + `convex/lib/apps.ts` — the app registry: who's allowed
+  in, from which origins, using which methods.
+- `convex/lib/methods.ts` — the one path→method map, shared by
+  `lastLoginMethod` and the per-app allow-list so they can't disagree.
 - `src/auth/providers.ts` — display metadata per method; `src/auth/panels.tsx` —
   the matching behaviour; `src/auth/methods.ts` wires the two together by id.
 - `src/account/Account.tsx` — signed-in view: profile, passkeys and agent API
@@ -148,9 +183,10 @@ bun run test:unit   # just the fast node ones
 
 Two projects. **unit** is plain node and covers the logic where a bug is a
 security bug and there's no UI to notice it through: Solana signature
-verification, the demo lockdown's path matcher, account-number generation and
-normalisation. **storybook** renders the sign-in card and account page in a
-real browser against mocked endpoints.
+verification, the demo lockdown's path matcher, account-number generation, the
+registration secret and body validation, the path→method map, and the WebAuthn
+site-limit arithmetic. **storybook** renders the sign-in card and account page
+in a real browser against mocked endpoints.
 
 ### Changing the auth schema
 
@@ -205,6 +241,15 @@ targets Better Auth 1.4.
   the AAGUID it returns at registration and the server turns that into a label
   ("iCloud Keychain", "1Password"); when it doesn't say — Apple zeroes the
   AAGUID under `attestation: "none"` — the User-Agent stands in.
+- **Apps** — an app registers itself with `/apps/register`, authenticated by
+  one shared `AUSSIEAUTH_SECRET`. Its origins become trusted, land in the
+  passkey related-origins list, and stamp `session.appId`. An origin already
+  claimed by another slug is refused rather than silently reassigned — taking
+  over an origin would mean taking over that app's sign-ins. The method
+  allow-list is enforced at `/sign-in/social` rather than at the callback, so a
+  blocked provider never gets as far as showing you its consent screen; it
+  fails **open** for origins no app has claimed, which is what keeps this
+  deployment's own sign-in page working with an empty table.
 - **Agent key names** — numbered, never named. The next key is one past the
   highest number in use, so revoking key 2 doesn't hand the number out twice.
 - **Email verification** — sent on sign-up, but never required to sign in. It's

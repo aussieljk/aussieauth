@@ -18,8 +18,16 @@ import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
 import { accountNumber } from "./lib/accountNumber";
 import { appleClientSecret } from "./lib/apple";
+import {
+  appMethods,
+  capToRelatedOriginLimit,
+  RELATED_ORIGIN_LABEL_LIMIT,
+  registeredOrigins,
+  resolveApp,
+} from "./lib/apps";
 import { demo } from "./lib/demo";
 import { linking } from "./lib/linking";
+import { resolveLoginMethod } from "./lib/methods";
 import { sendEmail, sendSms } from "./lib/notify";
 import { solana } from "./lib/solana";
 import { status } from "./lib/status";
@@ -31,22 +39,22 @@ import { status } from "./lib/status";
 const siteUrl = process.env.SITE_URL ?? "http://localhost:5173";
 
 /**
- * Every origin allowed to drive this auth server directly. Consumer apps go in
- * here (comma separated) and then talk to AussieAuth from their own domain —
- * which is what keeps them from ever showing a second consent screen.
+ * Origins from the environment. These are the bootstrap set — this site and
+ * whatever you're developing against — and they work with an empty `apps`
+ * table, which is what a fresh checkout has.
  */
-const appOrigins = () =>
+const envOrigins = () =>
   (process.env.TRUSTED_ORIGINS ?? "")
     .split(",")
     .map((o) => o.trim())
     .filter(Boolean);
 
-const trustedOrigins = [
+const staticOrigins = [
   siteUrl,
   // Sign in with Apple posts its callback as a form, so the browser sends
   // Apple's origin rather than ours.
   "https://appleid.apple.com",
-  ...appOrigins(),
+  ...envOrigins(),
 ];
 
 /**
@@ -59,10 +67,23 @@ const trustedOrigins = [
  * which is the whole point of a shared auth server.
  *
  * Apple's origin is not in here: it posts an OAuth callback, it never touches
- * WebAuthn. The spec matches on eTLD+1 and allows at most five distinct
- * labels, so this is a handful of apps, not an open list.
+ * WebAuthn.
  */
-export const relatedOrigins = () => [siteUrl, ...appOrigins()];
+export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
+  const all = [
+    siteUrl,
+    ...envOrigins(),
+    ...(await registeredOrigins(ctx)),
+  ].filter((o, i, xs) => xs.indexOf(o) === i);
+
+  const { kept, dropped } = capToRelatedOriginLimit(all);
+  if (dropped.length) {
+    console.warn(
+      `Related origins: dropped ${dropped.length} past the ${RELATED_ORIGIN_LABEL_LIMIT}-site WebAuthn limit — ${dropped.join(", ")}`,
+    );
+  }
+  return kept;
+};
 
 const hostname = (url: string) => {
   try {
@@ -103,40 +124,6 @@ const describeClient = (ua: string | null | undefined) => {
             : null;
   if (browser && os) return `${browser} on ${os}`;
   return browser ?? os ?? "Passkey";
-};
-
-/**
- * Which of our sixteen methods a request represents. The stock resolver only
- * knows the handful Better Auth ships, and answers in its own vocabulary; this
- * covers every endpoint and answers in `PROVIDERS` ids, so the sign-in screen
- * can offer a returning account the exact button it used last time.
- */
-const LOGIN_METHOD_PATHS: Record<string, string> = {
-  "/sign-in/email": "email-password",
-  "/sign-up/email": "email-password",
-  "/sign-in/username": "username-password",
-  "/sign-in/phone-number": "phone-password",
-  "/phone-number/verify": "ios-otp",
-  "/sign-in/email-otp": "email-otp",
-  "/magic-link/verify": "magic-link",
-  "/passkey/verify-authentication": "passkey",
-  "/sign-in/solana": "solana",
-  "/sign-in/anonymous": "anonymous",
-  "/sign-in/demo": "demo",
-  "/sign-in/account-number": "account-number",
-  "/sign-up/account-number": "account-number",
-  "/one-tap/callback": "google-one-tap",
-};
-
-const resolveLoginMethod = (ctx: { path?: string; params?: unknown }) => {
-  const path = ctx.path;
-  if (!path) return null;
-  if (path.startsWith("/callback/") || path.startsWith("/oauth2/callback/")) {
-    const params = ctx.params as
-      { id?: string; providerId?: string } | undefined;
-    return params?.id ?? params?.providerId ?? path.split("/").pop() ?? null;
-  }
-  return LOGIN_METHOD_PATHS[path] ?? null;
 };
 
 /** Only register a social provider when its credentials are actually set. */
@@ -192,8 +179,38 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
   ({
     baseURL: process.env.CONVEX_SITE_URL,
-    trustedOrigins,
+
+    // Resolved per request rather than at construction, because apps register
+    // themselves at runtime — the env list is only the bootstrap set. Better
+    // Auth accepts an async resolver here, which is what makes a database-
+    // backed allow-list possible at all.
+    trustedOrigins: async () => [
+      ...staticOrigins,
+      ...(await registeredOrigins(ctx)),
+    ],
+
     database: authComponent.adapter(ctx),
+
+    session: {
+      additionalFields: {
+        // Which app this session was created from. Not settable by the client
+        // — it's derived from the request's origin below, so it can't be
+        // spoofed by anyone who couldn't already forge the origin.
+        appId: { type: "string", required: false, input: false },
+      },
+    },
+
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session, context) => {
+            const app = await resolveApp(ctx, context?.headers?.get("origin"));
+            if (!app) return;
+            return { data: { ...session, appId: app.slug } };
+          },
+        },
+      },
+    },
 
     // Both fields are load-bearing, and both defaults were wrong for us:
     //
@@ -330,6 +347,10 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
 
       // Machine.
       apiKey({ defaultPrefix: "aussie_" }),
+
+      // Holds a registered app to the sign-in methods it asked for. Fails open
+      // for origins no app has claimed — this site included.
+      appMethods(ctx),
 
       // Which methods this deployment actually has credentials for, so the
       // sign-in card can badge the rest as "needs setup". Read per request,
