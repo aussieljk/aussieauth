@@ -39,15 +39,12 @@ export function SignIn({
   const [prefill, setPrefill] = useState("");
   const { needsSetup } = useSetupStatus();
 
-  const offered = methods
-    ? PROVIDERS.filter((p) => methods.includes(p.id))
-    : PROVIDERS;
+  const offered = methods ? PROVIDERS.filter((p) => methods.includes(p.id)) : PROVIDERS;
 
   // One Tap is a variant of the Google button rather than its own row, so it
   // never appears in the "more ways" list.
   const rest: Provider[] = offered.filter(
-    (p) =>
-      p.id !== primary && !featured.includes(p.id) && p.id !== "google-one-tap",
+    (p) => p.id !== primary && !featured.includes(p.id) && p.id !== "google-one-tap",
   );
   const oneTapOffered =
     Boolean(GOOGLE_CLIENT_ID) &&
@@ -65,17 +62,10 @@ export function SignIn({
     return (
       <Shell>
         <div className="flex flex-col gap-1">
-          <Button
-            variant="ghost"
-            size="1"
-            className="-ml-1 self-start"
-            onClick={() => setMethod(null)}
-          >
+          <Button variant="ghost" className="-ml-1 self-start" onClick={() => setMethod(null)}>
             ← All sign-in options
           </Button>
-          <Heading size="5" className="mt-2">
-            {provider.label}
-          </Heading>
+          <Heading className="mt-2">{provider.label}</Heading>
         </div>
         {needsSetup(method) && <SetupHint id={method} />}
         <Panel prefill={prefill} />
@@ -88,10 +78,8 @@ export function SignIn({
   return (
     <Shell>
       <div className="flex flex-col gap-1">
-        <Heading size="6">{title}</Heading>
-        <Text size="2" color="gray">
-          {subtitle ?? `${offered.length} ways in. Pick one.`}
-        </Text>
+        <Heading>{title}</Heading>
+        <Text color="gray">{subtitle ?? `${offered.length} ways in. Pick one.`}</Text>
       </div>
 
       <RememberedAccounts onNeedsPanel={open} />
@@ -103,9 +91,7 @@ export function SignIn({
         {oneTapOffered && <OneTapButton />}
       </div>
 
-      <OrDivider
-        label={`or continue with ${byId(primary).label.toLowerCase()}`}
-      />
+      <OrDivider label={`or continue with ${byId(primary).label.toLowerCase()}`} />
 
       <PrimaryPanel />
 
@@ -125,9 +111,8 @@ export function SignIn({
         ))}
       </div>
 
-      <Text size="1" color="gray" className="text-center">
-        Your apps talk to this server directly — no AussieAuth consent screen,
-        ever.
+      <Text color="gray" className="text-center">
+        Your apps talk to this server directly — no AussieAuth consent screen, ever.
       </Text>
     </Shell>
   );
@@ -136,7 +121,7 @@ export function SignIn({
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <Card size="4" className="w-[420px]">
+      <Card className="w-[420px]">
         <div className="flex flex-col gap-5">{children}</div>
       </Card>
     </div>
@@ -162,7 +147,7 @@ function SocialButton({ id, disabled }: { id: string; disabled: boolean }) {
       >
         {ctaFor(provider)}
         {disabled && (
-          <Badge size="1" color="amber" className="ml-2">
+          <Badge color="amber" className="ml-2">
             needs setup
           </Badge>
         )}
@@ -176,10 +161,7 @@ function OneTapButton() {
   const { pending, error, run } = useRunner();
   return (
     <div className="flex flex-col gap-2">
-      <BigButton
-        pending={pending}
-        onClick={() => void run(() => authClient.oneTap())}
-      >
+      <BigButton pending={pending} onClick={() => void run(() => authClient.oneTap())}>
         One Tap sign-in
       </BigButton>
       <Feedback error={error} />
@@ -195,9 +177,9 @@ function SetupHint({ id }: { id: string }) {
     apple: "APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY",
   };
   return (
-    <Text size="1" color="amber">
-      Set {vars[id] ?? "the provider credentials"} with{" "}
-      <code>npx convex env set</code> to enable this.
+    <Text color="amber">
+      Set {vars[id] ?? "the provider credentials"} with <code>npx convex env set</code> to enable
+      this.
     </Text>
   );
 }
@@ -206,9 +188,7 @@ function OrDivider({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-3">
       <Separator className="flex-1" />
-      <Text size="1" color="gray">
-        {label}
-      </Text>
+      <Text color="gray">{label}</Text>
       <Separator className="flex-1" />
     </div>
   );

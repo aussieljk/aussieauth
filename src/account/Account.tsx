@@ -44,34 +44,20 @@ function Identity({ user, demo }: { user: User | undefined; demo: boolean }) {
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <div className="flex min-w-0 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Heading size="5">
-            {user?.name || user?.email || "Your account"}
-          </Heading>
-          {user?.username && (
-            <Badge size="1" color="gray">
-              @{user.username}
-            </Badge>
-          )}
-          {user?.isAnonymous && (
-            <Badge size="1" color="amber">
-              anonymous — upgrade to keep it
-            </Badge>
-          )}
+          <Heading>{user?.name || user?.email || "Your account"}</Heading>
+          {user?.username && <Badge color="gray">@{user.username}</Badge>}
+          {user?.isAnonymous && <Badge color="amber">anonymous — upgrade to keep it</Badge>}
           {/* The demo account is shared, so the server refuses every write. */}
-          {demo && (
-            <Badge size="1" color="amber">
-              shared demo — read-only
-            </Badge>
-          )}
+          {demo && <Badge color="amber">shared demo — read-only</Badge>}
         </div>
         <div className="flex min-w-0 items-center gap-2">
-          <Text size="1" color="gray" className="truncate">
+          <Text color="gray" className="truncate">
             {user === undefined
               ? "Loading…"
               : [user?.email, user?.phoneNumber].filter(Boolean).join(" · ")}
           </Text>
           {user?._id && (
-            <Code size="1" color="gray" className="truncate">
+            <Code color="gray" className="truncate">
               {user._id}
             </Code>
           )}
@@ -80,12 +66,11 @@ function Identity({ user, demo }: { user: User | undefined; demo: boolean }) {
       <div className="flex items-center gap-2">
         {/* Leaves the session valid so this account stays one click away on
             the sign-in screen. "Sign out everywhere" is the real revoke. */}
-        <Button variant="surface" size="1" onClick={localSignOut}>
+        <Button variant="surface" onClick={localSignOut}>
           Sign out
         </Button>
         <Button
           variant="ghost"
-          size="1"
           color="gray"
           // Revoking the demo account's sessions would sign out every other
           // visitor. The server refuses; don't offer it.
@@ -112,33 +97,25 @@ function Identity({ user, demo }: { user: User | undefined; demo: boolean }) {
  * the server hashes nothing and stores no way to reach the owner.
  */
 function AccountNumberReveal() {
-  const [number, setNumber] = useState(() =>
-    localStorage.getItem(PENDING_ACCOUNT_NUMBER),
-  );
+  const [number, setNumber] = useState(() => localStorage.getItem(PENDING_ACCOUNT_NUMBER));
 
   if (!number) return null;
 
   return (
-    <Card
-      size="2"
-      className="border border-[var(--amber-a6)] bg-[var(--amber-a2)]"
-    >
+    <Card className="border border-[var(--amber-a6)] bg-[var(--amber-a2)]">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex flex-col gap-0.5">
-          <Heading size="2">Save your account number</Heading>
-          <Text size="1" color="gray">
-            The only copy. It can't be reset or looked up.
-          </Text>
+          <Heading>Save your account number</Heading>
+          <Text color="gray">The only copy. It can't be reset or looked up.</Text>
         </div>
         <div className="flex items-center gap-3">
           {/* Amber throughout: this is a "write it down or lose the account"
               warning, and the theme accent would dress it up as good news. */}
-          <Code size="3" color="amber" className="tracking-[0.2em]">
+          <Code color="amber" className="tracking-[0.2em]">
             {number.replace(/(\d{4})(?=\d)/g, "$1 ")}
           </Code>
           <Button
             variant="classic"
-            size="1"
             color="amber"
             onClick={() => {
               localStorage.removeItem(PENDING_ACCOUNT_NUMBER);
@@ -166,12 +143,12 @@ function List({
   children: ReactNode;
 }) {
   return (
-    <Card size="2">
+    <Card>
       <div className="flex flex-col gap-2">
         <div className="flex min-h-7 items-center justify-between gap-3">
           <div className="flex min-w-0 items-baseline gap-2">
-            <Heading size="2">{title}</Heading>
-            <Text size="1" color="gray" className="truncate">
+            <Heading>{title}</Heading>
+            <Text color="gray" className="truncate">
               {hint}
             </Text>
           </div>
@@ -204,33 +181,22 @@ function Passkeys({ locked }: { locked: boolean }) {
       action={
         <Button
           variant="surface"
-          size="1"
           disabled={busy}
-          onClick={() =>
-            void run(() => authClient.passkey.addPasskey()).then(reload)
-          }
+          onClick={() => void run(() => authClient.passkey.addPasskey()).then(reload)}
         >
           Add
         </Button>
       }
     >
       {passkeys.map((passkey) => (
-        <div
-          key={passkey.id}
-          className="flex items-center justify-between gap-3"
-        >
-          <Text size="2" className="truncate">
-            {passkey.name || "Passkey"}
-          </Text>
+        <div key={passkey.id} className="flex items-center justify-between gap-3">
+          <Text className="truncate">{passkey.name || "Passkey"}</Text>
           <Button
             variant="ghost"
-            size="1"
             color="red"
             disabled={busy}
             onClick={() =>
-              void run(() =>
-                authClient.passkey.deletePasskey({ id: passkey.id }),
-              ).then(reload)
+              void run(() => authClient.passkey.deletePasskey({ id: passkey.id })).then(reload)
             }
           >
             Remove
@@ -280,7 +246,6 @@ function AgentKeys({ locked }: { locked: boolean }) {
       action={
         <Button
           variant="surface"
-          size="1"
           disabled={busy}
           onClick={() =>
             void run(async () => {
@@ -299,10 +264,8 @@ function AgentKeys({ locked }: { locked: boolean }) {
     >
       {fresh && (
         <div className="flex flex-col gap-1 rounded-md border border-[var(--amber-a6)] bg-[var(--amber-a2)] p-2">
-          <Text size="1" weight="medium">
-            Copy this now — it isn't shown again.
-          </Text>
-          <Code size="1" color="amber" className="break-all">
+          <Text weight="medium">Copy this now — it isn't shown again.</Text>
+          <Code color="amber" className="break-all">
             {fresh}
           </Code>
         </div>
@@ -310,22 +273,14 @@ function AgentKeys({ locked }: { locked: boolean }) {
 
       {keys.map((key) => (
         <div key={key.id} className="flex items-center justify-between gap-3">
-          <Text size="2" className="truncate">
-            Key {key.name}{" "}
-            <Text size="1" color="gray">
-              {key.start ? `${key.start}…` : ""}
-            </Text>
+          <Text className="truncate">
+            Key {key.name} <Text color="gray">{key.start ? `${key.start}…` : ""}</Text>
           </Text>
           <Button
             variant="ghost"
-            size="1"
             color="red"
             disabled={busy}
-            onClick={() =>
-              void run(() => authClient.apiKey.delete({ keyId: key.id })).then(
-                reload,
-              )
-            }
+            onClick={() => void run(() => authClient.apiKey.delete({ keyId: key.id })).then(reload)}
           >
             Revoke
           </Button>

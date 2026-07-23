@@ -16,9 +16,7 @@ import { Feedback } from "./ui";
  * screen; anything credential-shaped can't be replayed, so those hand back the
  * panel id for the caller to open with the address filled in.
  */
-const replay = (
-  account: RememberedAccount,
-): (() => Promise<unknown>) | { panel: string } => {
+const replay = (account: RememberedAccount): (() => Promise<unknown>) | { panel: string } => {
   const method = account.method ?? "";
   switch (method) {
     case "google":
@@ -88,33 +86,25 @@ export function RememberedAccounts({
             className="flex flex-1 items-center gap-3 rounded-md border border-[var(--gray-a5)] px-3 py-2 text-left transition-colors hover:bg-[var(--gray-a3)] disabled:opacity-60"
           >
             <Avatar
-              size="2"
               src={account.image ?? undefined}
-              fallback={(account.name || account.email || "?")
-                .slice(0, 1)
-                .toUpperCase()}
+              fallback={(account.name || account.email || "?").slice(0, 1).toUpperCase()}
             />
             <span className="flex min-w-0 flex-1 flex-col">
-              <Text size="2" weight="medium" className="truncate">
+              <Text weight="medium" className="truncate">
                 {account.name || account.email}
               </Text>
-              <Text size="1" color="gray" className="truncate">
+              <Text color="gray" className="truncate">
                 {subtitle(account)}
               </Text>
             </span>
-            {busy === account.id && <Spinner size="1" />}
+            {busy === account.id && <Spinner />}
           </button>
           <Button
             variant="ghost"
-            size="1"
             color="gray"
             aria-label={`Forget ${account.name || account.email}`}
             disabled={busy !== null}
-            onClick={() =>
-              void forgetRemembered(account).then(() =>
-                setAccounts(listRemembered),
-              )
-            }
+            onClick={() => void forgetRemembered(account).then(() => setAccounts(listRemembered))}
           >
             ✕
           </Button>

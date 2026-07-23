@@ -21,25 +21,13 @@ function Mark({ id }: { id: string }) {
 }
 
 /** Social providers and the other true one-click methods. */
-function OneClick({
-  id,
-  action,
-}: {
-  id: string;
-  action: () => Promise<unknown>;
-}) {
+function OneClick({ id, action }: { id: string; action: () => Promise<unknown> }) {
   const { pending, error, run } = useRunner();
   const provider = byId(id);
   return (
     <div className="flex flex-col gap-3">
-      <Text size="2" color="gray">
-        {provider.hint}
-      </Text>
-      <BigButton
-        pending={pending}
-        icon={<Mark id={id} />}
-        onClick={() => void run(action)}
-      >
+      <Text color="gray">{provider.hint}</Text>
+      <BigButton pending={pending} icon={<Mark id={id} />} onClick={() => void run(action)}>
         {ctaFor(provider)}
       </BigButton>
       <Feedback error={error} />
@@ -66,9 +54,7 @@ export function DemoPanel() {
   return <OneClick id="demo" action={() => authClient.signIn.demo()} />;
 }
 export function AnonymousPanel() {
-  return (
-    <OneClick id="anonymous" action={() => authClient.signIn.anonymous()} />
-  );
+  return <OneClick id="anonymous" action={() => authClient.signIn.anonymous()} />;
 }
 export function PasskeyPanel() {
   return <OneClick id="passkey" action={() => authClient.signIn.passkey()} />;
@@ -85,10 +71,7 @@ export function SolanaPanel() {
           const { data, error } = await authClient.solana.challenge({
             address,
           });
-          if (error)
-            throw new Error(
-              error.message || "Couldn't start the wallet challenge",
-            );
+          if (error) throw new Error(error.message || "Couldn't start the wallet challenge");
           return data.message;
         });
         return authClient.signIn.solana({ address, signature });
@@ -153,12 +136,10 @@ export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
           autoComplete={creating ? "new-password" : "current-password"}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Submit pending={pending}>
-          {creating ? "Create account" : "Sign in"}
-        </Submit>
+        <Submit pending={pending}>{creating ? "Create account" : "Sign in"}</Submit>
       </PanelForm>
       <Feedback error={error} notice={notice} />
-      <Button variant="ghost" size="1" onClick={() => setCreating(!creating)}>
+      <Button variant="ghost" onClick={() => setCreating(!creating)}>
         {creating ? "I already have an account" : "Create an account instead"}
       </Button>
     </div>
@@ -214,12 +195,10 @@ export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
           autoComplete={creating ? "new-password" : "current-password"}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Submit pending={pending}>
-          {creating ? "Create account" : "Sign in"}
-        </Submit>
+        <Submit pending={pending}>{creating ? "Create account" : "Sign in"}</Submit>
       </PanelForm>
       <Feedback error={error} />
-      <Button variant="ghost" size="1" onClick={() => setCreating(!creating)}>
+      <Button variant="ghost" onClick={() => setCreating(!creating)}>
         {creating ? "I already have an account" : "Create an account instead"}
       </Button>
     </div>
@@ -235,9 +214,7 @@ export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
     <div className="flex flex-col gap-3">
       <PanelForm
         onSubmit={() =>
-          void run(() =>
-            authClient.signIn.phoneNumber({ phoneNumber: phone, password }),
-          )
+          void run(() => authClient.signIn.phoneNumber({ phoneNumber: phone, password }))
         }
       >
         <Field
@@ -260,9 +237,8 @@ export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
         <Submit pending={pending}>Sign in</Submit>
       </PanelForm>
       <Feedback error={error} />
-      <Text size="1" color="gray">
-        No account yet? Sign in with an SMS code first, then set a password from
-        your account page.
+      <Text color="gray">
+        No account yet? Sign in with an SMS code first, then set a password from your account page.
       </Text>
     </div>
   );
@@ -357,15 +333,11 @@ function OtpPanel({
   return (
     <div className="flex flex-col gap-3">
       <PanelForm onSubmit={() => void run(() => verify(identity, code))}>
-        <CodeField
-          value={code}
-          required
-          onChange={(e) => setCode(e.target.value)}
-        />
+        <CodeField value={code} required onChange={(e) => setCode(e.target.value)} />
         <Submit pending={pending}>Verify and sign in</Submit>
       </PanelForm>
       <Feedback error={error} notice={notice ?? `Code sent to ${identity}.`} />
-      <Button variant="ghost" size="1" onClick={() => setSent(false)}>
+      <Button variant="ghost" onClick={() => setSent(false)}>
         Use a different {label.toLowerCase()}
       </Button>
     </div>
@@ -380,9 +352,7 @@ export function EmailOtpPanel({ prefill }: PanelProps) {
       autoComplete="username"
       placeholder="you@example.com"
       prefill={prefill}
-      send={(email) =>
-        authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" })
-      }
+      send={(email) => authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" })}
       verify={(email, otp) => authClient.signIn.emailOtp({ email, otp })}
     />
   );
@@ -397,9 +367,7 @@ export function SmsOtpPanel({ prefill }: PanelProps) {
       placeholder="+61 400 000 000"
       prefill={prefill}
       send={(phoneNumber) => authClient.phoneNumber.sendOtp({ phoneNumber })}
-      verify={(phoneNumber, code) =>
-        authClient.phoneNumber.verify({ phoneNumber, code })
-      }
+      verify={(phoneNumber, code) => authClient.phoneNumber.verify({ phoneNumber, code })}
     />
   );
 }
@@ -411,11 +379,7 @@ export function AccountNumberPanel() {
   return (
     <div className="flex flex-col gap-4">
       <PanelForm
-        onSubmit={() =>
-          void run(() =>
-            authClient.signIn.accountNumber({ accountNumber: number }),
-          )
-        }
+        onSubmit={() => void run(() => authClient.signIn.accountNumber({ accountNumber: number }))}
       >
         <Field
           label="Account number"
@@ -429,12 +393,11 @@ export function AccountNumberPanel() {
       </PanelForm>
       <Feedback error={error} />
       <div className="flex flex-col gap-2 border-t border-[var(--gray-a5)] pt-4">
-        <Text size="1" color="gray">
+        <Text color="gray">
           No email, no password, no recovery — the number is the whole account.
         </Text>
         <Button
           variant="surface"
-          size="3"
           disabled={pending}
           onClick={() =>
             void run(async () => {
@@ -455,10 +418,9 @@ export function AccountNumberPanel() {
 export function AgentPanel() {
   return (
     <div className="flex flex-col gap-3">
-      <Text size="2" color="gray">
-        Agents authenticate with an API key sent as an{" "}
-        <Code size="1">x-api-key</Code> header — there's no interactive sign-in.
-        Sign in as yourself, then mint a key from your account page and hand it
+      <Text color="gray">
+        Agents authenticate with an API key sent as an <Code>x-api-key</Code> header — there's no
+        interactive sign-in. Sign in as yourself, then mint a key from your account page and hand it
         to the agent.
       </Text>
     </div>

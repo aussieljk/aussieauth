@@ -8,10 +8,10 @@ export function Field({
 }: { label: string } & ComponentProps<typeof TextField.Input>) {
   return (
     <label className="flex flex-col gap-1.5">
-      <Text size="1" color="gray" weight="medium">
+      <Text color="gray" weight="medium">
         {label}
       </Text>
-      <TextField.Input size="3" {...props} />
+      <TextField.Input {...props} />
     </label>
   );
 }
@@ -24,7 +24,6 @@ export function Field({
 export function CodeInput(props: ComponentProps<typeof TextField.Input>) {
   return (
     <TextField.Input
-      size="3"
       inputMode="numeric"
       autoComplete="one-time-code"
       pattern="[0-9]*"
@@ -39,7 +38,7 @@ export function CodeInput(props: ComponentProps<typeof TextField.Input>) {
 export function CodeField(props: ComponentProps<typeof TextField.Input>) {
   return (
     <label className="flex flex-col gap-1.5">
-      <Text size="1" color="gray" weight="medium">
+      <Text color="gray" weight="medium">
         Verification code
       </Text>
       <CodeInput {...props} />
@@ -47,13 +46,7 @@ export function CodeField(props: ComponentProps<typeof TextField.Input>) {
   );
 }
 
-export function Feedback({
-  error,
-  notice,
-}: {
-  error?: string | null;
-  notice?: string | null;
-}) {
+export function Feedback({ error, notice }: { error?: string | null; notice?: string | null }) {
   if (!error && !notice) return null;
   return (
     <Callout.Root color={error ? "red" : "green"}>
@@ -62,15 +55,9 @@ export function Feedback({
   );
 }
 
-export function Submit({
-  pending,
-  children,
-}: {
-  pending: boolean;
-  children: ReactNode;
-}) {
+export function Submit({ pending, children }: { pending: boolean; children: ReactNode }) {
   return (
-    <Button type="submit" variant="classic" size="3" disabled={pending}>
+    <Button type="submit" variant="classic" disabled={pending}>
       {pending ? "Working…" : children}
     </Button>
   );
@@ -91,7 +78,6 @@ export function BigButton({
   return (
     <Button
       variant="surface"
-      size="3"
       className="w-full justify-start gap-3"
       disabled={pending}
       onClick={onClick}
@@ -103,13 +89,7 @@ export function BigButton({
   );
 }
 
-export function PanelForm({
-  onSubmit,
-  children,
-}: {
-  onSubmit: () => void;
-  children: ReactNode;
-}) {
+export function PanelForm({ onSubmit, children }: { onSubmit: () => void; children: ReactNode }) {
   return (
     <form
       className="flex flex-col gap-3"

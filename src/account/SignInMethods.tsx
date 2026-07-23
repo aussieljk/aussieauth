@@ -40,13 +40,12 @@ export function SignInMethods({
   const hasPassword = accounts.some((a) => a.providerId === "credential");
   // One form open at a time, so adding a method can't push the rest off-screen.
   const [open, setOpen] = useState<string | null>(null);
-  const toggle = (id: string) =>
-    setOpen((current) => (current === id ? null : id));
+  const toggle = (id: string) => setOpen((current) => (current === id ? null : id));
 
   return (
-    <Card size="2">
+    <Card>
       <div className="flex flex-col gap-2.5">
-        <Heading size="2">Sign-in methods</Heading>
+        <Heading>Sign-in methods</Heading>
         <Social accounts={accounts} reload={reload} locked={locked} />
         <Password
           hasPassword={hasPassword}
@@ -93,7 +92,7 @@ function Row({
     <div className="flex flex-col gap-2 border-t border-[var(--gray-a3)] pt-2.5 first:border-0 first:pt-0">
       <div className="flex min-h-7 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Text size="2">{label}</Text>
+          <Text>{label}</Text>
           {status}
         </div>
         {action}
@@ -103,20 +102,10 @@ function Row({
   );
 }
 
-const Linked = () => (
-  <Badge size="1" color="green">
-    linked
-  </Badge>
-);
+const Linked = () => <Badge color="green">linked</Badge>;
 
 /** The form behind a row's control: one field, one button, one line. */
-function InlineForm({
-  onSubmit,
-  children,
-}: {
-  onSubmit: () => void;
-  children: ReactNode;
-}) {
+function InlineForm({ onSubmit, children }: { onSubmit: () => void; children: ReactNode }) {
   return (
     <form
       className="flex items-center gap-2"
@@ -155,7 +144,6 @@ function Social({
               account ? (
                 <Button
                   variant="ghost"
-                  size="1"
                   color="red"
                   disabled={busy}
                   onClick={() =>
@@ -172,7 +160,6 @@ function Social({
               ) : (
                 <Button
                   variant="surface"
-                  size="1"
                   disabled={busy}
                   onClick={() =>
                     void run(() =>
@@ -221,12 +208,7 @@ function Password({
       status={hasPassword ? <Linked /> : undefined}
       action={
         hasPassword ? undefined : (
-          <Button
-            variant="surface"
-            size="1"
-            disabled={locked}
-            onClick={onToggle}
-          >
+          <Button variant="surface" disabled={locked} onClick={onToggle}>
             {open ? "Cancel" : "Add"}
           </Button>
         )
@@ -247,7 +229,6 @@ function Password({
           }
         >
           <TextField.Input
-            size="2"
             className="flex-1"
             aria-label="New password"
             type="password"
@@ -257,12 +238,7 @@ function Password({
             placeholder="New password"
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button
-            type="submit"
-            variant="classic"
-            size="2"
-            disabled={pending || locked}
-          >
+          <Button type="submit" variant="classic" disabled={pending || locked}>
             Set
           </Button>
         </InlineForm>
@@ -291,13 +267,13 @@ function Username({
       label="Username"
       status={
         current ? (
-          <Text size="1" color="gray" className="truncate">
+          <Text color="gray" className="truncate">
             @{current}
           </Text>
         ) : undefined
       }
       action={
-        <Button variant="surface" size="1" disabled={locked} onClick={onToggle}>
+        <Button variant="surface" disabled={locked} onClick={onToggle}>
           {open ? "Cancel" : current ? "Change" : "Claim"}
         </Button>
       }
@@ -316,7 +292,6 @@ function Username({
           }
         >
           <TextField.Input
-            size="2"
             className="flex-1"
             aria-label="Username"
             required
@@ -324,12 +299,7 @@ function Username({
             placeholder="lucas"
             onChange={(e) => setUsername(e.target.value)}
           />
-          <Button
-            type="submit"
-            variant="classic"
-            size="2"
-            disabled={pending || locked}
-          >
+          <Button type="submit" variant="classic" disabled={pending || locked}>
             Save
           </Button>
         </InlineForm>
@@ -361,13 +331,13 @@ function Phone({
       label="Phone"
       status={
         current ? (
-          <Text size="1" color="gray" className="truncate">
+          <Text color="gray" className="truncate">
             {current}
           </Text>
         ) : undefined
       }
       action={
-        <Button variant="surface" size="1" disabled={locked} onClick={onToggle}>
+        <Button variant="surface" disabled={locked} onClick={onToggle}>
           {open ? "Cancel" : current ? "Change" : "Add"}
         </Button>
       }
@@ -377,8 +347,7 @@ function Phone({
           <InlineForm
             onSubmit={() =>
               void run(
-                () =>
-                  authClient.phoneNumber.verify({ phoneNumber: phone, code }),
+                () => authClient.phoneNumber.verify({ phoneNumber: phone, code }),
                 `${phone} linked.`,
               ).then((ok) => {
                 if (!ok) return;
@@ -389,32 +358,25 @@ function Phone({
             }
           >
             <CodeInput
-              size="2"
               className="flex-1"
               aria-label="Verification code"
               required
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
-            <Button
-              type="submit"
-              variant="classic"
-              size="2"
-              disabled={pending || locked}
-            >
+            <Button type="submit" variant="classic" disabled={pending || locked}>
               Verify
             </Button>
           </InlineForm>
         ) : (
           <InlineForm
             onSubmit={() =>
-              void run(() =>
-                authClient.phoneNumber.sendOtp({ phoneNumber: phone }),
-              ).then((ok) => ok && setSent(true))
+              void run(() => authClient.phoneNumber.sendOtp({ phoneNumber: phone })).then(
+                (ok) => ok && setSent(true),
+              )
             }
           >
             <TextField.Input
-              size="2"
               className="flex-1"
               aria-label="Phone number"
               type="tel"
@@ -424,12 +386,7 @@ function Phone({
               placeholder="+61 400 000 000"
               onChange={(e) => setPhone(e.target.value)}
             />
-            <Button
-              type="submit"
-              variant="classic"
-              size="2"
-              disabled={pending || locked}
-            >
+            <Button type="submit" variant="classic" disabled={pending || locked}>
               Send code
             </Button>
           </InlineForm>
@@ -451,10 +408,7 @@ function Wallets({ locked }: { locked: boolean }) {
           const { data, error } = await authClient.solana.challenge({
             address,
           });
-          if (error)
-            throw new Error(
-              error.message || "Couldn't start the wallet challenge",
-            );
+          if (error) throw new Error(error.message || "Couldn't start the wallet challenge");
           return data.message;
         });
         return authClient.solana.link({ address, signature });
@@ -466,33 +420,22 @@ function Wallets({ locked }: { locked: boolean }) {
     <Row
       label="Solana wallet"
       action={
-        <Button
-          variant="surface"
-          size="1"
-          disabled={busy}
-          onClick={() => void link()}
-        >
+        <Button variant="surface" disabled={busy} onClick={() => void link()}>
           Connect
         </Button>
       }
     >
       {wallets.map((wallet) => (
-        <div
-          key={wallet.address}
-          className="flex items-center justify-between gap-3"
-        >
-          <Text size="1" color="gray" className="truncate font-mono">
+        <div key={wallet.address} className="flex items-center justify-between gap-3">
+          <Text color="gray" className="truncate font-mono">
             {wallet.address.slice(0, 6)}…{wallet.address.slice(-6)}
           </Text>
           <Button
             variant="ghost"
-            size="1"
             color="red"
             disabled={busy}
             onClick={() =>
-              void run(() =>
-                authClient.solana.unlink({ address: wallet.address }),
-              ).then(reload)
+              void run(() => authClient.solana.unlink({ address: wallet.address })).then(reload)
             }
           >
             Unlink
