@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Heading, Separator, Text } from "@aussieljk/frosted";
+import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
 import { authClient, GOOGLE_CLIENT_ID } from "@/lib/auth-client";
 import { PANELS } from "./methods";
@@ -8,6 +8,8 @@ import { RememberedAccounts } from "./RememberedAccounts";
 import { BigButton, Feedback } from "./ui";
 import { useRunner } from "./useRunner";
 import { useSetupStatus } from "./useSetupStatus";
+
+const { Heading, Text } = Typography;
 
 export type SignInProps = {
   /** Method ids to offer, in order. Defaults to all sixteen. */

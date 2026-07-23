@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Heading, Text, TextField } from "@aussieljk/frosted";
+import { Badge, Button, Card, Input, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import { type ReactNode, useCallback, useState } from "react";
 import { CodeInput, Destructive, Feedback } from "@/auth/ui";
@@ -6,6 +6,8 @@ import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
 import { authClient } from "@/lib/auth-client";
 import { signWithWallet } from "@/lib/wallet";
+
+const { Heading, Text } = Typography;
 
 /**
  * Everything that can get you into *this* account, one row each. Adding a
@@ -227,7 +229,7 @@ function Password({
             })
           }
         >
-          <TextField.Input
+          <Input.Control
             className="flex-1"
             aria-label="New password"
             type="password"
@@ -290,7 +292,7 @@ function Username({
             })
           }
         >
-          <TextField.Input
+          <Input.Control
             className="flex-1"
             aria-label="Username"
             required
@@ -375,7 +377,7 @@ function Phone({
               )
             }
           >
-            <TextField.Input
+            <Input.Control
               className="flex-1"
               aria-label="Phone number"
               type="tel"

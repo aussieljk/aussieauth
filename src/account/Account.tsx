@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { Badge, Button, Card, Code, Heading, Text } from "@aussieljk/frosted";
+import { Badge, Button, Card, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import type { FunctionReturnType } from "convex/server";
 import { type ReactNode, useState } from "react";
@@ -12,6 +12,8 @@ import { authClient } from "@/lib/auth-client";
 import { forgetRemembered, localSignOut } from "@/lib/rememberedAccounts";
 import { AUTH_COOKIE, PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
 import { SignInMethods } from "./SignInMethods";
+
+const { Code, Heading, Text } = Typography;
 
 type User = FunctionReturnType<typeof api.users.current>;
 

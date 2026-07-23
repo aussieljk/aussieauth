@@ -1,4 +1,4 @@
-import { Avatar, Spinner, Text } from "@aussieljk/frosted";
+import { Avatar, Spinner, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -10,6 +10,8 @@ import {
 } from "@/lib/rememberedAccounts";
 import { tryById } from "./providers";
 import { Destructive, Feedback } from "./ui";
+
+const { Text } = Typography;
 
 /**
  * Re-runs the method an account used last time, for when its stored session

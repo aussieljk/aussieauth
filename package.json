@@ -19,12 +19,12 @@
   },
   "dependencies": {
     "@aussieljk/frosted": "^0.0.1-2",
-    "@better-auth/api-key": "^1.6.23",
+    "@better-auth/api-key": "1.6.23",
     "@better-auth/expo": "1.6.23",
-    "@better-auth/passkey": "^1.6.23",
+    "@better-auth/passkey": "1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
     "@noble/curves": "^2.2.0",
-    "better-auth": "~1.6.15",
+    "better-auth": "1.6.23",
     "bs58": "^6.0.0",
     "convex": "^1.42.3",
     "jose": "^6.2.4",
@@ -64,5 +64,8 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "overrides": {
+    "@better-auth/core": "1.6.23"
   }
 }

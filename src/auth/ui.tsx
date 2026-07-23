@@ -1,18 +1,20 @@
-import { Button, Callout, IconButton, Text, TextField, Tooltip } from "@aussieljk/frosted";
+import { Alert, Button, IconButton, Input, Tooltip, Typography } from "@aussieljk/frosted";
 import { Icons, type IconProps } from "@aussieljk/frosted/icons";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
+
+const { Text } = Typography;
 
 /** A labelled text input. Everything else is a plain `<input>` prop. */
 export function Field({
   label,
   ...props
-}: { label: string } & ComponentProps<typeof TextField.Input>) {
+}: { label: string } & ComponentProps<typeof Input.Control>) {
   return (
     <label className="flex flex-col gap-1.5">
       <Text color="gray" weight="medium">
         {label}
       </Text>
-      <TextField.Input {...props} />
+      <Input.Control {...props} />
     </label>
   );
 }
@@ -22,9 +24,9 @@ export function Field({
  * earns. `autoComplete="one-time-code"` is what lets iOS Passwords and Android
  * SMS Retriever offer the code above the keyboard.
  */
-export function CodeInput(props: ComponentProps<typeof TextField.Input>) {
+export function CodeInput(props: ComponentProps<typeof Input.Control>) {
   return (
-    <TextField.Input
+    <Input.Control
       inputMode="numeric"
       autoComplete="one-time-code"
       pattern="[0-9]*"
@@ -36,7 +38,7 @@ export function CodeInput(props: ComponentProps<typeof TextField.Input>) {
 }
 
 /** The same input, labelled, for the sign-in panels. */
-export function CodeField(props: ComponentProps<typeof TextField.Input>) {
+export function CodeField(props: ComponentProps<typeof Input.Control>) {
   return (
     <label className="flex flex-col gap-1.5">
       <Text color="gray" weight="medium">
@@ -50,9 +52,9 @@ export function CodeField(props: ComponentProps<typeof TextField.Input>) {
 export function Feedback({ error, notice }: { error?: string | null; notice?: string | null }) {
   if (!error && !notice) return null;
   return (
-    <Callout.Root color={error ? "red" : "green"}>
-      <Callout.Description>{error ?? notice}</Callout.Description>
-    </Callout.Root>
+    <Alert.Root color={error ? "red" : "green"}>
+      <Alert.Description>{error ?? notice}</Alert.Description>
+    </Alert.Root>
   );
 }
 
