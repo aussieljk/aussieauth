@@ -2,7 +2,7 @@ import { httpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
 import { authComponent, createAuth, relatedOrigins } from "./auth";
-import { httpAction } from "./_generated/server";
+import { env, httpAction } from "./_generated/server";
 import { invalidateApps } from "./lib/apps";
 import { parseRegistration, secretMatches } from "./lib/registration";
 
@@ -22,7 +22,7 @@ http.route({
   path: "/.well-known/apple-developer-domain-association.txt",
   method: "GET",
   handler: httpAction(async () => {
-    const body = process.env.APPLE_DOMAIN_ASSOCIATION;
+    const body = env.APPLE_DOMAIN_ASSOCIATION;
     if (!body) return new Response("Not configured", { status: 404 });
     return new Response(body, { headers: { "Content-Type": "text/plain" } });
   }),
@@ -57,7 +57,7 @@ http.route({
   path: "/.well-known/apple-app-site-association",
   method: "GET",
   handler: httpAction(async () => {
-    const body = process.env.APPLE_APP_SITE_ASSOCIATION;
+    const body = env.APPLE_APP_SITE_ASSOCIATION;
     if (!body) return new Response("Not configured", { status: 404 });
     // Apple requires application/json and no file extension.
     return new Response(body, {
@@ -102,7 +102,7 @@ http.route({
   path: "/apps/register",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const expected = process.env.AUSSIEAUTH_SECRET;
+    const expected = env.AUSSIEAUTH_SECRET;
     if (!expected) {
       // Refuse rather than accept anything: an unset secret must not read as
       // "registration is open".
@@ -169,7 +169,7 @@ http.route({
   path: "/apps/unregister",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const expected = process.env.AUSSIEAUTH_SECRET;
+    const expected = env.AUSSIEAUTH_SECRET;
     if (!expected) {
       return Response.json(
         { error: "Registration is not configured on this deployment" },

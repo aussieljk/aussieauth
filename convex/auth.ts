@@ -15,6 +15,7 @@ import {
 } from "better-auth/plugins";
 import { components } from "./_generated/api";
 import type { DataModel } from "./_generated/dataModel";
+import { env } from "./_generated/server";
 import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
 import { accountNumber } from "./lib/accountNumber";
@@ -37,7 +38,7 @@ import { status } from "./lib/status";
  * AussieAuth's own site — where the hosted sign-in page lives. Apps that use
  * AussieAuth never redirect here; this is only the default for links we email.
  */
-const siteUrl = process.env.SITE_URL ?? "http://localhost:5173";
+const siteUrl = env.SITE_URL ?? "http://localhost:5173";
 
 /**
  * Origins from the environment. These are the bootstrap set — this site and
@@ -45,7 +46,7 @@ const siteUrl = process.env.SITE_URL ?? "http://localhost:5173";
  * table, which is what a fresh checkout has.
  */
 const envOrigins = (): string[] =>
-  (process.env.TRUSTED_ORIGINS ?? "")
+  (env.TRUSTED_ORIGINS ?? "")
     .split(",")
     .map((o: string) => o.trim())
     .filter(Boolean);
@@ -133,22 +134,22 @@ const describeClient = (ua: string | null | undefined) => {
 /** Only register a social provider when its credentials are actually set. */
 const socialProviders = () => {
   const providers: NonNullable<BetterAuthOptions["socialProviders"]> = {};
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
     providers.google = {
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
     };
   }
-  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  if (env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET) {
     providers.github = {
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      clientId: env.GITHUB_CLIENT_ID,
+      clientSecret: env.GITHUB_CLIENT_SECRET,
     };
   }
   // Apple wants the Services ID as the client id and a signed JWT as the
   // secret — see convex/lib/apple.ts for why we mint it per request.
   const { APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY } =
-    process.env;
+    env;
   if (APPLE_CLIENT_ID && APPLE_TEAM_ID && APPLE_KEY_ID && APPLE_PRIVATE_KEY) {
     providers.apple = async () => ({
       clientId: APPLE_CLIENT_ID,
@@ -163,7 +164,7 @@ const socialProviders = () => {
       // back here; every other provider still calls the deployment directly.
       redirectURI: `${siteUrl}/api/auth/callback/apple`,
       // Only used by native iOS apps signing in with an id token.
-      appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER,
+      appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER,
     });
   }
   return providers;
@@ -182,6 +183,8 @@ export const authComponent = createClient<DataModel, typeof authSchema>(
  */
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
   ({
+    // Convex sets this one itself, so it isn't declared in convex.config.ts
+    // and doesn't come through `env`.
     baseURL: process.env.CONVEX_SITE_URL,
 
     // Resolved per request rather than at construction, because apps register
@@ -361,23 +364,23 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       // because these options are also built where env vars aren't available.
       status(() => ({
         google: Boolean(
-          process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
+          env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET,
         ),
         github: Boolean(
-          process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET,
+          env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET,
         ),
         apple: Boolean(
-          process.env.APPLE_CLIENT_ID &&
-          process.env.APPLE_TEAM_ID &&
-          process.env.APPLE_KEY_ID &&
-          process.env.APPLE_PRIVATE_KEY,
+          env.APPLE_CLIENT_ID &&
+          env.APPLE_TEAM_ID &&
+          env.APPLE_KEY_ID &&
+          env.APPLE_PRIVATE_KEY,
         ),
         // Without these, codes and links go to the Convex logs instead.
-        email: Boolean(process.env.RESEND_API_KEY),
+        email: Boolean(env.RESEND_API_KEY),
         sms: Boolean(
-          process.env.MOBILE_MESSAGE_API_USERNAME &&
-          process.env.MOBILE_MESSAGE_API_PASSWORD &&
-          process.env.MOBILE_MESSAGE_SENDER,
+          env.MOBILE_MESSAGE_API_USERNAME &&
+          env.MOBILE_MESSAGE_API_PASSWORD &&
+          env.MOBILE_MESSAGE_SENDER,
         ),
       })),
 

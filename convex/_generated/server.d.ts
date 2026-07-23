@@ -22,6 +22,32 @@ import {
 import type { DataModel } from "./dataModel.js";
 
 /**
+ * Typesafe environment variables declared in `convex.config.ts`.
+ */
+type Env = {
+  readonly APPLE_APP_BUNDLE_IDENTIFIER: string | undefined;
+  readonly APPLE_APP_SITE_ASSOCIATION: string | undefined;
+  readonly APPLE_CLIENT_ID: string | undefined;
+  readonly APPLE_DOMAIN_ASSOCIATION: string | undefined;
+  readonly APPLE_KEY_ID: string | undefined;
+  readonly APPLE_PRIVATE_KEY: string | undefined;
+  readonly APPLE_TEAM_ID: string | undefined;
+  readonly AUSSIEAUTH_SECRET: string | undefined;
+  readonly BETTER_AUTH_SECRET: string;
+  readonly EMAIL_FROM: string | undefined;
+  readonly GITHUB_CLIENT_ID: string | undefined;
+  readonly GITHUB_CLIENT_SECRET: string | undefined;
+  readonly GOOGLE_CLIENT_ID: string | undefined;
+  readonly GOOGLE_CLIENT_SECRET: string | undefined;
+  readonly MOBILE_MESSAGE_API_PASSWORD: string | undefined;
+  readonly MOBILE_MESSAGE_API_USERNAME: string | undefined;
+  readonly MOBILE_MESSAGE_SENDER: string | undefined;
+  readonly RESEND_API_KEY: string | undefined;
+  readonly SITE_URL: string | undefined;
+  readonly TRUSTED_ORIGINS: string | undefined;
+};
+
+/**
  * Define a query in this Convex app's public API.
  *
  * This function will be allowed to read your Convex database and will be accessible from the client.
@@ -94,6 +120,11 @@ export declare const internalAction: ActionBuilder<DataModel, "internal">;
  * @returns The wrapped function. Import this function from `convex/http.js` and route it to hook it up.
  */
 export declare const httpAction: HttpActionBuilder;
+
+/**
+ * Typesafe environment variables declared in `convex.config.ts`.
+ */
+export declare const env: Env;
 
 /**
  * A set of services for use within Convex query functions.

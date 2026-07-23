@@ -6,8 +6,9 @@
  * shows up in the Convex logs instead of an inbox.
  */
 
-const from = () =>
-  process.env.EMAIL_FROM ?? "AussieAuth <onboarding@resend.dev>";
+import { env } from "../_generated/server";
+
+const from = () => env.EMAIL_FROM ?? "AussieAuth <onboarding@resend.dev>";
 
 export const sendEmail = async ({
   to,
@@ -18,7 +19,7 @@ export const sendEmail = async ({
   subject: string;
   text: string;
 }) => {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = env.RESEND_API_KEY;
   if (!apiKey) {
     console.log(`[email → ${to}] ${subject}\n${text}`);
     return;
@@ -39,9 +40,9 @@ export const sendEmail = async ({
 };
 
 export const sendSms = async ({ to, body }: { to: string; body: string }) => {
-  const username = process.env.MOBILE_MESSAGE_API_USERNAME;
-  const password = process.env.MOBILE_MESSAGE_API_PASSWORD;
-  const sender = process.env.MOBILE_MESSAGE_SENDER;
+  const username = env.MOBILE_MESSAGE_API_USERNAME;
+  const password = env.MOBILE_MESSAGE_API_PASSWORD;
+  const sender = env.MOBILE_MESSAGE_SENDER;
   if (!username || !password || !sender) {
     console.log(`[sms → ${to}] ${body}`);
     return;

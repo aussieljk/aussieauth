@@ -84,6 +84,8 @@ const canQuery = (ctx: unknown): ctx is GenericCtx<DataModel> =>
  * them for cross-domain passkeys to work at all.
  */
 const originsOverHttp = async () => {
+  // Convex sets this one itself, so it isn't declared in convex.config.ts and
+  // doesn't come through `env`.
   const base = process.env.CONVEX_SITE_URL;
   if (!base) return [];
   const res = await fetch(`${base}/apps/origins`);

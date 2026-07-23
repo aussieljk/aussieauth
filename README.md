@@ -28,6 +28,16 @@ username, passkeys, Solana, anonymous, account numbers, demo, and agent keys.
 Magic links and OTP codes work too — without `RESEND_API_KEY` the link or code
 is written to the Convex logs instead of an inbox.
 
+Every variable the backend reads is declared in `convex/convex.config.ts`, so
+the functions get a typed `env` from `./_generated/server` rather than
+`process.env` — a misspelled name is a type error, and Convex validates values
+when they're set. Adding a variable means declaring it there first.
+
+`BETTER_AUTH_SECRET` is the only one declared required: leave it unset and the
+push is refused, rather than Better Auth quietly signing sessions with a
+fallback. Everything else is optional, because an unset variable is a method
+this deployment doesn't offer, not a broken deployment.
+
 ### Third-party credentials
 
 Each provider is registered only when its variables are set, and the sign-in
