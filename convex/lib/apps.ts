@@ -4,6 +4,7 @@ import type { GenericCtx } from "@convex-dev/better-auth";
 import { internal } from "../_generated/api";
 import type { DataModel } from "../_generated/dataModel";
 import { isEnforceablePath, methodForRequest } from "./methods";
+import { isSchemeOrigin } from "./registration";
 
 /**
  * The app registry, as the auth layer sees it.
@@ -118,6 +119,38 @@ export const registeredOrigins = async (ctx: unknown) => {
   }
 };
 
+/**
+ * The app that claimed `origin`, out of the registry.
+ *
+ * A browser origin matches exactly. A native app's doesn't: the Expo plugin
+ * derives it from the app's deep-link scheme, and inside Expo Go that carries a
+ * LAN address which changes with the network — `exp://192.168.1.5:8081/--/`
+ * today, something else on another wifi. So a registered *scheme* origin
+ * (`exp://`, `aussieauthios://`) matches by prefix instead.
+ *
+ * This is the same rule Better Auth applies to its own trusted-origin list for
+ * non-http protocols (`url.startsWith(pattern)` in `matchesOriginPattern`), so
+ * an origin trusted for the request resolves to the app the same way. Exact
+ * match is tried first: it's the common case, and a `Map` hit beats a scan.
+ *
+ * Prefix matching is confined to scheme origins on purpose. Doing it for web
+ * origins too would mean `https://myapp.com` claimed `https://myapp.com.evil`,
+ * which is the classic prefix-match hole — and registration already refuses to
+ * store a bare `https://` that would match everything.
+ */
+export const matchApp = (
+  byOrigin: Map<string, App>,
+  origin: string,
+): App | null => {
+  const exact = byOrigin.get(origin);
+  if (exact) return exact;
+
+  for (const [claimed, app] of byOrigin) {
+    if (isSchemeOrigin(claimed) && origin.startsWith(claimed)) return app;
+  }
+  return null;
+};
+
 /** The app that claimed `origin`, if any. */
 export const resolveApp = async (
   ctx: GenericCtx<DataModel>,
@@ -125,7 +158,7 @@ export const resolveApp = async (
 ): Promise<App | null> => {
   if (!origin) return null;
   try {
-    return (await load(ctx)).byOrigin.get(origin) ?? null;
+    return matchApp((await load(ctx)).byOrigin, origin);
   } catch {
     return null;
   }

@@ -19,6 +19,7 @@
   "dependencies": {
     "@aussieljk/frosted": "^0.0.1-1",
     "@better-auth/api-key": "^1.6.23",
+    "@better-auth/expo": "1.6.23",
     "@better-auth/passkey": "^1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
     "@noble/curves": "^2.2.0",

@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { isOrigin, parseRegistration, secretMatches } from "./registration";
+import {
+  isOrigin,
+  isSchemeOrigin,
+  parseRegistration,
+  secretMatches,
+} from "./registration";
 
 /**
  * Registration is the one endpoint where a stranger can change what this
@@ -47,6 +52,39 @@ describe("isOrigin", () => {
   });
 });
 
+describe("isSchemeOrigin", () => {
+  it("accepts a bare app scheme", () => {
+    expect(isSchemeOrigin("aussieauthios://")).toBe(true);
+    // Expo Go's scheme, which every project shares while running under it.
+    expect(isSchemeOrigin("exp://")).toBe(true);
+    expect(isSchemeOrigin("my-app.v2+beta://")).toBe(true);
+  });
+
+  it("rejects anything past the bare scheme", () => {
+    // These register as a *prefix*, so a path would claim far more than it
+    // appears to — `exp://evil` would match `exp://evil.example.com/...`.
+    expect(isSchemeOrigin("aussieauthios:///")).toBe(false);
+    expect(isSchemeOrigin("exp://192.168.1.5:8081/--/")).toBe(false);
+    expect(isSchemeOrigin("aussieauthios://callback")).toBe(false);
+  });
+
+  it("rejects http(s), which belongs to isOrigin", () => {
+    // Left to `isOrigin` so a bare `https://` can never be registered — as a
+    // prefix it would match every https origin in existence.
+    expect(isSchemeOrigin("https://")).toBe(false);
+    expect(isSchemeOrigin("http://")).toBe(false);
+    expect(isSchemeOrigin("https://myapp.com")).toBe(false);
+  });
+
+  it("rejects malformed schemes", () => {
+    expect(isSchemeOrigin("")).toBe(false);
+    expect(isSchemeOrigin("://")).toBe(false);
+    expect(isSchemeOrigin("1app://")).toBe(false);
+    expect(isSchemeOrigin("app:/")).toBe(false);
+    expect(isSchemeOrigin("app://x")).toBe(false);
+  });
+});
+
 describe("parseRegistration", () => {
   const valid = {
     slug: "portfolio",
@@ -91,6 +129,18 @@ describe("parseRegistration", () => {
         "error",
       );
     }
+  });
+
+  it("accepts app schemes alongside web origins", () => {
+    // A native app registers its deep-link scheme the same way a site
+    // registers its origin, so one app can claim both.
+    const result = parseRegistration({
+      ...valid,
+      origins: ["https://portfolio.com", "aussieauthios://", "exp://"],
+    });
+    expect(result).toMatchObject({
+      app: { origins: ["https://portfolio.com", "aussieauthios://", "exp://"] },
+    });
   });
 
   it("rejects missing or empty origins", () => {

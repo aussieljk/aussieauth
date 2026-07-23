@@ -142,10 +142,42 @@ An app's origins do double duty: they're the CORS allow-list _and_ the WebAuthn
 related-origins list, so registering is also what lets a passkey created on
 `aussieauth.com` be used from that app. The list is served through
 `aussieauth.com/.well-known/webauthn`, which `vercel.json` already proxies.
+Scheme origins (below) are filtered out of that list — a browser can't act on
+them, and every entry counts against WebAuthn's five-site limit.
 
-### Deploying, and the three proxied paths
+### Native apps
 
-`vercel.json` rewrites three paths from `aussieauth.com` to the Convex
+`../aussieauth-ios` is the Expo client; its README covers the client half.
+
+A native app has no `Origin` header, so `@better-auth/expo` sends its deep-link
+scheme as `expo-origin` and the `expo()` plugin rewrites it back onto the
+request. Everything downstream — CSRF, `trustedOrigins`, `appMethods`, the
+session's `appId` — then works unchanged, which is why none of them needed a
+native special case.
+
+Such an app registers **scheme origins** rather than URLs:
+
+```jsonc
+{
+  "slug": "aussieauth-ios",
+  "name": "AussieAuth iOS",
+  "origins": ["aussieauthios://", "exp://"],
+}
+```
+
+Only the bare scheme is accepted, because these match by _prefix_. That's what
+makes Expo Go work: its origin is `exp://<lan-ip>:8081/--/`, which changes with
+the network and so can never be registered exactly. Prefix matching is confined
+to non-http origins — doing it for web origins would mean `https://myapp.com`
+claiming `https://myapp.com.evil`, and registration refuses a bare `https://`
+for the same reason.
+
+Trusting `exp://` means any Expo Go project can reach the deployment. That's
+fine for a dev deployment and should not be set on a production one.
+
+### Deploying, and the four proxied paths
+
+`vercel.json` rewrites four paths from `aussieauth.com` to the Convex
 deployment. They're there because a third party checks them **against the
 domain**, so serving them from `.convex.site` wouldn't count:
 
@@ -154,15 +186,21 @@ domain**, so serving them from `.convex.site` wouldn't count:
 | `/api/auth/callback/apple`                            | Apple only returns to a domain you've verified       |
 | `/.well-known/apple-developer-domain-association.txt` | Apple's domain verification                          |
 | `/.well-known/webauthn`                               | The browser, from the passkey relying party's domain |
+| `/.well-known/apple-app-site-association`             | iOS, to let a native app use this domain's passkeys and links |
 
 Everything else talks to `.convex.site` directly.
 
-**The deployment hostname is hardcoded in those three lines**, because Vercel
+**The deployment hostname is hardcoded in those four lines**, because Vercel
 doesn't interpolate environment variables into rewrite destinations — and it
 rejects unknown keys like `$comment`, so the warning can't live in the file
-either. If the Convex deployment ever changes, update all three or Sign in with
+either. If the Convex deployment ever changes, update all four or Sign in with
 Apple and cross-domain passkeys break silently. Get the hostname from
 `convex dev`.
+
+The last one is served from `APPLE_APP_SITE_ASSOCIATION` and 404s while that's
+unset, which is the honest answer — iOS caches what it fetches, so a malformed
+file is worse than no file. It's only needed once there's a real iOS build;
+under Expo Go the app runs as Expo's own bundle id and none of it applies.
 
 ## How it fits together
 

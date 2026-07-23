@@ -29,6 +29,24 @@ export const isOrigin = (value: string) => {
   }
 };
 
+/**
+ * A native app's deep-link scheme, claimed as an origin — `aussieauthios://`,
+ * or `exp://` for a project running inside Expo Go.
+ *
+ * These can't go through `isOrigin`: a non-special scheme has no host, so
+ * `new URL("aussieauthios://").origin` is the string `"null"` and the bare
+ * scheme never round-trips. Matched by pattern instead, following RFC 3986's
+ * scheme grammar.
+ *
+ * Only the bare scheme is accepted, never a full deep link, because this is a
+ * *prefix* — `resolveApp` matches any request origin starting with it, which is
+ * what makes Expo Go work at all (its origin carries a LAN address that changes
+ * with the network: `exp://192.168.1.5:8081/--/`). Allowing a path here would
+ * register a prefix that silently claims more than it looks like it does.
+ */
+export const isSchemeOrigin = (value: string) =>
+  /^[a-z][a-z0-9+.-]*:\/\/$/.test(value) && !/^https?:\/\/$/.test(value);
+
 export type Registration = {
   slug: string;
   name: string;
@@ -54,11 +72,14 @@ export const parseRegistration = (
   if (
     !Array.isArray(origins) ||
     origins.length === 0 ||
-    !origins.every((o): o is string => typeof o === "string" && isOrigin(o))
+    !origins.every(
+      (o): o is string =>
+        typeof o === "string" && (isOrigin(o) || isSchemeOrigin(o)),
+    )
   ) {
     return {
       error:
-        "origins must be a non-empty array of bare http(s) origins, e.g. https://myapp.com",
+        "origins must be a non-empty array of bare http(s) origins (e.g. https://myapp.com) or app schemes (e.g. myapp://)",
     };
   }
   if (

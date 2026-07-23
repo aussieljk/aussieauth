@@ -29,6 +29,44 @@ http.route({
 });
 
 /**
+ * The Apple App Site Association file, which is how an iOS app proves it's
+ * allowed to act for this domain. Two capabilities ride on it:
+ *
+ *   - `webcredentials` lets a native app use a passkey whose rpID is
+ *     `aussieauth.com`. Related Origin Requests (below) is the web equivalent
+ *     and does nothing for native — this file is the only route in.
+ *   - `applinks` lets a magic-link email open the app directly instead of
+ *     bouncing through Safari.
+ *
+ * Served from an env var rather than assembled here, matching the Apple
+ * domain-association route above: the exact JSON depends on your Team ID and
+ * bundle id, and Apple's requirements for it have changed before. Unset means
+ * 404, which is the honest answer — a malformed file is worse than no file,
+ * because iOS caches what it fetches.
+ *
+ * Set it to something like:
+ *
+ *   {"applinks":{"details":[{"appIDs":["J53N6D4ML3.com.aussieauth.ios"],
+ *     "components":[{"/":"/*"}]}]},
+ *    "webcredentials":{"apps":["J53N6D4ML3.com.aussieauth.ios"]}}
+ *
+ * Note this does nothing under Expo Go, which runs as Expo's own bundle id.
+ * It only takes effect in a development or production build.
+ */
+http.route({
+  path: "/.well-known/apple-app-site-association",
+  method: "GET",
+  handler: httpAction(async () => {
+    const body = process.env.APPLE_APP_SITE_ASSOCIATION;
+    if (!body) return new Response("Not configured", { status: 404 });
+    // Apple requires application/json and no file extension.
+    return new Response(body, {
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
+/**
  * WebAuthn Related Origin Requests: the list of origins allowed to use a
  * passkey whose relying party id is ours.
  *

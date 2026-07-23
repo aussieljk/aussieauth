@@ -1,4 +1,5 @@
 import { apiKey } from "@better-auth/api-key";
+import { expo } from "@better-auth/expo";
 import { getAuthenticatorName, passkey } from "@better-auth/passkey";
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex, crossDomain } from "@convex-dev/better-auth/plugins";
@@ -43,10 +44,10 @@ const siteUrl = process.env.SITE_URL ?? "http://localhost:5173";
  * whatever you're developing against — and they work with an empty `apps`
  * table, which is what a fresh checkout has.
  */
-const envOrigins = () =>
+const envOrigins = (): string[] =>
   (process.env.TRUSTED_ORIGINS ?? "")
     .split(",")
-    .map((o) => o.trim())
+    .map((o: string) => o.trim())
     .filter(Boolean);
 
 const staticOrigins = [
@@ -68,13 +69,16 @@ const staticOrigins = [
  *
  * Apple's origin is not in here: it posts an OAuth callback, it never touches
  * WebAuthn.
+ *
+ * Native app schemes (`exp://`, `aussieauthios://`) are filtered out for the
+ * same reason. A browser is the only thing that reads this file, it can only
+ * act on web origins, and every entry costs against the five-label limit below
+ * — so letting them through would push real origins off the end.
  */
 export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
-  const all = [
-    siteUrl,
-    ...envOrigins(),
-    ...(await registeredOrigins(ctx)),
-  ].filter((o, i, xs) => xs.indexOf(o) === i);
+  const all = [siteUrl, ...envOrigins(), ...(await registeredOrigins(ctx))]
+    .filter((o) => /^https?:\/\//.test(o))
+    .filter((o, i, xs) => xs.indexOf(o) === i);
 
   const { kept, dropped } = capToRelatedOriginLimit(all);
   if (dropped.length) {
@@ -376,6 +380,25 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
           process.env.MOBILE_MESSAGE_SENDER,
         ),
       })),
+
+      // Native apps. Two jobs, both invisible from the web:
+      //
+      //  - React Native's fetch sends no `Origin`, so the client sends its
+      //    deep-link scheme as `expo-origin` and this rewrites it back onto the
+      //    request. Everything downstream that reads the origin — CSRF,
+      //    `trustedOrigins`, `appMethods`, the session's `appId` — then works
+      //    unchanged, which is why none of them needed a native special case.
+      //
+      //  - On an OAuth callback it appends the session cookie to the
+      //    `myapp://` redirect, because a native app has no cookie jar the
+      //    browser can write to.
+      //
+      // Ordered before `crossDomain` deliberately: both hook the same callback
+      // paths, and the IdP's callback carries no `expo-origin` header (it comes
+      // from Google, not from the app), so `crossDomain` does not skip itself
+      // there the way it does elsewhere. Running first means the cookie is on
+      // the redirect before `crossDomain` appends its one-time token.
+      expo(),
 
       // Growing one account extra credentials rather than making a new user.
       linking(),

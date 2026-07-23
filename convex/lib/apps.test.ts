@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { capToRelatedOriginLimit } from "./apps";
+import { capToRelatedOriginLimit, matchApp, type App } from "./apps";
 
 /**
  * The WebAuthn related-origins limit counts distinct sites, not origins. Going
@@ -71,5 +71,50 @@ describe("capToRelatedOriginLimit", () => {
 
   it("doesn't throw on an unparseable entry", () => {
     expect(() => capToRelatedOriginLimit(["not a url"])).not.toThrow();
+  });
+});
+
+/**
+ * Which app a request belongs to. Getting this wrong in the permissive
+ * direction hands one app another's sign-in methods; getting it wrong in the
+ * restrictive direction locks a native app out, because its origin is never
+ * quite the string it registered.
+ */
+
+describe("matchApp", () => {
+  const web: App = { slug: "web", name: "Web", methods: ["google"] };
+  const ios: App = { slug: "ios", name: "iOS", methods: ["apple"] };
+
+  const registry = new Map<string, App>([
+    ["https://aussieauth.com", web],
+    ["aussieauthios://", ios],
+    ["exp://", ios],
+  ]);
+
+  it("matches a web origin exactly", () => {
+    expect(matchApp(registry, "https://aussieauth.com")).toBe(web);
+  });
+
+  it("matches a native app's own scheme", () => {
+    expect(matchApp(registry, "aussieauthios://")).toBe(ios);
+  });
+
+  it("matches an Expo Go origin despite its LAN address", () => {
+    // The whole reason prefix matching exists: this string changes with the
+    // network, so it can never be registered ahead of time.
+    expect(matchApp(registry, "exp://192.168.1.5:8081/--/")).toBe(ios);
+    expect(matchApp(registry, "exp://10.0.0.2:8081/--/")).toBe(ios);
+  });
+
+  it("does not prefix-match web origins", () => {
+    // The classic prefix hole — a lookalike domain must not inherit the app.
+    expect(matchApp(registry, "https://aussieauth.com.evil.test")).toBeNull();
+    expect(matchApp(registry, "https://aussieauth.com/login")).toBeNull();
+  });
+
+  it("returns null for an unclaimed origin", () => {
+    expect(matchApp(registry, "https://stranger.test")).toBeNull();
+    expect(matchApp(registry, "otherapp://")).toBeNull();
+    expect(matchApp(new Map(), "exp://192.168.1.5:8081/--/")).toBeNull();
   });
 });
