@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatAccountNumber,
-  generateAccountNumber,
-  normalize,
-} from "./accountNumber";
+import { formatAccountNumber, generateAccountNumber, normalize } from "./accountNumber";
 
 /**
  * The account number is the entire credential — no email, no password, no

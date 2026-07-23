@@ -17,27 +17,19 @@ describe("methodForRequest", () => {
     expect(methodForRequest("/sign-in/email", {})).toBe("email-password");
     expect(methodForRequest("/sign-in/username", {})).toBe("username-password");
     expect(methodForRequest("/sign-in/email-otp", {})).toBe("email-otp");
-    expect(methodForRequest("/sign-in/account-number", {})).toBe(
-      "account-number",
-    );
+    expect(methodForRequest("/sign-in/account-number", {})).toBe("account-number");
     expect(methodForRequest("/sign-in/solana", {})).toBe("solana");
   });
 
   it("catches social sign-in at the request, not the callback", () => {
     // The whole point: blocking at /callback/google would be after the user
     // has already been bounced to Google and consented.
-    expect(methodForRequest("/sign-in/social", { provider: "google" })).toBe(
-      "google",
-    );
-    expect(methodForRequest("/link-social", { provider: "github" })).toBe(
-      "github",
-    );
+    expect(methodForRequest("/sign-in/social", { provider: "google" })).toBe("google");
+    expect(methodForRequest("/link-social", { provider: "github" })).toBe("github");
   });
 
   it("still resolves the callback, as a second line of defence", () => {
-    expect(methodForRequest("/callback/google", {}, { id: "google" })).toBe(
-      "google",
-    );
+    expect(methodForRequest("/callback/google", {}, { id: "google" })).toBe("google");
     expect(methodForRequest("/oauth2/callback/github", {}, {})).toBe("github");
   });
 
@@ -90,9 +82,7 @@ describe("resolveLoginMethod", () => {
 
   it("agrees with methodForRequest on shared paths", () => {
     for (const path of Object.keys(LOGIN_METHOD_PATHS)) {
-      expect(resolveLoginMethod({ path }), path).toBe(
-        methodForRequest(path, {}),
-      );
+      expect(resolveLoginMethod({ path }), path).toBe(methodForRequest(path, {}));
     }
   });
 });

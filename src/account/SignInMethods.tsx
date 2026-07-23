@@ -4,7 +4,7 @@ import { type ReactNode, useCallback, useState } from "react";
 import { CodeInput, Destructive, Feedback } from "@/auth/ui";
 import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
-import { authClient } from "@/lib/auth-client";
+import { authClient, callbackURL } from "@/lib/auth-client";
 import { signWithWallet } from "@/lib/wallet";
 
 const { Heading, Text } = Typography;
@@ -166,7 +166,7 @@ function Social({
                     void run(() =>
                       authClient.linkSocial({
                         provider: id,
-                        callbackURL: window.location.origin,
+                        callbackURL: callbackURL(),
                       }),
                     )
                   }

@@ -26,16 +26,10 @@ export const handlers = {
     http.post(auth("sign-in/email"), () => HttpResponse.json(session)),
     http.post(auth("sign-up/email"), () => HttpResponse.json(session)),
   ],
-  signInFailure: [
-    http.post(auth("sign-in/email"), () => failure("Invalid email or password")),
-  ],
-  magicLink: [
-    http.post(auth("sign-in/magic-link"), () => HttpResponse.json({ status: true })),
-  ],
+  signInFailure: [http.post(auth("sign-in/email"), () => failure("Invalid email or password"))],
+  magicLink: [http.post(auth("sign-in/magic-link"), () => HttpResponse.json({ status: true }))],
   emailOtp: [
-    http.post(auth("email-otp/send-verification-otp"), () =>
-      HttpResponse.json({ success: true }),
-    ),
+    http.post(auth("email-otp/send-verification-otp"), () => HttpResponse.json({ success: true })),
     http.post(auth("sign-in/email-otp"), () => HttpResponse.json(session)),
   ],
   accountNumber: [
@@ -68,4 +62,8 @@ export const handlers = {
     ),
     http.get(auth("solana/list"), () => HttpResponse.json([])),
   ],
+  /** The sign-in card's mount-time probe finds the stored session still good. */
+  sessionAlive: [http.get(auth("get-session"), () => HttpResponse.json(session))],
+  /** The server answers, and the answer is that the session is gone. */
+  sessionRevoked: [http.get(auth("get-session"), () => failure("Session expired"))],
 };

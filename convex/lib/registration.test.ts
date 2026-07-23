@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isOrigin,
-  isSchemeOrigin,
-  parseRegistration,
-  secretMatches,
-} from "./registration";
+import { isOrigin, isSchemeOrigin, parseRegistration, secretMatches } from "./registration";
 
 /**
  * Registration is the one endpoint where a stranger can change what this
@@ -98,9 +93,9 @@ describe("parseRegistration", () => {
   });
 
   it("keeps methods when given and leaves them undefined when not", () => {
-    expect(
-      parseRegistration({ ...valid, methods: ["google", "passkey"] }),
-    ).toMatchObject({ app: { methods: ["google", "passkey"] } });
+    expect(parseRegistration({ ...valid, methods: ["google", "passkey"] })).toMatchObject({
+      app: { methods: ["google", "passkey"] },
+    });
     // Undefined means "all methods" — importantly not "no methods", which
     // would lock the app out entirely.
     expect(parseRegistration(valid)).toMatchObject({
@@ -117,17 +112,8 @@ describe("parseRegistration", () => {
   });
 
   it("rejects a bad slug", () => {
-    for (const slug of [
-      "",
-      "Portfolio",
-      "my app",
-      "my_app",
-      "-lead",
-      "x".repeat(40),
-    ]) {
-      expect(parseRegistration({ ...valid, slug }), slug).toHaveProperty(
-        "error",
-      );
+    for (const slug of ["", "Portfolio", "my app", "my_app", "-lead", "x".repeat(40)]) {
+      expect(parseRegistration({ ...valid, slug }), slug).toHaveProperty("error");
     }
   });
 
@@ -144,21 +130,13 @@ describe("parseRegistration", () => {
   });
 
   it("rejects missing or empty origins", () => {
-    expect(parseRegistration({ ...valid, origins: [] })).toHaveProperty(
-      "error",
-    );
-    expect(
-      parseRegistration({ ...valid, origins: "https://a.com" }),
-    ).toHaveProperty("error");
-    expect(
-      parseRegistration({ ...valid, origins: ["https://a.com", 42] }),
-    ).toHaveProperty("error");
+    expect(parseRegistration({ ...valid, origins: [] })).toHaveProperty("error");
+    expect(parseRegistration({ ...valid, origins: "https://a.com" })).toHaveProperty("error");
+    expect(parseRegistration({ ...valid, origins: ["https://a.com", 42] })).toHaveProperty("error");
   });
 
   it("rejects a blank name", () => {
-    expect(parseRegistration({ ...valid, name: "   " })).toHaveProperty(
-      "error",
-    );
+    expect(parseRegistration({ ...valid, name: "   " })).toHaveProperty("error");
   });
 
   it("rejects non-objects", () => {

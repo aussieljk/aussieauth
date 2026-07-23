@@ -55,9 +55,7 @@ export type Registration = {
 };
 
 /** `req.json()` is `unknown`; narrow every field before it reaches the db. */
-export const parseRegistration = (
-  body: unknown,
-): { app: Registration } | { error: string } => {
+export const parseRegistration = (body: unknown): { app: Registration } | { error: string } => {
   if (typeof body !== "object" || body === null) {
     return { error: "Expected a JSON object" };
   }
@@ -72,10 +70,7 @@ export const parseRegistration = (
   if (
     !Array.isArray(origins) ||
     origins.length === 0 ||
-    !origins.every(
-      (o): o is string =>
-        typeof o === "string" && (isOrigin(o) || isSchemeOrigin(o)),
-    )
+    !origins.every((o): o is string => typeof o === "string" && (isOrigin(o) || isSchemeOrigin(o)))
   ) {
     return {
       error:
@@ -84,8 +79,7 @@ export const parseRegistration = (
   }
   if (
     methods !== undefined &&
-    (!Array.isArray(methods) ||
-      !methods.every((m): m is string => typeof m === "string"))
+    (!Array.isArray(methods) || !methods.every((m): m is string => typeof m === "string"))
   ) {
     return { error: "methods must be an array of method ids" };
   }

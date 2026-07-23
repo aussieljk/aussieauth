@@ -1,0 +1,138 @@
+---
+title: Architecture
+description: What lives in each directory of AussieAuth, why the Better Auth component is installed locally, and how the tests are split.
+order: 8
+---
+
+# Architecture
+
+## The backend
+
+- **`convex/auth.ts`** — the whole Better Auth configuration: providers, plugins,
+  trusted origins, rate limiting, account linking. `createAuthOptions` is split
+  out from `createAuth` because the component directory needs the options without
+  env-var access.
+- **`convex/betterAuth/`** — a **local install** of the Better Auth component. The
+  packaged component ships a fixed schema with no passkey, wallet or API-key
+  tables, so this repo owns the schema instead.
+- **`convex/lib/`** — the plugins that aren't in Better Auth: Sign In With Solana,
+  Mullvad-style account numbers, the shared demo account and its lockdown,
+  `linking.ts` (adding a password to an account that arrived without one), and
+  `status.ts` (which credentials are set, so the card can say "needs setup").
+  Plus `apple.ts`, which mints Apple's client secret, and `notify.ts`, which sends
+  via Resend / Mobile Message or falls back to logging.
+- **`convex/http.ts`** — the two files a third party fetches (Apple's domain
+  association, the WebAuthn related-origins list), plus `/apps/register` and
+  `/apps/unregister`.
+- **`convex/apps.ts` + `convex/lib/apps.ts`** — the app registry: who's allowed
+  in, from which origins, using which methods.
+- **`convex/lib/methods.ts`** — the one path→method map, shared by
+  `lastLoginMethod` and the per-app allow-list so they can't disagree.
+
+## The frontend
+
+- **`src/routes/`** — the site. `/` and `/docs/*` prerender to static HTML;
+  `/sign-in` and `/account` are client-only, because the session is a cookie jar
+  in localStorage and there is nothing a server render could know about it.
+- **`src/auth/providers.ts`** — display metadata per method;
+  **`src/auth/panels.tsx`** — the matching behaviour; **`src/auth/methods.ts`**
+  wires the two together by id.
+- **`src/auth/AuthProvider.tsx`** — Convex and Better Auth, mounted only by the
+  two routes that sign someone in, so the landing page and the docs don't
+  download the auth client.
+- **`src/account/Account.tsx`** — signed-in view: profile, passkeys and agent API
+  keys; **`src/account/SignInMethods.tsx`** — linking extra credentials onto the
+  account you're already signed in as.
+- **`src/lib/rememberedAccounts.ts`** — the returning-account chooser.
+
+## Tests
+
+Two projects.
+
+**unit** is plain node and covers the logic where a bug is a security bug and
+there's no UI to notice it through: Solana signature verification, the demo
+lockdown's path matcher, account-number generation, the registration secret and
+body validation, the path→method map, and the WebAuthn site-limit arithmetic.
+
+**component** renders the sign-in card and account page in a real browser against
+mocked endpoints.
+
+The component tests render React Cosmos fixtures — the same `*.fixture.tsx` files
+the workbench shows — through the same `src/cosmos.decorator.tsx`, so a state you
+can look at is a state that's covered:
+
+```sh
+bun run cosmos      # the workbench, at localhost:7007
+```
+
+A fixture is a component in a named state; `src/testing/MockApi.tsx` gives it the
+endpoints and localStorage it needs. Anything worth asserting about goes in a
+colocated `*.test.tsx` that imports the fixture.
+
+Cosmos runs against `vite.cosmos.config.ts` rather than `vite.config.ts` — it
+would otherwise pick up the TanStack Start plugin, whose SSR entry and route
+generation mean nothing to a fixture. Both configs share `vite.base.ts`, so the
+path aliases can't drift between the app and the workbench.
+
+The root `index.html` is committed but isn't the app's document — TanStack Start
+builds that from `src/routes/__root.tsx`. It's the renderer shim react-cosmos
+insists on, and `bun run cosmos` fails outright if it's missing, which is the
+only reason it's in the repo.
+
+## Linting and formatting
+
+One tool each, both Rust:
+
+```sh
+bun run lint      # tsc --noEmit && oxlint --type-aware
+bun run format    # oxfmt .
+```
+
+`--type-aware` runs the rules that need a type checker — `no-floating-promises`
+is the one that earns its keep here, since a dropped auth promise fails silently.
+It goes through `oxlint-tsgolint`, which requires TypeScript 7; that's why the
+`typescript` dependency is pinned to `~7.0.2` rather than left to float.
+
+`.oxlintrc.json` carries a note against every disabled rule. Most of them are off
+because they disagree with Convex's own conventions — `_id` is not a dangling
+underscore anyone chose, and the sequential awaits in `convex/apps.ts` are
+sequential on purpose.
+
+## Coming back to a remembered account
+
+The sign-in card lists accounts this browser has used before and gets you back
+into one without a prompt.
+
+`crossDomainClient` can't be handed a session cookie on a `.convex.site` response,
+so it keeps the whole cookie jar as JSON in localStorage. Signing in copies that
+jar into `aussieauth.accounts` alongside your name and avatar; clicking the
+account puts it back and asks the server whether it still holds.
+
+If it does you're in with no round trip to any provider. If it's expired we re-run
+the method `lastLoginMethod` recorded — a silent redirect for a social provider,
+or the right panel with your address already filled in.
+
+Which is why **Sign out** doesn't revoke: it clears the local jar and leaves the
+session alive, so the account stays one click away. **Sign out everywhere** is the
+real thing, and so is the ✕ next to a remembered account.
+
+## A gotcha worth knowing
+
+`frosted-ui`'s `Button` wraps Base UI, which defaults native buttons to
+`type="button"`. Inside a `<form>` you must pass `type="submit"` explicitly or
+`onSubmit` never fires.
+
+## Questions
+
+**Why is the Better Auth component installed locally rather than as a package?**
+The packaged component ships a fixed schema with no passkey, wallet or API-key
+tables. Owning `convex/betterAuth/` is what makes those methods possible.
+
+**Why doesn't signing out revoke the session?**
+So the account stays one click away on the next visit. "Sign out everywhere"
+revokes; so does removing a remembered account.
+
+**Where do I add a new sign-in method?**
+Three places: register the Better Auth plugin in `convex/auth.ts`, add a row to
+`src/auth/providers.ts`, and add a panel to `src/auth/panels.tsx`. If it should
+be blocked for the demo account, add it to `LOCKED` in `convex/lib/demo.ts` too.

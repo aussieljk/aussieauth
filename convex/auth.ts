@@ -148,8 +148,7 @@ const socialProviders = () => {
   }
   // Apple wants the Services ID as the client id and a signed JWT as the
   // secret — see convex/lib/apple.ts for why we mint it per request.
-  const { APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY } =
-    env;
+  const { APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY } = env;
   if (APPLE_CLIENT_ID && APPLE_TEAM_ID && APPLE_KEY_ID && APPLE_PRIVATE_KEY) {
     providers.apple = async () => ({
       clientId: APPLE_CLIENT_ID,
@@ -170,12 +169,9 @@ const socialProviders = () => {
   return providers;
 };
 
-export const authComponent = createClient<DataModel, typeof authSchema>(
-  components.betterAuth,
-  {
-    local: { schema: authSchema },
-  },
-);
+export const authComponent = createClient<DataModel, typeof authSchema>(components.betterAuth, {
+  local: { schema: authSchema },
+});
 
 /**
  * Split out from `createAuth` so the component directory can read the options
@@ -191,10 +187,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     // themselves at runtime — the env list is only the bootstrap set. Better
     // Auth accepts an async resolver here, which is what makes a database-
     // backed allow-list possible at all.
-    trustedOrigins: async () => [
-      ...staticOrigins,
-      ...(await registeredOrigins(ctx)),
-    ],
+    trustedOrigins: async () => [...staticOrigins, ...(await registeredOrigins(ctx))],
 
     database: authComponent.adapter(ctx),
 
@@ -363,17 +356,10 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       // sign-in card can badge the rest as "needs setup". Read per request,
       // because these options are also built where env vars aren't available.
       status(() => ({
-        google: Boolean(
-          env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET,
-        ),
-        github: Boolean(
-          env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET,
-        ),
+        google: Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+        github: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
         apple: Boolean(
-          env.APPLE_CLIENT_ID &&
-          env.APPLE_TEAM_ID &&
-          env.APPLE_KEY_ID &&
-          env.APPLE_PRIVATE_KEY,
+          env.APPLE_CLIENT_ID && env.APPLE_TEAM_ID && env.APPLE_KEY_ID && env.APPLE_PRIVATE_KEY,
         ),
         // Without these, codes and links go to the Convex logs instead.
         email: Boolean(env.RESEND_API_KEY),
@@ -417,5 +403,4 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     ],
   }) satisfies BetterAuthOptions;
 
-export const createAuth = (ctx: GenericCtx<DataModel>) =>
-  betterAuth(createAuthOptions(ctx));
+export const createAuth = (ctx: GenericCtx<DataModel>) => betterAuth(createAuthOptions(ctx));

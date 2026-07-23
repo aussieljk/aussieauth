@@ -27,5 +27,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts", "vitest.shims.d.ts"]
+  "include": ["src", "vite.config.ts", "vite.base.ts", "vite.cosmos.config.ts", "vitest.shims.d.ts"]
 }

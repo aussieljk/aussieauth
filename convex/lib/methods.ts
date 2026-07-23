@@ -39,10 +39,7 @@ const callbackProvider = (path: string, params: unknown) => {
  * answers in `PROVIDERS` ids, so the card can offer a returning account the
  * exact button it used last time.
  */
-export const resolveLoginMethod = (ctx: {
-  path?: string;
-  params?: unknown;
-}) => {
+export const resolveLoginMethod = (ctx: { path?: string; params?: unknown }) => {
   const path = ctx.path;
   if (!path) return null;
   return callbackProvider(path, ctx.params) ?? LOGIN_METHOD_PATHS[path] ?? null;

@@ -1,19 +1,55 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import path from "path";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { playwright } from "@vitest/browser-playwright";
+import { defineConfig } from "vite";
+import { base } from "./vite.base";
+
+// Vitest drives this same config file, and the Start plugin has nothing to do
+// under it: route generation and the SSR entry are build concerns, while the
+// component tests render fixtures directly. Leaving it in makes the browser
+// project fail to boot.
+const underVitest = Boolean(process.env.VITEST);
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
-  resolve: {
-    alias: {
-      "@/convex": path.resolve(__dirname, "./convex"),
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
+  ...base,
+  plugins: [
+    ...(underVitest
+      ? []
+      : [
+          tanstackStart({
+            // Emit real HTML for every route we can resolve at build time. The
+            // marketing and docs pages exist to be read by crawlers that don't
+            // run JavaScript, so a client-rendered shell would defeat them.
+            //
+            // Prerendering *everything* is also what lets `dist/client` deploy
+            // as plain static files — see `vercel.json`. Nothing here needs a
+            // server at request time.
+            prerender: {
+              enabled: true,
+              crawlLinks: true,
+              failOnError: true,
+              // The docs link to their own raw markdown, to `/llms.txt` and to
+              // the sitemap. Those are real files in `public/`, not routes, and
+              // the crawler would otherwise try to render each one as a page.
+              filter: ({ path }) => !/\.[a-z0-9]+$/i.test(path),
+            },
+            // Sitemap is written by `scripts/generate-llms.ts` instead. The
+            // built-in one lists whatever the crawler reached, which here means
+            // `/llms.txt` and every raw `.md` — files, not pages, and each one
+            // a duplicate of a URL already in there.
+            sitemap: { enabled: false },
+            pages: [
+              // Prerendered so a hard refresh works, but there is nothing on
+              // either that a search engine should hold: one is a form, the
+              // other is behind a session.
+              { path: "/sign-in", sitemap: { exclude: true } },
+              { path: "/account", sitemap: { exclude: true } },
+            ],
+          }),
+        ]),
+    ...base.plugins,
+  ],
   test: {
     projects: [
       {

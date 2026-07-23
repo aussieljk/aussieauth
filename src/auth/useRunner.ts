@@ -6,8 +6,7 @@ import { useState } from "react";
  * This does it once and hands back the pending/error/notice a form renders.
  */
 const errorMessage = (result: unknown) => {
-  if (typeof result !== "object" || result === null || !("error" in result))
-    return null;
+  if (typeof result !== "object" || result === null || !("error" in result)) return null;
   const { error } = result as { error?: { message?: string | null } | null };
   if (!error) return null;
   return error.message || "Something went wrong";

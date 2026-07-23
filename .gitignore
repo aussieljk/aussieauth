@@ -28,3 +28,9 @@ dist-ssr
 *.p8
 
 cosmos-export
+
+# Generated from docs/*.md by `bun run docs:llms` (runs as prebuild).
+public/llms.txt
+public/llms-full.txt
+public/sitemap.xml
+public/docs

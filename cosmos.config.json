@@ -2,5 +2,8 @@
   "plugins": ["react-cosmos-plugin-vite"],
   "port": 7007,
   "globalImports": ["./src/index.css"],
-  "staticPath": "public"
+  "staticPath": "public",
+  "vite": {
+    "configPath": "vite.cosmos.config.ts"
+  }
 }

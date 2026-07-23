@@ -1,6 +1,6 @@
 import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient, GOOGLE_CLIENT_ID } from "@/lib/auth-client";
+import { authClient, callbackURL, GOOGLE_CLIENT_ID } from "@/lib/auth-client";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
@@ -142,7 +142,7 @@ function SocialButton({ id, disabled }: { id: string; disabled: boolean }) {
           void run(() =>
             authClient.signIn.social({
               provider: id,
-              callbackURL: window.location.origin,
+              callbackURL: callbackURL(),
             }),
           )
         }
@@ -171,8 +171,16 @@ function OneTapButton() {
   );
 }
 
-/** Tells you exactly which env vars are missing rather than failing on click. */
+/**
+ * Says how to switch a method on rather than letting it fail on click. Google
+ * and Apple have guided walkthroughs; GitHub is two variables and doesn't need
+ * one.
+ */
 function SetupHint({ id }: { id: string }) {
+  const guide: Record<string, string> = {
+    google: "/setup/google",
+    apple: "/setup/apple",
+  };
   const vars: Record<string, string> = {
     google: "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET",
     github: "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET",
@@ -182,6 +190,14 @@ function SetupHint({ id }: { id: string }) {
     <Text color="amber">
       Set {vars[id] ?? "the provider credentials"} with <code>npx convex env set</code> to enable
       this.
+      {guide[id] && (
+        <>
+          {" "}
+          <a href={guide[id]} className="underline">
+            Walk me through it →
+          </a>
+        </>
+      )}
     </Text>
   );
 }

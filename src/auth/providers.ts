@@ -132,5 +132,4 @@ export const tryById = (id: string | null | undefined): Provider | undefined =>
 export const byId = (id: string): Provider => tryById(id) ?? PROVIDERS[0];
 
 /** The button label a panel should use for a given method. */
-export const ctaFor = (p: Provider): string =>
-  p.cta ?? `Continue with ${p.label}`;
+export const ctaFor = (p: Provider): string => p.cta ?? `Continue with ${p.label}`;

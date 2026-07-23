@@ -19,9 +19,8 @@ import { setSessionCookie } from "better-auth/cookies";
 const DEMO_EMAIL = "demo@aussieauth.com";
 
 /** The account page imports this to explain why its controls are disabled. */
-export const isDemoUser = (
-  user: { email?: string | null } | null | undefined,
-) => user?.email === DEMO_EMAIL;
+export const isDemoUser = (user: { email?: string | null } | null | undefined) =>
+  user?.email === DEMO_EMAIL;
 
 /**
  * Endpoints a demo session may not reach, by prefix.
@@ -97,28 +96,21 @@ export const demo = () =>
     },
 
     endpoints: {
-      signInDemo: createAuthEndpoint(
-        "/sign-in/demo",
-        { method: "POST" },
-        async (ctx) => {
-          const existing =
-            await ctx.context.internalAdapter.findUserByEmail(DEMO_EMAIL);
-          const user =
-            existing?.user ??
-            (await ctx.context.internalAdapter.createUser({
-              email: DEMO_EMAIL,
-              emailVerified: true,
-              name: "Demo User",
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            }));
+      signInDemo: createAuthEndpoint("/sign-in/demo", { method: "POST" }, async (ctx) => {
+        const existing = await ctx.context.internalAdapter.findUserByEmail(DEMO_EMAIL);
+        const user =
+          existing?.user ??
+          (await ctx.context.internalAdapter.createUser({
+            email: DEMO_EMAIL,
+            emailVerified: true,
+            name: "Demo User",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }));
 
-          const session = await ctx.context.internalAdapter.createSession(
-            user.id,
-          );
-          await setSessionCookie(ctx, { session, user });
-          return ctx.json({ token: session.token, user });
-        },
-      ),
+        const session = await ctx.context.internalAdapter.createSession(user.id);
+        await setSessionCookie(ctx, { session, user });
+        return ctx.json({ token: session.token, user });
+      }),
     },
   }) satisfies BetterAuthPlugin;

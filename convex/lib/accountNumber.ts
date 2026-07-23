@@ -13,8 +13,7 @@ import * as z from "zod";
 
 const DIGITS = 16;
 /** Grouped 4-4-4-4 for display; we always store and compare the bare digits. */
-export const formatAccountNumber = (n: string) =>
-  n.replace(/(\d{4})(?=\d)/g, "$1 ");
+export const formatAccountNumber = (n: string) => n.replace(/(\d{4})(?=\d)/g, "$1 ");
 export const normalize = (n: string) => n.replace(/\D/g, "");
 
 export const generateAccountNumber = () => {
@@ -52,9 +51,7 @@ export const accountNumber = () =>
             createdAt: new Date(),
             updatedAt: new Date(),
           });
-          const session = await ctx.context.internalAdapter.createSession(
-            user.id,
-          );
+          const session = await ctx.context.internalAdapter.createSession(user.id);
           await setSessionCookie(ctx, { session, user });
 
           // The only time the number is ever returned. Losing it loses the
@@ -81,9 +78,7 @@ export const accountNumber = () =>
               message: "Unknown account number",
             });
           }
-          const session = await ctx.context.internalAdapter.createSession(
-            user.id,
-          );
+          const session = await ctx.context.internalAdapter.createSession(user.id);
           const full = await ctx.context.internalAdapter.findUserById(user.id);
           await setSessionCookie(ctx, { session, user: full! });
           return ctx.json({ token: session.token, user: full });

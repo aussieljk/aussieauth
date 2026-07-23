@@ -1,6 +1,6 @@
 import { Button, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { authClient, callbackURL } from "@/lib/auth-client";
 import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
 import { signWithWallet } from "@/lib/wallet";
 import { byId, ctaFor } from "./providers";
@@ -14,8 +14,6 @@ const { Code, Text } = Typography;
  * adding a method is: register the Better Auth plugin, add a row to
  * `providers.ts`, and add an entry here.
  */
-
-const callbackURL = () => window.location.origin;
 
 function Mark({ id }: { id: string }) {
   const { Logo } = byId(id);

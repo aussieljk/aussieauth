@@ -1,18 +1,21 @@
 {
   "name": "aussieauth",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "portless run vite",
     "dev:backend": "convex dev",
-    "build": "tsc && vite build",
-    "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "prebuild": "bun run docs:llms",
+    "build": "vite build",
+    "docs:llms": "bun run scripts/generate-llms.ts",
+    "lint": "tsc --noEmit && oxlint --type-aware --max-warnings 0",
     "test": "vitest run",
     "test:unit": "vitest run --project=unit",
     "test:component": "vitest run --project=component",
     "preview": "vite preview",
-    "format": "prettier --write .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
     "auth:schema": "bun run scripts/generate-auth-schema.ts",
     "cosmos": "cosmos",
     "cosmos:export": "cosmos-export"
@@ -24,6 +27,8 @@
     "@better-auth/passkey": "1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
     "@noble/curves": "^2.2.0",
+    "@tanstack/react-router": "^1.170.18",
+    "@tanstack/react-start": "^1.168.32",
     "better-auth": "1.6.23",
     "bs58": "^6.0.0",
     "convex": "^1.42.3",
@@ -34,38 +39,39 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@convex-dev/eslint-plugin": "^2.0.0",
-    "@eslint/js": "^9.39.4",
+    "@mdx-js/rollup": "^3.1.1",
+    "@shikijs/rehype": "^4.3.1",
     "@tailwindcss/vite": "^4.2.2",
-    "@types/node": "^24.12.2",
+    "@types/mdx": "^2.0.14",
+    "@types/node": "^26",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/browser-playwright": "^4.1.10",
     "@vitest/coverage-v8": "^4.1.10",
-    "eslint": "^9.39.4",
-    "eslint-plugin-react-hooks": "^7.1.1",
-    "eslint-plugin-react-refresh": "^0.5.2",
-    "globals": "^17.5.0",
     "jiti": "^2.7.0",
     "msw": "^2.15.0",
+    "oxfmt": "^0.60.0",
+    "oxlint": "^1.75.0",
+    "oxlint-tsgolint": "^7.0.2001",
     "playwright": "^1.61.1",
-    "prettier": "^3.8.3",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-mdx-frontmatter": "^5.2.0",
     "tailwindcss": "^4.2.2",
-    "typescript": "~6.0.3",
-    "typescript-eslint": "^8.58.2",
+    "typescript": "~7.0.2",
     "vite": "^8.0.9",
     "vitest": "^4.1.10",
     "vitest-browser-react": "^2.2.0"
+  },
+  "overrides": {
+    "@better-auth/core": "1.6.23"
   },
   "msw": {
     "workerDirectory": [
       "public"
     ]
-  },
-  "overrides": {
-    "@better-auth/core": "1.6.23"
   }
 }

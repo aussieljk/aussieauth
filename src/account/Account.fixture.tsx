@@ -19,10 +19,7 @@ export default {
    * is ever shown — nothing on the server can produce it again.
    */
   "Fresh account number": (
-    <MockApi
-      handlers={handlers.account}
-      storage={{ [PENDING_ACCOUNT_NUMBER]: "1234567890123456" }}
-    >
+    <MockApi handlers={handlers.account} storage={{ [PENDING_ACCOUNT_NUMBER]: "1234567890123456" }}>
       <Account />
     </MockApi>
   ),

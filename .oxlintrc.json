@@ -1,0 +1,95 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Type-aware rules run through oxlint-tsgolint, which needs TypeScript 7 —
+  // hence the `~7.0.2` pin in package.json. This is what replaced
+  // typescript-eslint's `recommendedTypeChecked`.
+  "options": {
+    "typeAware": true
+  },
+  "plugins": ["typescript", "react", "react-hooks", "import", "unicorn"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "ignorePatterns": [
+    "dist",
+    "cosmos-export",
+    "convex/_generated",
+    "convex/betterAuth/_generated",
+    "convex/betterAuth/schema.generated.ts",
+    "src/routeTree.gen.ts",
+    "public/mockServiceWorker.js",
+    "public/docs"
+  ],
+  "rules": {
+    // The two that catch real bugs in this codebase: a missing dep in the
+    // remembered-account probe, or a floating auth promise nobody awaits.
+    "react-hooks/exhaustive-deps": "error",
+    "react-hooks/rules-of-hooks": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+
+    "eslint/no-unused-vars": ["warn", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }],
+
+    "typescript/ban-ts-comment": "error",
+
+    // Everything below was off under ESLint too, and is off for the same
+    // reasons — see the notes.
+
+    "typescript/no-explicit-any": "off",
+
+    // Implicit `any` flows in from Better Auth's plugin inference, which is
+    // where most of this codebase's types come from.
+    "typescript/no-unsafe-argument": "off",
+    "typescript/no-unsafe-assignment": "off",
+    "typescript/no-unsafe-call": "off",
+    "typescript/no-unsafe-member-access": "off",
+    "typescript/no-unsafe-return": "off",
+
+    // Fires on every `satisfies BetterAuthClientPlugin` in auth-client.ts, and
+    // on the narrowing casts that read a shape out of an untyped hook context.
+    // Both are deliberate and neither is an assertion this rule can judge.
+    "typescript/no-unsafe-type-assertion": "off",
+    "typescript/no-unnecessary-type-assertion": "off",
+
+    // Convex handlers are `async` whether or not they await, for consistency.
+    "typescript/require-await": "off",
+
+    // `jsx: "react-jsx"` — the transform brings its own runtime, so React is
+    // never in scope and shouldn't be.
+    "react/react-in-jsx-scope": "off",
+
+    // An effect that returns a cleanup on one branch and nothing on another is
+    // the standard React shape, not an inconsistency.
+    "typescript/consistent-return": "off",
+
+    // `setup[id] === false` is tri-state on purpose: undefined means "haven't
+    // asked yet", which is not the same answer as false.
+    "typescript/no-unnecessary-boolean-literal-compare": "off",
+
+    "unicorn/no-null": "off",
+    "unicorn/filename-case": "off",
+
+    // Convex names its own columns `_id` and `_creationTime`, and TanStack
+    // Router names a splat param `_splat`. None of them are ours to rename.
+    "eslint/no-underscore-dangle": "off",
+
+    // `import "./index.css"` and the Frosted icon adapter are side-effect
+    // imports by design — assigning them to a variable is the wrong shape.
+    "import/no-unassigned-import": "off",
+
+    // The sequential awaits this flags are all Convex writes during app
+    // registration. Running them through `Promise.all` would trade a
+    // guaranteed order for OCC conflicts on a path that runs once per deploy.
+    "eslint/no-await-in-loop": "off",
+
+    // Fires on `error` inside a catch and `ctx` inside a Better Auth hook,
+    // where the inner name is the one that reads correctly.
+    "eslint/no-shadow": "off",
+
+    // Both call sites already sort a freshly built array, so there is nothing
+    // to mutate out from under anyone.
+    "unicorn/no-array-sort": "off"
+  }
+}

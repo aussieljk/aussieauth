@@ -1,9 +1,5 @@
 import type { BetterAuthPlugin } from "better-auth";
-import {
-  APIError,
-  createAuthEndpoint,
-  sessionMiddleware,
-} from "better-auth/api";
+import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import * as z from "zod";
 
 /**
@@ -28,25 +24,20 @@ export const linking = () =>
         },
         async (ctx) => {
           const { newPassword } = ctx.body;
-          const { minPasswordLength, maxPasswordLength } =
-            ctx.context.password.config;
-          if (
-            newPassword.length < minPasswordLength ||
-            newPassword.length > maxPasswordLength
-          ) {
+          const { minPasswordLength, maxPasswordLength } = ctx.context.password.config;
+          if (newPassword.length < minPasswordLength || newPassword.length > maxPasswordLength) {
             throw new APIError("BAD_REQUEST", {
               message: `Password must be ${minPasswordLength}–${maxPasswordLength} characters`,
             });
           }
 
           const userId = ctx.context.session.user.id;
-          const existing = (
-            await ctx.context.internalAdapter.findAccounts(userId)
-          ).find((a) => a.providerId === "credential" && a.password);
+          const existing = (await ctx.context.internalAdapter.findAccounts(userId)).find(
+            (a) => a.providerId === "credential" && a.password,
+          );
           if (existing) {
             throw new APIError("BAD_REQUEST", {
-              message:
-                "This account already has a password — change it instead of adding one",
+              message: "This account already has a password — change it instead of adding one",
             });
           }
 

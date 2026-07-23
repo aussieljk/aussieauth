@@ -103,13 +103,10 @@ const originsOverHttp = async () => {
  */
 export const registeredOrigins = async (ctx: unknown) => {
   const now = Date.now();
-  if (originsCache && now - originsCache.at < TTL_MS)
-    return originsCache.origins;
+  if (originsCache && now - originsCache.at < TTL_MS) return originsCache.origins;
 
   try {
-    const origins = canQuery(ctx)
-      ? (await load(ctx)).origins
-      : await originsOverHttp();
+    const origins = canQuery(ctx) ? (await load(ctx)).origins : await originsOverHttp();
     originsCache = { at: now, origins };
     return origins;
   } catch (e) {
@@ -140,10 +137,7 @@ export const registeredOrigins = async (ctx: unknown) => {
  * which is the classic prefix-match hole — and registration already refuses to
  * store a bare `https://` that would match everything.
  */
-export const matchApp = (
-  byOrigin: Map<string, App>,
-  origin: string,
-): App | null => {
+export const matchApp = (byOrigin: Map<string, App>, origin: string): App | null => {
   const exact = byOrigin.get(origin);
   if (exact) return exact;
 

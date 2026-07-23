@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": [
+    "dist",
+    "cosmos-export",
+    "bun.lock",
+    ".agents",
+    ".claude",
+    "convex/_generated",
+    "convex/betterAuth/_generated",
+    "convex/betterAuth/schema.generated.ts",
+    "src/routeTree.gen.ts",
+    "public/mockServiceWorker.js",
+    "public/docs",
+    "public/llms.txt",
+    "public/llms-full.txt",
+    "index.html",
+    "bun.lock"
+  ]
+}

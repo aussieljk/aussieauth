@@ -19,10 +19,8 @@ export const status = (probe: () => SetupStatus) =>
   ({
     id: "status",
     endpoints: {
-      aussieAuthStatus: createAuthEndpoint(
-        "/aussieauth/status",
-        { method: "GET" },
-        async (ctx) => ctx.json(probe()),
+      aussieAuthStatus: createAuthEndpoint("/aussieauth/status", { method: "GET" }, async (ctx) =>
+        ctx.json(probe()),
       ),
     },
   }) satisfies BetterAuthPlugin;

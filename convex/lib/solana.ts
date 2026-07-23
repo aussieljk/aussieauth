@@ -1,9 +1,5 @@
 import type { BetterAuthPlugin, GenericEndpointContext } from "better-auth";
-import {
-  APIError,
-  createAuthEndpoint,
-  sessionMiddleware,
-} from "better-auth/api";
+import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { setSessionCookie } from "better-auth/cookies";
 import { generateRandomString } from "better-auth/crypto";
 import { ed25519 } from "@noble/curves/ed25519.js";
@@ -37,11 +33,7 @@ export const buildMessage = (domain: string, address: string, nonce: string) =>
     `Nonce: ${nonce}`,
   ].join("\n");
 
-export const verifySignature = (
-  message: string,
-  signature: string,
-  address: string,
-) => {
+export const verifySignature = (message: string, signature: string, address: string) => {
   try {
     return ed25519.verify(
       bs58.decode(signature),
@@ -67,9 +59,7 @@ const proveOwnership = async (
   ctx: GenericEndpointContext,
   { address, signature }: { address: string; signature: string },
 ) => {
-  const challenge = await ctx.context.internalAdapter.consumeVerificationValue(
-    identifier(address),
-  );
+  const challenge = await ctx.context.internalAdapter.consumeVerificationValue(identifier(address));
   if (!challenge) {
     throw new APIError("UNAUTHORIZED", {
       message: "Challenge expired — try again",
@@ -106,11 +96,7 @@ export const solana = ({ domain }: { domain: string }) =>
           body: z.object({ address: z.string().min(32).max(64) }),
         },
         async (ctx) => {
-          const message = buildMessage(
-            domain,
-            ctx.body.address,
-            generateRandomString(32),
-          );
+          const message = buildMessage(domain, ctx.body.address, generateRandomString(32));
           await ctx.context.internalAdapter.createVerificationValue({
             identifier: identifier(ctx.body.address),
             value: message,
@@ -132,9 +118,7 @@ export const solana = ({ domain }: { domain: string }) =>
             where: [{ field: "address", value: address }],
           });
 
-          let user = wallet
-            ? await ctx.context.internalAdapter.findUserById(wallet.userId)
-            : null;
+          let user = wallet ? await ctx.context.internalAdapter.findUserById(wallet.userId) : null;
           if (!user) {
             user = await ctx.context.internalAdapter.createUser({
               // Wallet users have no address to reach; keep it unroutable.
@@ -150,9 +134,7 @@ export const solana = ({ domain }: { domain: string }) =>
             });
           }
 
-          const session = await ctx.context.internalAdapter.createSession(
-            user.id,
-          );
+          const session = await ctx.context.internalAdapter.createSession(user.id);
           await setSessionCookie(ctx, { session, user });
           return ctx.json({ token: session.token, user });
         },
@@ -197,14 +179,10 @@ export const solana = ({ domain }: { domain: string }) =>
         { method: "GET", use: [sessionMiddleware] },
         async (ctx) =>
           ctx.json(
-            await ctx.context.adapter.findMany<{ id: string; address: string }>(
-              {
-                model: "solanaWallet",
-                where: [
-                  { field: "userId", value: ctx.context.session.user.id },
-                ],
-              },
-            ),
+            await ctx.context.adapter.findMany<{ id: string; address: string }>({
+              model: "solanaWallet",
+              where: [{ field: "userId", value: ctx.context.session.user.id }],
+            }),
           ),
       ),
 

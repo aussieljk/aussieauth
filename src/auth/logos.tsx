@@ -77,33 +77,15 @@ export function SolanaLogo(props: LogoProps) {
   return (
     <svg {...svgProps(props)} viewBox="0 0 36 36">
       <defs>
-        <linearGradient
-          x1="90.737%"
-          y1="34.776%"
-          x2="35.509%"
-          y2="55.415%"
-          id="sol-grad-a"
-        >
+        <linearGradient x1="90.737%" y1="34.776%" x2="35.509%" y2="55.415%" id="sol-grad-a">
           <stop stopColor="#00FFA3" offset="0%" />
           <stop stopColor="#DC1FFF" offset="100%" />
         </linearGradient>
-        <linearGradient
-          x1="66.588%"
-          y1="43.8%"
-          x2="11.36%"
-          y2="64.439%"
-          id="sol-grad-b"
-        >
+        <linearGradient x1="66.588%" y1="43.8%" x2="11.36%" y2="64.439%" id="sol-grad-b">
           <stop stopColor="#00FFA3" offset="0%" />
           <stop stopColor="#DC1FFF" offset="100%" />
         </linearGradient>
-        <linearGradient
-          x1="78.586%"
-          y1="39.317%"
-          x2="23.358%"
-          y2="59.956%"
-          id="sol-grad-c"
-        >
+        <linearGradient x1="78.586%" y1="39.317%" x2="23.358%" y2="59.956%" id="sol-grad-c">
           <stop stopColor="#00FFA3" offset="0%" />
           <stop stopColor="#DC1FFF" offset="100%" />
         </linearGradient>

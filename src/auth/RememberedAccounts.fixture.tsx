@@ -1,4 +1,5 @@
 import { REMEMBERED_ACCOUNTS } from "@/lib/storage";
+import { handlers } from "@/testing/handlers";
 import { MockApi } from "@/testing/MockApi";
 import { RememberedAccounts } from "./RememberedAccounts";
 
@@ -44,6 +45,18 @@ export const sessionExpired = seed([
   },
 ]);
 
+/** One account whose stored jar is what the mount-time probe will ask about. */
+export const oneAccount = seed([
+  {
+    id: "user_1",
+    name: "Lucas Knight",
+    email: "lucas@example.com",
+    method: "google",
+    cookie: "{}",
+    savedAt: 1,
+  },
+]);
+
 const noop = () => {};
 
 export default {
@@ -61,6 +74,20 @@ export default {
   ),
   "Session expired": (
     <MockApi storage={sessionExpired}>
+      <RememberedAccounts onNeedsPanel={noop} />
+    </MockApi>
+  ),
+  /** The probe that runs on mount confirms the jar, so a click costs no round
+   * trip. Looks identical — the difference is only in how fast it goes. */
+  "Session still good": (
+    <MockApi storage={oneAccount} handlers={handlers.sessionAlive}>
+      <RememberedAccounts onNeedsPanel={noop} />
+    </MockApi>
+  ),
+  /** The server says the session is gone, so the row stops offering one-click
+   * sign-in and the next click routes through the method instead. */
+  "Session revoked": (
+    <MockApi storage={oneAccount} handlers={handlers.sessionRevoked}>
       <RememberedAccounts onNeedsPanel={noop} />
     </MockApi>
   ),

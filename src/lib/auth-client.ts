@@ -1,9 +1,6 @@
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
-import {
-  convexClient,
-  crossDomainClient,
-} from "@convex-dev/better-auth/client/plugins";
+import { convexClient, crossDomainClient } from "@convex-dev/better-auth/client/plugins";
 import type { BetterAuthClientPlugin } from "better-auth/client";
 import {
   anonymousClient,
@@ -82,6 +79,15 @@ export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
  * this exact client from its own origin — there's no AussieAuth-hosted page in
  * the middle, so the only consent screen a user ever sees is the provider's.
  */
+/**
+ * Where a provider drops you once it's done.
+ *
+ * Absolute, because Better Auth hands it to the IdP rather than to the router,
+ * and pointed at `/account` rather than `/` — `/` is the landing page, so
+ * returning there would look like the sign-in silently failed.
+ */
+export const callbackURL = () => `${window.location.origin}/account`;
+
 export const authClient = createAuthClient({
   baseURL: import.meta.env.VITE_CONVEX_SITE_URL,
   plugins: [

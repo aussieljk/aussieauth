@@ -89,12 +89,9 @@ http.route({
   path: "/.well-known/webauthn",
   method: "GET",
   handler: httpAction(async (ctx) => {
-    return new Response(
-      JSON.stringify({ origins: await relatedOrigins(ctx) }),
-      {
-        headers: { "Content-Type": "application/json" },
-      },
-    );
+    return new Response(JSON.stringify({ origins: await relatedOrigins(ctx) }), {
+      headers: { "Content-Type": "application/json" },
+    });
   }),
 });
 
@@ -121,10 +118,7 @@ http.route({
       );
     }
 
-    const given = (request.headers.get("authorization") ?? "").replace(
-      /^Bearer /,
-      "",
-    );
+    const given = (request.headers.get("authorization") ?? "").replace(/^Bearer /, "");
     if (!secretMatches(given, expected)) {
       return Response.json({ error: "Bad or missing secret" }, { status: 401 });
     }
@@ -185,10 +179,7 @@ http.route({
         { status: 503 },
       );
     }
-    const given = (request.headers.get("authorization") ?? "").replace(
-      /^Bearer /,
-      "",
-    );
+    const given = (request.headers.get("authorization") ?? "").replace(/^Bearer /, "");
     if (!secretMatches(given, expected)) {
       return Response.json({ error: "Bad or missing secret" }, { status: 401 });
     }

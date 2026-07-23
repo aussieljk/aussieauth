@@ -1,8 +1,9 @@
 import { Avatar, Spinner, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
-import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
+import { useEffect, useRef, useState } from "react";
+import { authClient, callbackURL } from "@/lib/auth-client";
 import {
+  checkRemembered,
   forgetRemembered,
   listRemembered,
   restoreRemembered,
@@ -28,7 +29,7 @@ const replay = (account: RememberedAccount): (() => Promise<unknown>) | { panel:
       return () =>
         authClient.signIn.social({
           provider: method,
-          callbackURL: window.location.origin,
+          callbackURL: callbackURL(),
         });
     case "google-one-tap":
       return () => authClient.oneTap();
@@ -57,13 +58,38 @@ export function RememberedAccounts({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Ids whose stored session we've already confirmed is alive. A ref rather
+  // than state because nothing on screen changes when the answer lands — the
+  // only difference is how much work the next click has to do.
+  const verified = useRef(new Set<string>());
+  const top = accounts[0];
+
+  useEffect(() => {
+    // Only the top entry, which is the most recently used and so the one
+    // almost always clicked. Checking the rest would mean juggling the cookie
+    // jar between several accounts at once for a case that rarely comes up.
+    if (!top?.cookie) return;
+    let live = true;
+    void checkRemembered(top).then((alive) => {
+      if (!live) return;
+      if (alive) verified.current.add(top.id);
+      // A dead jar has just been stripped; re-read so the row stops offering a
+      // one-click sign-in it can't deliver.
+      else setAccounts(listRemembered);
+    });
+    return () => {
+      live = false;
+    };
+  }, [top]);
+
   if (accounts.length === 0) return null;
 
   const signIn = async (account: RememberedAccount) => {
     setBusy(account.id);
     setError(null);
     try {
-      if (await restoreRemembered(account)) return;
+      const prechecked = verified.current.has(account.id);
+      if (await restoreRemembered(account, { prechecked })) return;
       const next = replay(account);
       if (typeof next === "function") {
         await next();

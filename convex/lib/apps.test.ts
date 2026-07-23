@@ -62,10 +62,7 @@ describe("capToRelatedOriginLimit", () => {
   });
 
   it("treats localhost as its own site", () => {
-    const { dropped } = capToRelatedOriginLimit([
-      "http://localhost:5173",
-      "http://localhost:4321",
-    ]);
+    const { dropped } = capToRelatedOriginLimit(["http://localhost:5173", "http://localhost:4321"]);
     expect(dropped).toEqual([]);
   });
 

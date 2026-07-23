@@ -1,0 +1,41 @@
+# Everything here is documentation meant to be read, including by machines.
+User-agent: *
+Allow: /
+
+# The account page is behind a session and has nothing to index.
+Disallow: /account
+
+# Named explicitly rather than left to the wildcard: several of these are
+# blocked by default on hosting platforms, and a silent block is the usual
+# reason documentation never shows up in an AI answer.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://aussieauth.com/sitemap.xml

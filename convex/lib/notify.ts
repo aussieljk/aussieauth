@@ -33,9 +33,7 @@ export const sendEmail = async ({
     body: JSON.stringify({ from: from(), to, subject, text }),
   });
   if (!res.ok) {
-    throw new Error(
-      `Resend rejected the email: ${res.status} ${await res.text()}`,
-    );
+    throw new Error(`Resend rejected the email: ${res.status} ${await res.text()}`);
   }
 };
 
@@ -58,9 +56,7 @@ export const sendSms = async ({ to, body }: { to: string; body: string }) => {
     }),
   });
   if (!res.ok) {
-    throw new Error(
-      `Mobile Message rejected the request: ${res.status} ${await res.text()}`,
-    );
+    throw new Error(`Mobile Message rejected the request: ${res.status} ${await res.text()}`);
   }
   // A 200 only means the batch was accepted — each message carries its own
   // status, so a bad number still needs to surface as a failure here.
@@ -69,8 +65,6 @@ export const sendSms = async ({ to, body }: { to: string; body: string }) => {
   };
   const failed = result.results?.find((r) => r.status !== "success");
   if (failed) {
-    throw new Error(
-      `Mobile Message could not send to ${to}: ${failed.error ?? failed.status}`,
-    );
+    throw new Error(`Mobile Message could not send to ${to}: ${failed.error ?? failed.status}`);
   }
 };

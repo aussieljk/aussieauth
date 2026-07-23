@@ -20,8 +20,7 @@ const wallet = () => {
   };
 };
 
-const challenge = (address: string) =>
-  buildMessage("aussieauth.com", address, "nonce-1234567890");
+const challenge = (address: string) => buildMessage("aussieauth.com", address, "nonce-1234567890");
 
 describe("verifySignature", () => {
   it("accepts a signature over the exact challenge", () => {
@@ -35,9 +34,7 @@ describe("verifySignature", () => {
     const attacker = wallet();
     const message = challenge(owner.address);
     // The attacker signs the victim's challenge — correct message, wrong key.
-    expect(
-      verifySignature(message, attacker.sign(message), owner.address),
-    ).toBe(false);
+    expect(verifySignature(message, attacker.sign(message), owner.address)).toBe(false);
   });
 
   it("rejects a signature over a different message", () => {
@@ -54,11 +51,7 @@ describe("verifySignature", () => {
     const message = challenge(w.address);
     const signature = w.sign(message);
     expect(
-      verifySignature(
-        message.replace("aussieauth.com", "evil.com"),
-        signature,
-        w.address,
-      ),
+      verifySignature(message.replace("aussieauth.com", "evil.com"), signature, w.address),
     ).toBe(false);
   });
 
@@ -68,12 +61,8 @@ describe("verifySignature", () => {
     // Undecodable base58, right-shaped-but-wrong-length, and empty strings all
     // arrive straight from a request body, so they must not surface as a 500.
     expect(verifySignature(message, "not base58 !!!", w.address)).toBe(false);
-    expect(verifySignature(message, w.sign(message), "not base58 !!!")).toBe(
-      false,
-    );
-    expect(
-      verifySignature(message, bs58.encode(new Uint8Array(8)), w.address),
-    ).toBe(false);
+    expect(verifySignature(message, w.sign(message), "not base58 !!!")).toBe(false);
+    expect(verifySignature(message, bs58.encode(new Uint8Array(8)), w.address)).toBe(false);
     expect(verifySignature(message, "", "")).toBe(false);
   });
 });

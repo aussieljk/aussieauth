@@ -40,11 +40,7 @@ describe("isLocked", () => {
 
   it("blocks locking everyone else out", () => {
     // Revoking sessions on a shared account signs out every other visitor.
-    for (const path of [
-      "/revoke-session",
-      "/revoke-sessions",
-      "/revoke-other-sessions",
-    ]) {
+    for (const path of ["/revoke-session", "/revoke-sessions", "/revoke-other-sessions"]) {
       expect(isLocked(path), path).toBe(true);
     }
   });

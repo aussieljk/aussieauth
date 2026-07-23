@@ -8,3 +8,111 @@ html {
   color-scheme: dark;
   background: #020202;
 }
+
+/* Markdown renders as plain tags — the docs are compiled from `docs/*.md`, so
+   there's nowhere to hang a class. Styling them by element, scoped to `.prose`,
+   is why this is hand-written rather than a typography plugin: it reads
+   Frosted's variables, so the docs can't drift away from the app. */
+.prose {
+  color: var(--gray-12);
+  line-height: 1.7;
+}
+
+.prose > * + * {
+  margin-top: 1.1em;
+}
+
+.prose h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.prose h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 2.2em;
+  padding-top: 1.2em;
+  border-top: 1px solid var(--gray-a4);
+}
+
+.prose h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-top: 1.8em;
+}
+
+.prose a {
+  color: var(--accent-11);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.4em;
+}
+
+.prose ul {
+  list-style: disc;
+}
+
+.prose ol {
+  list-style: decimal;
+}
+
+.prose li + li {
+  margin-top: 0.35em;
+}
+
+.prose :not(pre) > code {
+  background: var(--gray-a3);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-size: 0.875em;
+}
+
+/* Shiki writes its own colours onto the `pre`; only the box is ours. */
+.prose pre {
+  background: var(--gray-2) !important;
+  border: 1px solid var(--gray-a4);
+  border-radius: 8px;
+  padding: 1em 1.1em;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* Wide tables scroll inside the page rather than widening it. */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--gray-a4);
+  padding: 0.5em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  background: var(--gray-a2);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.prose blockquote {
+  border-left: 3px solid var(--gray-a6);
+  padding-left: 1em;
+  color: var(--gray-11);
+}

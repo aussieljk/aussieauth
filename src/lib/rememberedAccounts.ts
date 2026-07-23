@@ -33,9 +33,7 @@ const MAX_REMEMBERED = 5;
 
 const read = (): RememberedAccount[] => {
   try {
-    const parsed: unknown = JSON.parse(
-      localStorage.getItem(REMEMBERED_ACCOUNTS) ?? "[]",
-    );
+    const parsed: unknown = JSON.parse(localStorage.getItem(REMEMBERED_ACCOUNTS) ?? "[]");
     return Array.isArray(parsed) ? (parsed as RememberedAccount[]) : [];
   } catch {
     return [];
@@ -45,18 +43,13 @@ const read = (): RememberedAccount[] => {
 const write = (accounts: RememberedAccount[]) =>
   localStorage.setItem(
     REMEMBERED_ACCOUNTS,
-    JSON.stringify(
-      [...accounts]
-        .sort((a, b) => b.savedAt - a.savedAt)
-        .slice(0, MAX_REMEMBERED),
-    ),
+    JSON.stringify([...accounts].sort((a, b) => b.savedAt - a.savedAt).slice(0, MAX_REMEMBERED)),
   );
 
 export const listRemembered = read;
 
 /** Drops the entry entirely. Does not touch the server-side session. */
-export const dropRemembered = (id: string) =>
-  write(read().filter((a) => a.id !== id));
+export const dropRemembered = (id: string) => write(read().filter((a) => a.id !== id));
 
 /**
  * Records the account that's signed in right now, jar and all. Runs on every
@@ -108,12 +101,67 @@ export function localSignOut() {
   void authClient.updateSession();
 }
 
+/** Swaps a jar in, runs `body`, and puts back whatever was there before. */
+async function withJar<T>(cookie: string, body: () => Promise<T>): Promise<T> {
+  const previous = localStorage.getItem(AUTH_COOKIE);
+  localStorage.setItem(AUTH_COOKIE, cookie);
+  try {
+    return await body();
+  } finally {
+    if (previous) localStorage.setItem(AUTH_COOKIE, previous);
+    else localStorage.removeItem(AUTH_COOKIE);
+  }
+}
+
+/** Marks an entry as needing a real sign-in, so we don't retry a dead jar. */
+const forgetJar = (id: string) =>
+  write(read().map((a) => (a.id === id ? { ...a, cookie: undefined } : a)));
+
+/**
+ * Asks whether a stored jar is still good, without signing anyone in.
+ *
+ * The sign-in card runs this on mount for the account you're most likely to
+ * click, so that clicking it doesn't have to wait for a round trip it could
+ * have made while you were still reading the screen. A `false` answer strips
+ * the jar, which is the same bookkeeping `restoreRemembered` does.
+ */
+export async function checkRemembered(account: RememberedAccount) {
+  if (!account.cookie) return false;
+
+  const answer = await withJar(account.cookie, async () => {
+    try {
+      return Boolean((await authClient.getSession()).data);
+    } catch {
+      // Couldn't ask — offline, or the deployment is down. Distinct from a
+      // "no" and treated as one: the click path will ask again for real.
+      return undefined;
+    }
+  });
+
+  // Only a definite "no" from the server strips the jar. Dropping it because a
+  // background probe couldn't reach the network would sign someone out of a
+  // session that was fine.
+  if (answer === false) forgetJar(account.id);
+  return answer === true;
+}
+
 /**
  * Puts a remembered jar back and checks it with the server. Returns false when
  * the session is gone, having stripped the dead jar so we don't retry it.
+ *
+ * `prechecked` says `checkRemembered` already vouched for this jar moments ago.
+ * We then commit first and confirm afterwards, so the common case costs no
+ * round trip at all — and roll back if the session died in between, which
+ * leaves the caller on exactly the path it would have taken anyway.
  */
-export async function restoreRemembered(account: RememberedAccount) {
+export async function restoreRemembered(account: RememberedAccount, { prechecked = false } = {}) {
   if (!account.cookie) return false;
+
+  if (prechecked) {
+    localStorage.setItem(AUTH_COOKIE, account.cookie);
+    void authClient.updateSession();
+    return true;
+  }
 
   const previous = localStorage.getItem(AUTH_COOKIE);
   localStorage.setItem(AUTH_COOKIE, account.cookie);
@@ -128,9 +176,7 @@ export async function restoreRemembered(account: RememberedAccount) {
   // needing a real sign-in.
   if (previous) localStorage.setItem(AUTH_COOKIE, previous);
   else localStorage.removeItem(AUTH_COOKIE);
-  write(
-    read().map((a) => (a.id === account.id ? { ...a, cookie: undefined } : a)),
-  );
+  forgetJar(account.id);
   return false;
 }
 
@@ -140,16 +186,13 @@ export async function restoreRemembered(account: RememberedAccount) {
  */
 export async function forgetRemembered(account: RememberedAccount) {
   if (account.cookie) {
-    const previous = localStorage.getItem(AUTH_COOKIE);
-    localStorage.setItem(AUTH_COOKIE, account.cookie);
-    try {
-      await authClient.signOut();
-    } catch {
-      // A dead session is already what we wanted; drop it either way.
-    }
-    // signOut empties the jar, so restore rather than assume.
-    if (previous) localStorage.setItem(AUTH_COOKIE, previous);
-    else localStorage.removeItem(AUTH_COOKIE);
+    await withJar(account.cookie, async () => {
+      try {
+        await authClient.signOut();
+      } catch {
+        // A dead session is already what we wanted; drop it either way.
+      }
+    });
   }
   dropRemembered(account.id);
 }

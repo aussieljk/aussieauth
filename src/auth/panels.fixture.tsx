@@ -1,11 +1,6 @@
 import { handlers } from "@/testing/handlers";
 import { MockApi } from "@/testing/MockApi";
-import {
-  AccountNumberPanel,
-  EmailOtpPanel,
-  EmailPasswordPanel,
-  MagicLinkPanel,
-} from "./panels";
+import { AccountNumberPanel, EmailOtpPanel, EmailPasswordPanel, MagicLinkPanel } from "./panels";
 
 export default {
   "Email + password": (
