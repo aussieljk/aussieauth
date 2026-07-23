@@ -11,7 +11,16 @@ const http = httpRouter();
 // Every Better Auth route is served straight off the Convex deployment, with
 // CORS on so consumer apps can call it from their own origin instead of being
 // bounced through a hosted AussieAuth page.
-authComponent.registerRoutes(http, createAuth, { cors: true });
+//
+// The *lazy* variant, because the eager one builds an auth instance at module
+// scope (`createAuth({})`) and Better Auth resolves `trustedOrigins` while
+// initialising its context. With no ctx to query, ours falls back to fetching
+// `/apps/origins` over HTTP — and Convex refuses a fetch during import, so
+// every cold isolate logged "fetch() unsupported at import time" before it had
+// served anything. Lazy defers that instance to the first CORS preflight,
+// where a fetch is allowed. Plugin-contributed origins still come through it,
+// so the allow-list is unchanged.
+authComponent.registerRoutesLazy(http, createAuth, { cors: true });
 
 /**
  * Sign in with Apple only accepts return URLs on a domain you've proven you
