@@ -17,6 +17,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@aussieljk/frosted": "^0.0.1-1",
     "@better-auth/api-key": "^1.6.23",
     "@better-auth/passkey": "^1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
@@ -24,7 +25,6 @@
     "better-auth": "~1.6.15",
     "bs58": "^6.0.0",
     "convex": "^1.42.3",
-    "frosted-ui": "^0.0.1-canary.153",
     "jose": "^6.2.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

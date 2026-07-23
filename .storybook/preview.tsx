@@ -1,6 +1,6 @@
 import type { Preview } from "@storybook/react-vite";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { Theme } from "frosted-ui";
+import { Theme } from "@aussieljk/frosted";
 import { initialize, mswLoader } from "msw-storybook-addon";
 import "../src/index.css";
 import {
@@ -19,8 +19,8 @@ const convex = new ConvexReactClient("http://127.0.0.1:9");
 const preview: Preview = {
   decorators: [
     (Story) => (
-      // The theme `App` mounts, so frosted-ui tokens like `--gray-11` resolve.
-      <Theme appearance="dark" accentColor="indigo" grayColor="slate">
+      // The theme `App` mounts, so Frosted tokens like `--gray-11` resolve.
+      <Theme appearance="dark" accentColor="green" grayColor="neutral">
         <ConvexProvider client={convex}>
           <Story />
         </ConvexProvider>

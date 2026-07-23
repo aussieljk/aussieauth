@@ -1,4 +1,4 @@
-import { Avatar, Button, Spinner, Text } from "frosted-ui";
+import { Avatar, Button, Spinner, Text } from "@aussieljk/frosted";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import {

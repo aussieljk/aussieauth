@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Heading, Separator, Text } from "frosted-ui";
+import { Badge, Button, Card, Heading, Separator, Text } from "@aussieljk/frosted";
 import { useState } from "react";
 import { authClient, GOOGLE_CLIENT_ID } from "@/lib/auth-client";
 import { PANELS } from "./methods";

@@ -9,7 +9,7 @@ import {
   Heading,
   Separator,
   Text,
-} from "frosted-ui";
+} from "@aussieljk/frosted";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isDemoUser } from "@/convex/lib/demo";

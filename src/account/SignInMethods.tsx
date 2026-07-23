@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Heading, Separator, Text } from "frosted-ui";
+import { Badge, Button, Card, Heading, Separator, Text } from "@aussieljk/frosted";
 import { type ReactNode, useCallback, useState } from "react";
 import { CodeField, Feedback, Field, PanelForm, Submit } from "@/auth/ui";
 import { useRemoteList } from "@/auth/useRemoteList";

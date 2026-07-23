@@ -1,4 +1,4 @@
-import { Button, Code, Text } from "frosted-ui";
+import { Button, Code, Text } from "@aussieljk/frosted";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";

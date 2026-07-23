@@ -1,9 +1,10 @@
 @import "tailwindcss";
-@import "frosted-ui/styles.css";
+@import "@aussieljk/frosted/styles.css";
 
-/* The app is dark-only. Painting the page background before frosted-ui's
-   `Theme` mounts keeps the first frame from flashing white. */
+/* The app is dark-only. Painting the page background before Frosted's `Theme`
+   mounts keeps the first frame from flashing white. This is dark `--neutral-1`,
+   the `--gray-1` the theme below settles on. */
 html {
   color-scheme: dark;
-  background: #111113;
+  background: #020202;
 }

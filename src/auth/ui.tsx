@@ -1,4 +1,4 @@
-import { Button, Callout, Text, TextField } from "frosted-ui";
+import { Button, Callout, Text, TextField } from "@aussieljk/frosted";
 import type { ComponentProps, ReactNode } from "react";
 
 /** A labelled text input. Everything else is a plain `<input>` prop. */

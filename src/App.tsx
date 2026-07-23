@@ -1,5 +1,5 @@
 import { useConvexAuth } from "convex/react";
-import { Theme } from "frosted-ui";
+import { Theme } from "@aussieljk/frosted";
 import { Account } from "./account/Account";
 import { SignIn } from "./auth/SignIn";
 import { useRememberSignedInAccount } from "./lib/rememberedAccounts";
@@ -11,7 +11,7 @@ export default function App() {
   useRememberSignedInAccount();
 
   return (
-    <Theme appearance="dark" accentColor="indigo" grayColor="slate">
+    <Theme appearance="dark" accentColor="green" grayColor="neutral">
       {isAuthenticated ? <Account /> : <SignIn />}
     </Theme>
   );
