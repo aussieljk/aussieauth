@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, waitFor } from "storybook/test";
 import { mswHandlers } from "../../.storybook/msw-handlers";
-import { PENDING_ACCOUNT_NUMBER } from "../lib/storage";
+import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
 import { AccountNumberPanel } from "./panels";
 
 const meta = {

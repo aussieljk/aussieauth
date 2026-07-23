@@ -27,7 +27,7 @@ import * as z from "zod";
 const CHALLENGE_TTL_MS = 10 * 60 * 1000;
 const identifier = (address: string) => `solana:${address}`;
 
-const buildMessage = (domain: string, address: string, nonce: string) =>
+export const buildMessage = (domain: string, address: string, nonce: string) =>
   [
     `${domain} wants you to sign in with your Solana account:`,
     address,
@@ -37,7 +37,7 @@ const buildMessage = (domain: string, address: string, nonce: string) =>
     `Nonce: ${nonce}`,
   ].join("\n");
 
-const verifySignature = (
+export const verifySignature = (
   message: string,
   signature: string,
   address: string,

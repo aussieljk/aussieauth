@@ -12,8 +12,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * `api.status.setup` never resolves in Storybook, which is the state the card
- * shows before Convex answers: every method offered, no setup warnings.
+ * There's no handler for `/aussieauth/status` here, so the setup probe fails
+ * and the card renders its unknown-status state: every method offered, no
+ * setup warnings. Same thing a real deployment shows before the probe lands.
  */
 export const Card: Story = {};
 

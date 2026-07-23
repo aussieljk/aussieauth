@@ -18,6 +18,7 @@ import type { accountNumber } from "@/convex/lib/accountNumber";
 import type { demo } from "@/convex/lib/demo";
 import type { linking } from "@/convex/lib/linking";
 import type { solana } from "@/convex/lib/solana";
+import type { status } from "@/convex/lib/status";
 
 /**
  * Client halves of the plugins we wrote ourselves. They carry no runtime
@@ -62,6 +63,20 @@ const linkingClient = () =>
     pathMethods: { "/linking/set-password": "POST" },
   }) satisfies BetterAuthClientPlugin;
 
+const statusClient = () =>
+  ({
+    id: "status",
+    $InferServerPlugin: {} as ReturnType<typeof status>,
+    pathMethods: { "/aussieauth/status": "GET" },
+  }) satisfies BetterAuthClientPlugin;
+
+/**
+ * Whether One Tap has a client id to prompt with. Read from the bundle rather
+ * than from the server, because a late answer would shove the card's contents
+ * down the page a beat after first paint.
+ */
+export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "";
+
 /**
  * Points straight at the Convex deployment. An app embedding AussieAuth uses
  * this exact client from its own origin — there's no AussieAuth-hosted page in
@@ -80,11 +95,12 @@ export const authClient = createAuthClient({
     accountNumberClient(),
     demoClient(),
     linkingClient(),
+    statusClient(),
     apiKeyClient(),
     // Registered unconditionally so the client's type stays stable; the UI
     // hides the One Tap entry when there's no client id to prompt with.
     oneTapClient({
-      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? "",
+      clientId: GOOGLE_CLIENT_ID,
       promptOptions: { maxAttempts: 1 },
     }),
     crossDomainClient(),

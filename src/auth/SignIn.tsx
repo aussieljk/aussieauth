@@ -1,43 +1,58 @@
-import { useQuery } from "convex/react";
 import { Badge, Button, Card, Heading, Separator, Text } from "frosted-ui";
 import { useState } from "react";
-import { api } from "@/convex/_generated/api";
+import { authClient, GOOGLE_CLIENT_ID } from "@/lib/auth-client";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
 import { RememberedAccounts } from "./RememberedAccounts";
-import { useRunner } from "./useRunner";
-import { authClient } from "@/lib/auth-client";
 import { BigButton, Feedback } from "./ui";
+import { useRunner } from "./useRunner";
+import { useSetupStatus } from "./useSetupStatus";
 
-/** Shown as buttons on the front of the card; everything else is one tap away. */
-const FEATURED = ["google", "github", "apple"];
-const PRIMARY = "email-password";
+export type SignInProps = {
+  /** Method ids to offer, in order. Defaults to all sixteen. */
+  methods?: string[];
+  /** Method ids shown as buttons on the front of the card. */
+  featured?: string[];
+  /** The method whose form sits inline under the buttons. */
+  primary?: string;
+  title?: string;
+  subtitle?: string;
+};
 
-const REST: Provider[] = PROVIDERS.filter(
-  (p) =>
-    p.id !== PRIMARY && !FEATURED.includes(p.id) && p.id !== "google-one-tap",
-);
-
-/**
- * Whether One Tap can prompt at all. Read from the bundle rather than from
- * `api.status.setup`, because a Convex query resolves a beat after first paint
- * — and a button that appears late shoves everything under it down the page.
- */
-const ONE_TAP_AVAILABLE = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+const DEFAULT_FEATURED = ["google", "github", "apple"];
+const DEFAULT_PRIMARY = "email-password";
 
 /**
  * The sign-in card. The front shows any accounts this browser already knows,
- * then the three social buttons plus the email form; picking anything from
- * "more ways to sign in" swaps the body for that method's panel.
+ * then the featured social buttons plus the primary form; picking anything
+ * from "more ways to sign in" swaps the body for that method's panel.
  */
-export function SignIn() {
+export function SignIn({
+  methods,
+  featured = DEFAULT_FEATURED,
+  primary = DEFAULT_PRIMARY,
+  title = "Welcome to AussieAuth",
+  subtitle,
+}: SignInProps = {}) {
   const [method, setMethod] = useState<string | null>(null);
   const [prefill, setPrefill] = useState("");
-  const setup = useQuery(api.status.setup);
+  const { needsSetup } = useSetupStatus();
 
-  const needsSetup = (id: string) =>
-    setup !== undefined && id in setup && !setup[id as keyof typeof setup];
+  const offered = methods
+    ? PROVIDERS.filter((p) => methods.includes(p.id))
+    : PROVIDERS;
+
+  // One Tap is a variant of the Google button rather than its own row, so it
+  // never appears in the "more ways" list.
+  const rest: Provider[] = offered.filter(
+    (p) =>
+      p.id !== primary && !featured.includes(p.id) && p.id !== "google-one-tap",
+  );
+  const oneTapOffered =
+    Boolean(GOOGLE_CLIENT_ID) &&
+    offered.some((p) => p.id === "google-one-tap") &&
+    !needsSetup("google");
 
   const open = (id: string, withPrefill = "") => {
     setPrefill(withPrefill);
@@ -68,32 +83,36 @@ export function SignIn() {
     );
   }
 
+  const PrimaryPanel = PANELS[primary] ?? EmailPasswordPanel;
+
   return (
     <Shell>
       <div className="flex flex-col gap-1">
-        <Heading size="6">Welcome to AussieAuth</Heading>
+        <Heading size="6">{title}</Heading>
         <Text size="2" color="gray">
-          Sixteen ways in. Pick one.
+          {subtitle ?? `${offered.length} ways in. Pick one.`}
         </Text>
       </div>
 
       <RememberedAccounts onNeedsPanel={open} />
 
       <div className="flex flex-col gap-2">
-        {FEATURED.map((id) => (
+        {featured.map((id) => (
           <SocialButton key={id} id={id} disabled={needsSetup(id)} />
         ))}
-        {ONE_TAP_AVAILABLE && <OneTapButton />}
+        {oneTapOffered && <OneTapButton />}
       </div>
 
-      <OrDivider label="or continue with email" />
+      <OrDivider
+        label={`or continue with ${byId(primary).label.toLowerCase()}`}
+      />
 
-      <EmailPasswordPanel />
+      <PrimaryPanel />
 
       <OrDivider label="more ways to sign in" />
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {REST.map((p) => (
+        {rest.map((p) => (
           <button
             key={p.id}
             type="button"

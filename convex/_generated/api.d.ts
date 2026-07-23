@@ -16,7 +16,7 @@ import type * as lib_demo from "../lib/demo.js";
 import type * as lib_linking from "../lib/linking.js";
 import type * as lib_notify from "../lib/notify.js";
 import type * as lib_solana from "../lib/solana.js";
-import type * as status from "../status.js";
+import type * as lib_status from "../lib/status.js";
 import type * as users from "../users.js";
 
 import type {
@@ -34,7 +34,7 @@ declare const fullApi: ApiFromModules<{
   "lib/linking": typeof lib_linking;
   "lib/notify": typeof lib_notify;
   "lib/solana": typeof lib_solana;
-  status: typeof status;
+  "lib/status": typeof lib_status;
   users: typeof users;
 }>;
 

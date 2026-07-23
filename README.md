@@ -80,30 +80,77 @@ Add the app's origin to `TRUSTED_ORIGINS` (comma separated):
 bunx convex env set TRUSTED_ORIGINS "https://myapp.com,http://localhost:3000"
 ```
 
-Then in that app, point a Better Auth client at this deployment's `.convex.site`
-URL with the `crossDomainClient()` and `convexClient()` plugins — see
-`src/lib/auth-client.ts`. The app never redirects here.
+Then copy `src/auth/` and `src/lib/auth-client.ts` into that app and point the
+client at this deployment:
+
+```tsx
+// src/lib/auth-client.ts — the one line that changes per app
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_CONVEX_SITE_URL, // https://<deployment>.convex.site
+  plugins: [/* … */],
+});
+```
+
+```tsx
+import { SignIn } from "./auth/SignIn";
+
+<SignIn />;
+```
+
+The app never redirects here — it talks to this deployment from its own origin,
+so the only consent screen is the provider's. `<SignIn />` takes `methods` to
+narrow the list, `featured` to choose which buttons sit on the front of the
+card, and `primary` for the form underneath them.
+
+The client plugin shims in `auth-client.ts` import _types_ from `convex/lib/`,
+so copy that folder too (or keep both apps pointed at one checkout). Nothing
+under `src/auth/` imports Convex — the card talks to the auth server over HTTP
+like any other client, so it works in a non-Convex app as well.
+
+`TRUSTED_ORIGINS` does double duty: it's the CORS allow-list _and_ the WebAuthn
+related-origins list, so adding an app there is also what lets a passkey
+registered on `aussieauth.com` be used from it. That list is served through
+`aussieauth.com/.well-known/webauthn`, which `vercel.json` already proxies —
+nothing further to configure per app.
 
 ## How it fits together
 
 - `convex/auth.ts` — the whole Better Auth configuration: providers, plugins,
-  trusted origins. `createAuthOptions` is split out from `createAuth` because
-  the component directory needs the options without env-var access.
+  trusted origins, rate limiting, account linking. `createAuthOptions` is split
+  out from `createAuth` because the component directory needs the options
+  without env-var access.
 - `convex/betterAuth/` — a **local install** of the Better Auth component. The
   packaged component ships a fixed schema with no passkey, wallet or API-key
   tables, so we own the schema instead.
 - `convex/lib/` — the plugins that aren't in Better Auth: Sign In With Solana,
-  Mullvad-style account numbers, the shared demo account, and `linking.ts`
-  (adding a password to an account that arrived without one). Plus `notify.ts`,
-  which sends via Resend/Twilio or falls back to logging.
-- `convex/status.ts` — reports which credentials are set, so the UI can say
-  "needs setup" instead of failing on click.
+  Mullvad-style account numbers, the shared demo account (and its lockdown),
+  `linking.ts` (adding a password to an account that arrived without one), and
+  `status.ts` (which credentials are set, so the card can say "needs setup").
+  Plus `apple.ts`, which mints Apple's client secret, and `notify.ts`, which
+  sends via Resend / Mobile Message or falls back to logging.
+- `convex/http.ts` — the two files a third party fetches from us: Apple's
+  domain association, and the WebAuthn related-origins list.
 - `src/auth/providers.ts` — display metadata per method; `src/auth/panels.tsx` —
   the matching behaviour; `src/auth/methods.ts` wires the two together by id.
 - `src/account/Account.tsx` — signed-in view: profile, passkeys and agent API
   keys; `src/account/SignInMethods.tsx` — linking extra credentials onto the
   account you're already signed in as.
 - `src/lib/rememberedAccounts.ts` — the returning-account chooser (below).
+
+### Tests
+
+```sh
+bun run test        # everything
+bun run test:unit   # just the fast node ones
+```
+
+(`bun run test`, not `bun test` — the latter is Bun's own runner, not vitest.)
+
+Two projects. **unit** is plain node and covers the logic where a bug is a
+security bug and there's no UI to notice it through: Solana signature
+verification, the demo lockdown's path matcher, account-number generation and
+normalisation. **storybook** renders the sign-in card and account page in a
+real browser against mocked endpoints.
 
 ### Changing the auth schema
 
@@ -127,10 +174,30 @@ targets Better Auth 1.4.
 - **SMS / email OTP** — the code fields use `autocomplete="one-time-code"`,
   which is what makes iOS Passwords and Android offer the code above the
   keyboard.
+- **Demo account** — everyone who clicks "Try the demo" lands on the _same_
+  user, so the session it hands out is deliberately read-only. Setting a
+  password, linking a social account, registering a passkey, minting an API key
+  and revoking sessions are all refused for it; otherwise the first visitor to
+  set a password would own `demo@aussieauth.com` permanently and every later
+  visitor would be sharing an account with them. The deny-list is `LOCKED` in
+  `convex/lib/demo.ts` — adding a method means adding it there too.
+- **Rate limiting** — on, and backed by the `rateLimit` table rather than
+  memory. Both defaults were wrong here: Better Auth enables rate limiting only
+  when `NODE_ENV === "production"`, which a Convex deployment isn't, and its
+  default memory store is a Map inside one HTTP-action isolate. So the stock
+  three-sign-ins-per-ten-seconds rule wasn't holding at all. Matters most for
+  account numbers, where the number is the entire credential.
 - **Agent auth** — API keys, not sessions. Mint one on the account page; the
   agent sends it as an `x-api-key` header.
-- **Passkeys** — bound to `SITE_URL`'s hostname as the relying party id. A
-  consumer app on a different domain needs its own registration.
+- **Passkeys** — bound to `SITE_URL`'s hostname as the relying party id, and
+  usable from every origin in `TRUSTED_ORIGINS` via WebAuthn Related Origin
+  Requests. A passkey is normally locked to the one domain that created it,
+  which for a shared auth server would make the most portable-feeling method
+  the least portable. `convex/http.ts` publishes the allowed origins at
+  `/.well-known/webauthn`, proxied through `aussieauth.com` because the browser
+  fetches it from the relying party's own domain. The spec matches on eTLD+1
+  and allows at most five distinct labels, so this is a handful of apps rather
+  than an open list.
 - **Apple** — `https://appleid.apple.com` is a permanent trusted origin,
   because Apple returns its callback as a form POST and the browser sends
   Apple's origin rather than ours.
@@ -140,6 +207,14 @@ targets Better Auth 1.4.
   AAGUID under `attestation: "none"` — the User-Agent stands in.
 - **Agent key names** — numbered, never named. The next key is one past the
   highest number in use, so revoking key 2 doesn't hand the number out twice.
+- **Email verification** — sent on sign-up, but never required to sign in. It's
+  there because linking checks it: attaching a social account to an existing
+  user also requires that _existing_ user's address to be verified, so without
+  the sign-up mail a credential user could never later add Google — they'd get
+  "account not linked" and no way forward. The one-line alternative is
+  `accountLinking.requireLocalEmailVerified: false`, which opens the
+  pre-registration attack (sign up under someone else's address, wait for their
+  Google sign-in to merge into your account).
 
 ## Coming back
 

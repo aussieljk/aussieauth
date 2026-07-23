@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn } from "storybook/test";
-import { REMEMBERED_ACCOUNTS } from "../lib/storage";
+import { REMEMBERED_ACCOUNTS } from "@/lib/storage";
 import { RememberedAccounts } from "./RememberedAccounts";
 
 const meta = {

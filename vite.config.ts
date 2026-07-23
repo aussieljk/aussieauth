@@ -25,6 +25,17 @@ export default defineConfig({
   test: {
     projects: [
       {
+        // The security-critical logic that has no UI: signature verification,
+        // the demo lockdown's path matcher, account-number handling. Plain
+        // node, no browser — these are the tests worth running on every save.
+        extends: true,
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["convex/**/*.test.ts", "src/**/*.test.ts"],
+        },
+      },
+      {
         extends: true,
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config

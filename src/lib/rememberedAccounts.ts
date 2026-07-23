@@ -1,6 +1,4 @@
-import { useQuery } from "convex/react";
 import { useEffect } from "react";
-import { api } from "@/convex/_generated/api";
 import { authClient } from "./auth-client";
 import { AUTH_COOKIE, AUTH_SESSION_DATA, REMEMBERED_ACCOUNTS } from "./storage";
 
@@ -62,35 +60,47 @@ export const dropRemembered = (id: string) =>
 
 /**
  * Records the account that's signed in right now, jar and all. Runs on every
- * settle rather than only on first sign-in, so the stored jar keeps up with a
- * refreshed session token.
+ * session settle rather than only on first sign-in, so the stored jar keeps up
+ * with a refreshed session token.
+ *
+ * Reads the user off the Better Auth session rather than a Convex query: the
+ * session is what the stored jar has to match, and it's already in memory.
  */
-export function useRememberSignedInAccount(isAuthenticated: boolean) {
-  const user = useQuery(api.users.current, isAuthenticated ? {} : "skip");
+export function useRememberSignedInAccount() {
+  const { data } = authClient.useSession();
+  const user = data?.user as
+    | {
+        id: string;
+        name?: string | null;
+        email?: string | null;
+        image?: string | null;
+        lastLoginMethod?: string | null;
+      }
+    | undefined;
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!user) return;
     const cookie = localStorage.getItem(AUTH_COOKIE);
     if (!cookie) return;
     write([
-      ...read().filter((a) => a.id !== user._id),
+      ...read().filter((a) => a.id !== user.id),
       {
-        id: user._id,
-        name: user.name,
-        email: user.email,
+        id: user.id,
+        name: user.name ?? "",
+        email: user.email ?? "",
         image: user.image,
         method: user.lastLoginMethod,
         cookie,
         savedAt: Date.now(),
       },
     ]);
-  }, [isAuthenticated, user]);
+  }, [user]);
 }
 
 /**
  * Clears the local session without telling the server to revoke it, so the
  * account stays instantly restorable. `authClient.signOut()` is the other
- * option and is what "forget" below uses.
+ * option, and is what `forgetRemembered` below uses.
  */
 export function localSignOut() {
   localStorage.removeItem(AUTH_COOKIE);

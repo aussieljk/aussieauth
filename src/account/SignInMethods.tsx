@@ -1,8 +1,8 @@
 import { Badge, Button, Card, Heading, Separator, Text } from "frosted-ui";
 import { type ReactNode, useCallback, useState } from "react";
+import { CodeField, Feedback, Field, PanelForm, Submit } from "@/auth/ui";
 import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
-import { CodeField, Feedback, Field, PanelForm, Submit } from "@/auth/ui";
 import { authClient } from "@/lib/auth-client";
 import { signWithWallet } from "@/lib/wallet";
 
@@ -26,12 +26,15 @@ const SOCIAL = [
 
 export function SignInMethods({
   user,
+  locked = false,
 }: {
   user: {
     email: string;
     username?: string | null;
     phoneNumber?: string | null;
   } | null;
+  /** The shared demo account: the server refuses all of these, so grey them. */
+  locked?: boolean;
 }) {
   const { items: accounts, reload } = useRemoteList<Account>(listAccounts);
   const hasPassword = accounts.some((a) => a.providerId === "credential");
@@ -42,19 +45,21 @@ export function SignInMethods({
         <div className="flex flex-col gap-1">
           <Heading size="3">Sign-in methods</Heading>
           <Text size="2" color="gray">
-            Every method below opens the same account. Link as many as you like.
+            {locked
+              ? "Locked on the shared demo account."
+              : "Every method below opens the same account. Link as many as you like."}
           </Text>
         </div>
 
-        <Social accounts={accounts} reload={reload} />
+        <Social accounts={accounts} reload={reload} locked={locked} />
         <Separator className="w-full" />
-        <Password hasPassword={hasPassword} reload={reload} />
+        <Password hasPassword={hasPassword} reload={reload} locked={locked} />
         <Separator className="w-full" />
-        <Username current={user?.username} />
+        <Username current={user?.username} locked={locked} />
         <Separator className="w-full" />
-        <Phone current={user?.phoneNumber} />
+        <Phone current={user?.phoneNumber} locked={locked} />
         <Separator className="w-full" />
-        <Wallets />
+        <Wallets locked={locked} />
       </div>
     </Card>
   );
@@ -90,11 +95,14 @@ function Method({
 function Social({
   accounts,
   reload,
+  locked,
 }: {
   accounts: Account[];
   reload: () => void;
+  locked: boolean;
 }) {
   const { pending, error, run } = useRunner();
+  const busy = pending || locked;
 
   return (
     <Method
@@ -119,7 +127,7 @@ function Social({
                   variant="ghost"
                   size="1"
                   color="red"
-                  disabled={pending}
+                  disabled={busy}
                   onClick={() =>
                     void run(() =>
                       authClient.unlinkAccount({
@@ -135,7 +143,7 @@ function Social({
                 <Button
                   variant="surface"
                   size="1"
-                  disabled={pending}
+                  disabled={busy}
                   onClick={() =>
                     void run(() =>
                       authClient.linkSocial({
@@ -164,9 +172,11 @@ function Social({
 function Password({
   hasPassword,
   reload,
+  locked,
 }: {
   hasPassword: boolean;
   reload: () => void;
+  locked: boolean;
 }) {
   const { pending, error, notice, run } = useRunner();
   const [password, setPassword] = useState("");
@@ -204,14 +214,20 @@ function Password({
           autoComplete="new-password"
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Submit pending={pending}>Set password</Submit>
+        <Submit pending={pending || locked}>Set password</Submit>
       </PanelForm>
       <Feedback error={error} notice={notice} />
     </Method>
   );
 }
 
-function Username({ current }: { current?: string | null }) {
+function Username({
+  current,
+  locked,
+}: {
+  current?: string | null;
+  locked: boolean;
+}) {
   const { pending, error, notice, run } = useRunner();
   const [username, setUsername] = useState("");
 
@@ -237,7 +253,9 @@ function Username({ current }: { current?: string | null }) {
           placeholder="lucas"
           onChange={(e) => setUsername(e.target.value)}
         />
-        <Submit pending={pending}>{current ? "Change" : "Claim"}</Submit>
+        <Submit pending={pending || locked}>
+          {current ? "Change" : "Claim"}
+        </Submit>
       </PanelForm>
       <Feedback error={error} notice={notice} />
     </Method>
@@ -245,7 +263,13 @@ function Username({ current }: { current?: string | null }) {
 }
 
 /** Verifying a number while signed in attaches it here rather than elsewhere. */
-function Phone({ current }: { current?: string | null }) {
+function Phone({
+  current,
+  locked,
+}: {
+  current?: string | null;
+  locked: boolean;
+}) {
   const { pending, error, notice, run } = useRunner();
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -275,7 +299,7 @@ function Phone({ current }: { current?: string | null }) {
             required
             onChange={(e) => setCode(e.target.value)}
           />
-          <Submit pending={pending}>Verify and link</Submit>
+          <Submit pending={pending || locked}>Verify and link</Submit>
         </PanelForm>
       ) : (
         <PanelForm
@@ -294,7 +318,7 @@ function Phone({ current }: { current?: string | null }) {
             placeholder="+61 400 000 000"
             onChange={(e) => setPhone(e.target.value)}
           />
-          <Submit pending={pending}>Send code</Submit>
+          <Submit pending={pending || locked}>Send code</Submit>
         </PanelForm>
       )}
       <Feedback error={error} notice={notice} />
@@ -302,9 +326,10 @@ function Phone({ current }: { current?: string | null }) {
   );
 }
 
-function Wallets() {
+function Wallets({ locked }: { locked: boolean }) {
   const { pending, error, run } = useRunner();
   const { items: wallets, reload } = useRemoteList<Wallet>(listWallets);
+  const busy = pending || locked;
 
   const link = useCallback(
     () =>
@@ -341,7 +366,7 @@ function Wallets() {
             variant="ghost"
             size="1"
             color="red"
-            disabled={pending}
+            disabled={busy}
             onClick={() =>
               void run(() =>
                 authClient.solana.unlink({ address: wallet.address }),
@@ -356,7 +381,7 @@ function Wallets() {
         variant="surface"
         size="2"
         className="self-start"
-        disabled={pending}
+        disabled={busy}
         onClick={() => void link()}
       >
         Connect a wallet

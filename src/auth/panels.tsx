@@ -8,9 +8,9 @@ import { useRunner } from "./useRunner";
 import { BigButton, CodeField, Feedback, Field, PanelForm, Submit } from "./ui";
 
 /**
- * One panel per sign-in method. Each drives `authClient` directly, so adding a
- * method is: register the Better Auth plugin, add a row to `providers.ts`, and
- * add an entry here.
+ * One panel per sign-in method. Each drives the auth client directly, so
+ * adding a method is: register the Better Auth plugin, add a row to
+ * `providers.ts`, and add an entry here.
  */
 
 const callbackURL = () => window.location.origin;

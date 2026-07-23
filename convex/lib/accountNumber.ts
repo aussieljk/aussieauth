@@ -15,9 +15,9 @@ const DIGITS = 16;
 /** Grouped 4-4-4-4 for display; we always store and compare the bare digits. */
 export const formatAccountNumber = (n: string) =>
   n.replace(/(\d{4})(?=\d)/g, "$1 ");
-const normalize = (n: string) => n.replace(/\D/g, "");
+export const normalize = (n: string) => n.replace(/\D/g, "");
 
-const generateAccountNumber = () => {
+export const generateAccountNumber = () => {
   const bytes = crypto.getRandomValues(new Uint8Array(DIGITS));
   // Modulo 10 on a uniform byte is very slightly biased toward 0-5. Irrelevant
   // here: 16 digits is ~53 bits and we re-roll on collision anyway.

@@ -16,6 +16,7 @@
         "jose": "^6.2.4",
         "react": "^19.2.5",
         "react-dom": "^19.2.5",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@chromatic-com/storybook": "^5.2.1",

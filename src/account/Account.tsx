@@ -2,6 +2,7 @@ import { useQuery } from "convex/react";
 import {
   Badge,
   Button,
+  Callout,
   Card,
   Code,
   DataList,
@@ -11,17 +12,19 @@ import {
 } from "frosted-ui";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
+import { isDemoUser } from "@/convex/lib/demo";
+import { Feedback } from "@/auth/ui";
+import { useRemoteList } from "@/auth/useRemoteList";
+import { useRunner } from "@/auth/useRunner";
 import { authClient } from "@/lib/auth-client";
 import { forgetRemembered, localSignOut } from "@/lib/rememberedAccounts";
 import { AUTH_COOKIE, PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
-import { useRemoteList } from "@/auth/useRemoteList";
-import { useRunner } from "@/auth/useRunner";
-import { Feedback } from "@/auth/ui";
 import { SignInMethods } from "./SignInMethods";
 
 /** What you see once you're in: who you are, and the credentials you can add. */
 export function Account() {
   const user = useQuery(api.users.current);
+  const demo = isDemoUser(user);
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col gap-5 p-6">
@@ -37,6 +40,9 @@ export function Account() {
             variant="ghost"
             size="2"
             color="gray"
+            // The demo account is shared, so revoking its sessions would sign
+            // out every other visitor. The server refuses; don't offer it.
+            disabled={demo}
             onClick={() =>
               void forgetRemembered({
                 id: user?._id ?? "",
@@ -51,6 +57,16 @@ export function Account() {
           </Button>
         </div>
       </div>
+
+      {demo && (
+        <Callout.Root color="amber">
+          <Callout.Description>
+            This is the shared demo account. Everyone who clicks "Try the demo"
+            lands here, so it's read-only — you can't add credentials to it or
+            link it to anything. Sign up for your own account to do that.
+          </Callout.Description>
+        </Callout.Root>
+      )}
 
       <AccountNumberReveal />
 
@@ -82,9 +98,9 @@ export function Account() {
         )}
       </Card>
 
-      <SignInMethods user={user ?? null} />
-      <Passkeys />
-      <AgentKeys />
+      <SignInMethods user={user ?? null} locked={demo} />
+      <Passkeys locked={demo} />
+      <AgentKeys locked={demo} />
     </div>
   );
 }
@@ -159,9 +175,10 @@ const listPasskeys = () => authClient.passkey.listUserPasskeys();
  * it returns at registration, and the server turns that into a label — see the
  * `registration.afterVerification` hook in convex/auth.ts. Nothing to type.
  */
-function Passkeys() {
+function Passkeys({ locked }: { locked: boolean }) {
   const { pending, error, run } = useRunner();
   const { items: passkeys, reload } = useRemoteList<Passkey>(listPasskeys);
+  const busy = pending || locked;
 
   return (
     <Card size="3">
@@ -182,7 +199,7 @@ function Passkeys() {
               variant="ghost"
               size="1"
               color="red"
-              disabled={pending}
+              disabled={busy}
               onClick={() =>
                 void run(() =>
                   authClient.passkey.deletePasskey({ id: passkey.id }),
@@ -200,7 +217,7 @@ function Passkeys() {
           variant="surface"
           size="2"
           className="self-start"
-          disabled={pending}
+          disabled={busy}
           onClick={() =>
             void run(() => authClient.passkey.addPasskey()).then(reload)
           }
@@ -238,10 +255,11 @@ const nextKeyName = (keys: ApiKey[]) =>
  * Agent auth. A key is shown once at creation; agents send it as an
  * `x-api-key` header and Better Auth resolves it to this user's session.
  */
-function AgentKeys() {
+function AgentKeys({ locked }: { locked: boolean }) {
   const { pending, error, run } = useRunner();
   const { items: keys, reload } = useRemoteList<ApiKey>(listApiKeys);
   const [fresh, setFresh] = useState<string | null>(null);
+  const busy = pending || locked;
 
   return (
     <Card size="3">
@@ -275,7 +293,7 @@ function AgentKeys() {
               variant="ghost"
               size="1"
               color="red"
-              disabled={pending}
+              disabled={busy}
               onClick={() =>
                 void run(() =>
                   authClient.apiKey.delete({ keyId: key.id }),
@@ -293,7 +311,7 @@ function AgentKeys() {
           variant="surface"
           size="2"
           className="self-start"
-          disabled={pending}
+          disabled={busy}
           onClick={() =>
             void run(async () => {
               const { data, error } = await authClient.apiKey.create({

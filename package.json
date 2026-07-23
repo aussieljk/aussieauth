@@ -8,6 +8,8 @@
     "dev:backend": "convex dev",
     "build": "tsc && vite build",
     "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest run",
+    "test:unit": "vitest run --project=unit",
     "preview": "vite preview",
     "format": "prettier --write .",
     "auth:schema": "bun run scripts/generate-auth-schema.ts",
@@ -25,7 +27,8 @@
     "frosted-ui": "^0.0.1-canary.153",
     "jose": "^6.2.4",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.2.1",
