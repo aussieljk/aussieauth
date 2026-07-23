@@ -106,6 +106,26 @@ http.route({
   }),
 });
 
+/**
+ * The registered origins, for the CORS layer.
+ *
+ * Public and unauthenticated, which is fine — these same origins are already
+ * published at `/.well-known/webauthn`, because passkeys can't work
+ * cross-domain unless a browser can read the list.
+ *
+ * It exists because CORS preflight has no database access: the allow-list is
+ * built from an auth instance created with an empty ctx, so the only way to
+ * hand it a runtime origin list is over HTTP. See `originsOverHttp`.
+ */
+http.route({
+  path: "/apps/origins",
+  method: "GET",
+  handler: httpAction(async (ctx) => {
+    const { origins } = await ctx.runQuery(internal.apps.snapshot, {});
+    return Response.json({ origins });
+  }),
+});
+
 /** Revoke an app. Same secret, same reasoning as `/apps/register`. */
 http.route({
   path: "/apps/unregister",

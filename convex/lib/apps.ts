@@ -32,24 +32,65 @@ type Snapshot = { origins: string[]; byOrigin: Map<string, App> };
  */
 const TTL_MS = 5_000;
 
-let cache: { at: number; snapshot: Snapshot } | null = null;
+/**
+ * Two caches, because there are two ways in and they don't carry the same
+ * information. `snapshot` is the full registry and only the database path can
+ * produce it; `origins` is just the allow-list and CORS can only get that far.
+ * Keeping them apart stops a CORS-shaped read from standing in for a registry
+ * read and quietly emptying `byOrigin` — which would switch off method
+ * enforcement and session stamping for the life of the cache entry.
+ */
+let snapshotCache: { at: number; snapshot: Snapshot } | null = null;
+let originsCache: { at: number; origins: string[] } | null = null;
 
 /** Called after a successful registration so the next read sees it. */
 export const invalidateApps = () => {
-  cache = null;
+  snapshotCache = null;
+  originsCache = null;
 };
 
 const load = async (ctx: GenericCtx<DataModel>): Promise<Snapshot> => {
   const now = Date.now();
-  if (cache && now - cache.at < TTL_MS) return cache.snapshot;
+  if (snapshotCache && now - snapshotCache.at < TTL_MS) {
+    return snapshotCache.snapshot;
+  }
 
   const raw = await ctx.runQuery(internal.apps.snapshot, {});
   const snapshot: Snapshot = {
     origins: raw.origins,
     byOrigin: new Map(raw.byOrigin),
   };
-  cache = { at: now, snapshot };
+  snapshotCache = { at: now, snapshot };
+  originsCache = { at: now, origins: snapshot.origins };
   return snapshot;
+};
+
+/** Whether this ctx can actually reach the database. */
+const canQuery = (ctx: unknown): ctx is GenericCtx<DataModel> =>
+  typeof (ctx as { runQuery?: unknown } | null)?.runQuery === "function";
+
+/**
+ * The same origin list, fetched over HTTP instead of from the database.
+ *
+ * Needed because CORS preflight can't reach the database. `registerRoutes`
+ * builds its allow-list from an auth instance created with an empty ctx
+ * (`createAuth({})`), and `corsRouter`'s `allowedOrigins` is handed only the
+ * Request — neither layer has anywhere to put a ctx. So the OPTIONS response
+ * omitted `Access-Control-Allow-Origin` for every registered app and browsers
+ * blocked the request before it was ever sent.
+ *
+ * These origins are already public: `/.well-known/webauthn` has to publish
+ * them for cross-domain passkeys to work at all.
+ */
+const originsOverHttp = async () => {
+  const base = process.env.CONVEX_SITE_URL;
+  if (!base) return [];
+  const res = await fetch(`${base}/apps/origins`);
+  if (!res.ok) throw new Error(`origins endpoint returned ${res.status}`);
+  const body = (await res.json()) as { origins?: unknown };
+  return Array.isArray(body.origins)
+    ? body.origins.filter((o): o is string => typeof o === "string")
+    : [];
 };
 
 /**
@@ -57,12 +98,22 @@ const load = async (ctx: GenericCtx<DataModel>): Promise<Snapshot> => {
  * than replacing it, so this deployment's own site keeps working with an empty
  * table — including on a fresh checkout, before anything has registered.
  */
-export const registeredOrigins = async (ctx: GenericCtx<DataModel>) => {
+export const registeredOrigins = async (ctx: unknown) => {
+  const now = Date.now();
+  if (originsCache && now - originsCache.at < TTL_MS)
+    return originsCache.origins;
+
   try {
-    return (await load(ctx)).origins;
-  } catch {
-    // A failed read must not take the auth server down with it; the static
-    // list still covers this site.
+    const origins = canQuery(ctx)
+      ? (await load(ctx)).origins
+      : await originsOverHttp();
+    originsCache = { at: now, origins };
+    return origins;
+  } catch (e) {
+    // Must not take the auth server down — the static list still covers this
+    // site. Logged rather than swallowed: silently returning [] is exactly
+    // what made the CORS gap invisible.
+    console.error("Could not load registered origins", e);
     return [];
   }
 };

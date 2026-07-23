@@ -1,16 +1,4 @@
 {
-  "$comment": [
-    "Three paths have to be served from aussieauth.com rather than the Convex",
-    "deployment, because a third party checks them against the domain:",
-    "Apple verifies the domain owns its return URL, and a browser fetches",
-    "/.well-known/webauthn from the passkey relying party's own domain.",
-    "Everything else talks to .convex.site directly.",
-    "",
-    "The deployment hostname is hardcoded because Vercel does not interpolate",
-    "environment variables into rewrite destinations. If the Convex deployment",
-    "ever changes, these three lines must change with it or Sign in with Apple",
-    "and cross-domain passkeys break silently. Get it from `convex dev`."
-  ],
   "rewrites": [
     {
       "source": "/api/auth/callback/apple",

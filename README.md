@@ -143,6 +143,27 @@ related-origins list, so registering is also what lets a passkey created on
 `aussieauth.com` be used from that app. The list is served through
 `aussieauth.com/.well-known/webauthn`, which `vercel.json` already proxies.
 
+### Deploying, and the three proxied paths
+
+`vercel.json` rewrites three paths from `aussieauth.com` to the Convex
+deployment. They're there because a third party checks them **against the
+domain**, so serving them from `.convex.site` wouldn't count:
+
+| Path                                                  | Who fetches it, and why                              |
+| ----------------------------------------------------- | ---------------------------------------------------- |
+| `/api/auth/callback/apple`                            | Apple only returns to a domain you've verified       |
+| `/.well-known/apple-developer-domain-association.txt` | Apple's domain verification                          |
+| `/.well-known/webauthn`                               | The browser, from the passkey relying party's domain |
+
+Everything else talks to `.convex.site` directly.
+
+**The deployment hostname is hardcoded in those three lines**, because Vercel
+doesn't interpolate environment variables into rewrite destinations — and it
+rejects unknown keys like `$comment`, so the warning can't live in the file
+either. If the Convex deployment ever changes, update all three or Sign in with
+Apple and cross-domain passkeys break silently. Get the hostname from
+`convex dev`.
+
 ## How it fits together
 
 - `convex/auth.ts` — the whole Better Auth configuration: providers, plugins,
