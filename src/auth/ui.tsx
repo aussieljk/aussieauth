@@ -17,13 +17,14 @@ export function Field({
 }
 
 /**
- * A six-digit code input. `autoComplete="one-time-code"` is what lets iOS
- * Passwords and Android SMS Retriever offer the code above the keyboard.
+ * A bare six-digit code input, for where a label would cost more room than it
+ * earns. `autoComplete="one-time-code"` is what lets iOS Passwords and Android
+ * SMS Retriever offer the code above the keyboard.
  */
-export function CodeField(props: ComponentProps<typeof TextField.Input>) {
+export function CodeInput(props: ComponentProps<typeof TextField.Input>) {
   return (
-    <Field
-      label="Verification code"
+    <TextField.Input
+      size="3"
       inputMode="numeric"
       autoComplete="one-time-code"
       pattern="[0-9]*"
@@ -31,6 +32,18 @@ export function CodeField(props: ComponentProps<typeof TextField.Input>) {
       placeholder="123456"
       {...props}
     />
+  );
+}
+
+/** The same input, labelled, for the sign-in panels. */
+export function CodeField(props: ComponentProps<typeof TextField.Input>) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <Text size="1" color="gray" weight="medium">
+        Verification code
+      </Text>
+      <CodeInput {...props} />
+    </label>
   );
 }
 

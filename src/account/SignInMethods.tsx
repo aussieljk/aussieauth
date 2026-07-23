@@ -1,13 +1,13 @@
-import { Badge, Button, Card, Heading, Separator, Text } from "@aussieljk/frosted";
+import { Badge, Button, Card, Heading, Text, TextField } from "@aussieljk/frosted";
 import { type ReactNode, useCallback, useState } from "react";
-import { CodeField, Feedback, Field, PanelForm, Submit } from "@/auth/ui";
+import { CodeInput, Feedback } from "@/auth/ui";
 import { useRemoteList } from "@/auth/useRemoteList";
 import { useRunner } from "@/auth/useRunner";
 import { authClient } from "@/lib/auth-client";
 import { signWithWallet } from "@/lib/wallet";
 
 /**
- * Everything that can get you into *this* account, in one list. Adding a
+ * Everything that can get you into *this* account, one row each. Adding a
  * method here links it to the user you're already signed in as, rather than
  * minting a second account — the same address arriving by a different door.
  */
@@ -38,57 +38,95 @@ export function SignInMethods({
 }) {
   const { items: accounts, reload } = useRemoteList<Account>(listAccounts);
   const hasPassword = accounts.some((a) => a.providerId === "credential");
+  // One form open at a time, so adding a method can't push the rest off-screen.
+  const [open, setOpen] = useState<string | null>(null);
+  const toggle = (id: string) =>
+    setOpen((current) => (current === id ? null : id));
 
   return (
-    <Card size="3">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <Heading size="3">Sign-in methods</Heading>
-          <Text size="2" color="gray">
-            {locked
-              ? "Locked on the shared demo account."
-              : "Every method below opens the same account. Link as many as you like."}
-          </Text>
-        </div>
-
+    <Card size="2">
+      <div className="flex flex-col gap-2.5">
+        <Heading size="2">Sign-in methods</Heading>
         <Social accounts={accounts} reload={reload} locked={locked} />
-        <Separator className="w-full" />
-        <Password hasPassword={hasPassword} reload={reload} locked={locked} />
-        <Separator className="w-full" />
-        <Username current={user?.username} locked={locked} />
-        <Separator className="w-full" />
-        <Phone current={user?.phoneNumber} locked={locked} />
-        <Separator className="w-full" />
+        <Password
+          hasPassword={hasPassword}
+          reload={reload}
+          locked={locked}
+          open={open === "password"}
+          onToggle={() => toggle("password")}
+        />
+        <Username
+          current={user?.username}
+          locked={locked}
+          open={open === "username"}
+          onToggle={() => toggle("username")}
+        />
+        <Phone
+          current={user?.phoneNumber}
+          locked={locked}
+          open={open === "phone"}
+          onToggle={() => toggle("phone")}
+        />
         <Wallets locked={locked} />
       </div>
     </Card>
   );
 }
 
-/** A labelled block inside the card, so every method reads the same way. */
-function Method({
-  title,
-  detail,
+/**
+ * One credential: what it is, where it stands, and the control that changes
+ * it. Anything longer — a form, a list of linked wallets — opens underneath,
+ * so the resting state of the card is one line per method.
+ */
+function Row({
+  label,
+  status,
+  action,
   children,
 }: {
-  title: string;
-  detail?: string;
-  children: ReactNode;
+  label: string;
+  status?: ReactNode;
+  action?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-0.5">
-        <Text size="2" weight="medium">
-          {title}
-        </Text>
-        {detail && (
-          <Text size="1" color="gray">
-            {detail}
-          </Text>
-        )}
+    <div className="flex flex-col gap-2 border-t border-[var(--gray-a3)] pt-2.5 first:border-0 first:pt-0">
+      <div className="flex min-h-7 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Text size="2">{label}</Text>
+          {status}
+        </div>
+        {action}
       </div>
       {children}
     </div>
+  );
+}
+
+const Linked = () => (
+  <Badge size="1" color="green">
+    linked
+  </Badge>
+);
+
+/** The form behind a row's control: one field, one button, one line. */
+function InlineForm({
+  onSubmit,
+  children,
+}: {
+  onSubmit: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <form
+      className="flex items-center gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit();
+      }}
+    >
+      {children}
+    </form>
   );
 }
 
@@ -105,24 +143,16 @@ function Social({
   const busy = pending || locked;
 
   return (
-    <Method
-      title="Social providers"
-      detail="Linking here means signing in with that provider lands on this account."
-    >
-      <div className="flex flex-col gap-2">
-        {SOCIAL.map(({ id, label }) => {
-          const account = accounts.find((a) => a.providerId === id);
-          return (
-            <div key={id} className="flex items-center justify-between gap-3">
-              <Text size="2">
-                {label}{" "}
-                {account && (
-                  <Badge size="1" color="green">
-                    linked
-                  </Badge>
-                )}
-              </Text>
-              {account ? (
+    <>
+      {SOCIAL.map(({ id, label }) => {
+        const account = accounts.find((a) => a.providerId === id);
+        return (
+          <Row
+            key={id}
+            label={label}
+            status={account ? <Linked /> : undefined}
+            action={
+              account ? (
                 <Button
                   variant="ghost"
                   size="1"
@@ -155,13 +185,13 @@ function Social({
                 >
                   Link
                 </Button>
-              )}
-            </div>
-          );
-        })}
-      </div>
+              )
+            }
+          />
+        );
+      })}
       <Feedback error={error} />
-    </Method>
+    </>
   );
 }
 
@@ -173,92 +203,139 @@ function Password({
   hasPassword,
   reload,
   locked,
+  open,
+  onToggle,
 }: {
   hasPassword: boolean;
   reload: () => void;
   locked: boolean;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const { pending, error, notice, run } = useRunner();
   const [password, setPassword] = useState("");
 
-  if (hasPassword) {
-    return (
-      <Method title="Password" detail="Set. Sign in with your email address.">
-        <Badge size="1" color="green" className="self-start">
-          linked
-        </Badge>
-      </Method>
-    );
-  }
-
   return (
-    <Method title="Password" detail="Add one and your email address works too.">
-      <PanelForm
-        onSubmit={() =>
-          void run(
-            () => authClient.linking.setPassword({ newPassword: password }),
-            "Password set.",
-          ).then((ok) => {
-            if (ok) {
+    <Row
+      label="Password"
+      status={hasPassword ? <Linked /> : undefined}
+      action={
+        hasPassword ? undefined : (
+          <Button
+            variant="surface"
+            size="1"
+            disabled={locked}
+            onClick={onToggle}
+          >
+            {open ? "Cancel" : "Add"}
+          </Button>
+        )
+      }
+    >
+      {open && (
+        <InlineForm
+          onSubmit={() =>
+            void run(
+              () => authClient.linking.setPassword({ newPassword: password }),
+              "Password set.",
+            ).then((ok) => {
+              if (!ok) return;
               setPassword("");
               reload();
-            }
-          })
-        }
-      >
-        <Field
-          label="New password"
-          type="password"
-          required
-          value={password}
-          autoComplete="new-password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <Submit pending={pending || locked}>Set password</Submit>
-      </PanelForm>
+              onToggle();
+            })
+          }
+        >
+          <TextField.Input
+            size="2"
+            className="flex-1"
+            aria-label="New password"
+            type="password"
+            required
+            value={password}
+            autoComplete="new-password"
+            placeholder="New password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button
+            type="submit"
+            variant="classic"
+            size="2"
+            disabled={pending || locked}
+          >
+            Set
+          </Button>
+        </InlineForm>
+      )}
       <Feedback error={error} notice={notice} />
-    </Method>
+    </Row>
   );
 }
 
 function Username({
   current,
   locked,
+  open,
+  onToggle,
 }: {
   current?: string | null;
   locked: boolean;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const { pending, error, notice, run } = useRunner();
   const [username, setUsername] = useState("");
 
   return (
-    <Method
-      title="Username"
-      detail={
-        current ? `Currently @${current}.` : "Claim one to sign in by handle."
+    <Row
+      label="Username"
+      status={
+        current ? (
+          <Text size="1" color="gray" className="truncate">
+            @{current}
+          </Text>
+        ) : undefined
+      }
+      action={
+        <Button variant="surface" size="1" disabled={locked} onClick={onToggle}>
+          {open ? "Cancel" : current ? "Change" : "Claim"}
+        </Button>
       }
     >
-      <PanelForm
-        onSubmit={() =>
-          void run(
-            () => authClient.updateUser({ username }),
-            `Username set to @${username}.`,
-          ).then((ok) => ok && setUsername(""))
-        }
-      >
-        <Field
-          label={current ? "New username" : "Username"}
-          required
-          value={username}
-          placeholder="lucas"
-          onChange={(e) => setUsername(e.target.value)}
-        />
-        <Submit pending={pending || locked}>
-          {current ? "Change" : "Claim"}
-        </Submit>
-      </PanelForm>
+      {open && (
+        <InlineForm
+          onSubmit={() =>
+            void run(
+              () => authClient.updateUser({ username }),
+              `Username set to @${username}.`,
+            ).then((ok) => {
+              if (!ok) return;
+              setUsername("");
+              onToggle();
+            })
+          }
+        >
+          <TextField.Input
+            size="2"
+            className="flex-1"
+            aria-label="Username"
+            required
+            value={username}
+            placeholder="lucas"
+            onChange={(e) => setUsername(e.target.value)}
+          />
+          <Button
+            type="submit"
+            variant="classic"
+            size="2"
+            disabled={pending || locked}
+          >
+            Save
+          </Button>
+        </InlineForm>
+      )}
       <Feedback error={error} notice={notice} />
-    </Method>
+    </Row>
   );
 }
 
@@ -266,9 +343,13 @@ function Username({
 function Phone({
   current,
   locked,
+  open,
+  onToggle,
 }: {
   current?: string | null;
   locked: boolean;
+  open: boolean;
+  onToggle: () => void;
 }) {
   const { pending, error, notice, run } = useRunner();
   const [phone, setPhone] = useState("");
@@ -276,53 +357,85 @@ function Phone({
   const [sent, setSent] = useState(false);
 
   return (
-    <Method
-      title="Phone number"
-      detail={current ? `Currently ${current}.` : "Sign in by SMS code."}
+    <Row
+      label="Phone"
+      status={
+        current ? (
+          <Text size="1" color="gray" className="truncate">
+            {current}
+          </Text>
+        ) : undefined
+      }
+      action={
+        <Button variant="surface" size="1" disabled={locked} onClick={onToggle}>
+          {open ? "Cancel" : current ? "Change" : "Add"}
+        </Button>
+      }
     >
-      {sent ? (
-        <PanelForm
-          onSubmit={() =>
-            void run(
-              () => authClient.phoneNumber.verify({ phoneNumber: phone, code }),
-              `${phone} linked.`,
-            ).then((ok) => {
-              if (ok) {
+      {open &&
+        (sent ? (
+          <InlineForm
+            onSubmit={() =>
+              void run(
+                () =>
+                  authClient.phoneNumber.verify({ phoneNumber: phone, code }),
+                `${phone} linked.`,
+              ).then((ok) => {
+                if (!ok) return;
                 setSent(false);
                 setCode("");
-              }
-            })
-          }
-        >
-          <CodeField
-            value={code}
-            required
-            onChange={(e) => setCode(e.target.value)}
-          />
-          <Submit pending={pending || locked}>Verify and link</Submit>
-        </PanelForm>
-      ) : (
-        <PanelForm
-          onSubmit={() =>
-            void run(() =>
-              authClient.phoneNumber.sendOtp({ phoneNumber: phone }),
-            ).then((ok) => ok && setSent(true))
-          }
-        >
-          <Field
-            label={current ? "New number" : "Phone number"}
-            type="tel"
-            required
-            value={phone}
-            autoComplete="tel"
-            placeholder="+61 400 000 000"
-            onChange={(e) => setPhone(e.target.value)}
-          />
-          <Submit pending={pending || locked}>Send code</Submit>
-        </PanelForm>
-      )}
+                onToggle();
+              })
+            }
+          >
+            <CodeInput
+              size="2"
+              className="flex-1"
+              aria-label="Verification code"
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <Button
+              type="submit"
+              variant="classic"
+              size="2"
+              disabled={pending || locked}
+            >
+              Verify
+            </Button>
+          </InlineForm>
+        ) : (
+          <InlineForm
+            onSubmit={() =>
+              void run(() =>
+                authClient.phoneNumber.sendOtp({ phoneNumber: phone }),
+              ).then((ok) => ok && setSent(true))
+            }
+          >
+            <TextField.Input
+              size="2"
+              className="flex-1"
+              aria-label="Phone number"
+              type="tel"
+              required
+              value={phone}
+              autoComplete="tel"
+              placeholder="+61 400 000 000"
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <Button
+              type="submit"
+              variant="classic"
+              size="2"
+              disabled={pending || locked}
+            >
+              Send code
+            </Button>
+          </InlineForm>
+        ))}
       <Feedback error={error} notice={notice} />
-    </Method>
+    </Row>
   );
 }
 
@@ -350,16 +463,25 @@ function Wallets({ locked }: { locked: boolean }) {
   );
 
   return (
-    <Method
-      title="Solana wallet"
-      detail="Sign a message to attach a wallet to this account."
+    <Row
+      label="Solana wallet"
+      action={
+        <Button
+          variant="surface"
+          size="1"
+          disabled={busy}
+          onClick={() => void link()}
+        >
+          Connect
+        </Button>
+      }
     >
       {wallets.map((wallet) => (
         <div
           key={wallet.address}
           className="flex items-center justify-between gap-3"
         >
-          <Text size="2" className="truncate font-mono">
+          <Text size="1" color="gray" className="truncate font-mono">
             {wallet.address.slice(0, 6)}…{wallet.address.slice(-6)}
           </Text>
           <Button
@@ -377,16 +499,7 @@ function Wallets({ locked }: { locked: boolean }) {
           </Button>
         </div>
       ))}
-      <Button
-        variant="surface"
-        size="2"
-        className="self-start"
-        disabled={busy}
-        onClick={() => void link()}
-      >
-        Connect a wallet
-      </Button>
       <Feedback error={error} />
-    </Method>
+    </Row>
   );
 }

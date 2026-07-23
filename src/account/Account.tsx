@@ -1,16 +1,7 @@
 import { useQuery } from "convex/react";
-import {
-  Badge,
-  Button,
-  Callout,
-  Card,
-  Code,
-  DataList,
-  Heading,
-  Separator,
-  Text,
-} from "@aussieljk/frosted";
-import { useState } from "react";
+import { Badge, Button, Card, Code, Heading, Text } from "@aussieljk/frosted";
+import type { FunctionReturnType } from "convex/server";
+import { type ReactNode, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isDemoUser } from "@/convex/lib/demo";
 import { Feedback } from "@/auth/ui";
@@ -21,107 +12,98 @@ import { forgetRemembered, localSignOut } from "@/lib/rememberedAccounts";
 import { AUTH_COOKIE, PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
 import { SignInMethods } from "./SignInMethods";
 
-/** What you see once you're in: who you are, and the credentials you can add. */
+type User = FunctionReturnType<typeof api.users.current>;
+
+/**
+ * What you see once you're in: who you are on one line, and every credential
+ * you can add beside it. It's a control panel rather than a page to read, so
+ * it's laid out to fit a screen without scrolling.
+ */
 export function Account() {
   const user = useQuery(api.users.current);
   const demo = isDemoUser(user);
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col gap-5 p-6">
-      <div className="flex items-center justify-between gap-3">
-        <Heading size="6">Your account</Heading>
-        <div className="flex items-center gap-2">
-          {/* Leaves the session valid so this account stays one click away on
-              the sign-in screen. "Sign out everywhere" is the real revoke. */}
-          <Button variant="surface" size="2" onClick={localSignOut}>
-            Sign out
-          </Button>
-          <Button
-            variant="ghost"
-            size="2"
-            color="gray"
-            // The demo account is shared, so revoking its sessions would sign
-            // out every other visitor. The server refuses; don't offer it.
-            disabled={demo}
-            onClick={() =>
-              void forgetRemembered({
-                id: user?._id ?? "",
-                name: user?.name ?? "",
-                email: user?.email ?? "",
-                cookie: localStorage.getItem(AUTH_COOKIE) ?? undefined,
-                savedAt: Date.now(),
-              })
-            }
-          >
-            Sign out everywhere
-          </Button>
+    <div className="mx-auto flex min-h-screen w-full max-w-[880px] flex-col gap-3 p-5">
+      <Identity user={user} demo={demo} />
+      <AccountNumberReveal />
+      <div className="grid items-start gap-3 md:grid-cols-2">
+        <SignInMethods user={user ?? null} locked={demo} />
+        <div className="flex flex-col gap-3">
+          <Passkeys locked={demo} />
+          <AgentKeys locked={demo} />
         </div>
       </div>
-
-      {demo && (
-        <Callout.Root color="amber">
-          <Callout.Description>
-            This is the shared demo account. Everyone who clicks "Try the demo"
-            lands here, so it's read-only — you can't add credentials to it or
-            link it to anything. Sign up for your own account to do that.
-          </Callout.Description>
-        </Callout.Root>
-      )}
-
-      <AccountNumberReveal />
-
-      <Card size="3">
-        {user === undefined ? (
-          <Text size="2" color="gray">
-            Loading…
-          </Text>
-        ) : (
-          <DataList.Root size="2" orientation="vertical">
-            <Row label="Name" value={user?.name} />
-            <Row label="Email" value={user?.email} />
-            <Row label="User ID" value={user?._id} mono />
-            {user?.username && <Row label="Username" value={user.username} />}
-            {user?.phoneNumber && (
-              <Row label="Phone" value={user.phoneNumber} />
-            )}
-            {user?.isAnonymous && (
-              <DataList.Item>
-                <DataList.Label>Type</DataList.Label>
-                <DataList.Value>
-                  <Badge color="amber">
-                    Anonymous — upgrade to keep this account
-                  </Badge>
-                </DataList.Value>
-              </DataList.Item>
-            )}
-          </DataList.Root>
-        )}
-      </Card>
-
-      <SignInMethods user={user ?? null} locked={demo} />
-      <Passkeys locked={demo} />
-      <AgentKeys locked={demo} />
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value?: string | null;
-  mono?: boolean;
-}) {
-  if (!value) return null;
+/** Who you're signed in as, and the two ways back out. */
+function Identity({ user, demo }: { user: User | undefined; demo: boolean }) {
   return (
-    <DataList.Item>
-      <DataList.Label>{label}</DataList.Label>
-      <DataList.Value>
-        {mono ? <Code size="1">{value}</Code> : value}
-      </DataList.Value>
-    </DataList.Item>
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="flex min-w-0 flex-col gap-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Heading size="5">
+            {user?.name || user?.email || "Your account"}
+          </Heading>
+          {user?.username && (
+            <Badge size="1" color="gray">
+              @{user.username}
+            </Badge>
+          )}
+          {user?.isAnonymous && (
+            <Badge size="1" color="amber">
+              anonymous — upgrade to keep it
+            </Badge>
+          )}
+          {/* The demo account is shared, so the server refuses every write. */}
+          {demo && (
+            <Badge size="1" color="amber">
+              shared demo — read-only
+            </Badge>
+          )}
+        </div>
+        <div className="flex min-w-0 items-center gap-2">
+          <Text size="1" color="gray" className="truncate">
+            {user === undefined
+              ? "Loading…"
+              : [user?.email, user?.phoneNumber].filter(Boolean).join(" · ")}
+          </Text>
+          {user?._id && (
+            <Code size="1" color="gray" className="truncate">
+              {user._id}
+            </Code>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        {/* Leaves the session valid so this account stays one click away on
+            the sign-in screen. "Sign out everywhere" is the real revoke. */}
+        <Button variant="surface" size="1" onClick={localSignOut}>
+          Sign out
+        </Button>
+        <Button
+          variant="ghost"
+          size="1"
+          color="gray"
+          // Revoking the demo account's sessions would sign out every other
+          // visitor. The server refuses; don't offer it.
+          disabled={demo}
+          onClick={() =>
+            void forgetRemembered({
+              id: user?._id ?? "",
+              name: user?.name ?? "",
+              email: user?.email ?? "",
+              cookie: localStorage.getItem(AUTH_COOKIE) ?? undefined,
+              savedAt: Date.now(),
+            })
+          }
+        >
+          Sign out everywhere
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -138,29 +120,64 @@ function AccountNumberReveal() {
 
   return (
     <Card
-      size="3"
+      size="2"
       className="border border-[var(--amber-a6)] bg-[var(--amber-a2)]"
     >
-      <div className="flex flex-col gap-3">
-        <Heading size="3">Save your account number</Heading>
-        <Text size="2" color="gray">
-          This is the whole account. We can't email it to you, reset it, or look
-          it up.
-        </Text>
-        <Code size="4" className="tracking-[0.2em]">
-          {number.replace(/(\d{4})(?=\d)/g, "$1 ")}
-        </Code>
-        <Button
-          variant="classic"
-          size="2"
-          className="self-start"
-          onClick={() => {
-            localStorage.removeItem(PENDING_ACCOUNT_NUMBER);
-            setNumber(null);
-          }}
-        >
-          I've saved it
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-col gap-0.5">
+          <Heading size="2">Save your account number</Heading>
+          <Text size="1" color="gray">
+            The only copy. It can't be reset or looked up.
+          </Text>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Amber throughout: this is a "write it down or lose the account"
+              warning, and the theme accent would dress it up as good news. */}
+          <Code size="3" color="amber" className="tracking-[0.2em]">
+            {number.replace(/(\d{4})(?=\d)/g, "$1 ")}
+          </Code>
+          <Button
+            variant="classic"
+            size="1"
+            color="amber"
+            onClick={() => {
+              localStorage.removeItem(PENDING_ACCOUNT_NUMBER);
+              setNumber(null);
+            }}
+          >
+            I've saved it
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/** A card of one-line entries, with the control that adds one in its header. */
+function List({
+  title,
+  hint,
+  action,
+  children,
+}: {
+  title: string;
+  hint: string;
+  action: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Card size="2">
+      <div className="flex flex-col gap-2">
+        <div className="flex min-h-7 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <Heading size="2">{title}</Heading>
+            <Text size="1" color="gray" className="truncate">
+              {hint}
+            </Text>
+          </div>
+          {action}
+        </div>
+        {children}
       </div>
     </Card>
   );
@@ -181,52 +198,47 @@ function Passkeys({ locked }: { locked: boolean }) {
   const busy = pending || locked;
 
   return (
-    <Card size="3">
-      <div className="flex flex-col gap-3">
-        <Heading size="3">Passkeys</Heading>
-        <Text size="2" color="gray">
-          Face ID, Touch ID or a security key. Registered against this site's
-          domain.
-        </Text>
-
-        {passkeys.map((passkey) => (
-          <div
-            key={passkey.id}
-            className="flex items-center justify-between gap-3"
-          >
-            <Text size="2">{passkey.name || "Passkey"}</Text>
-            <Button
-              variant="ghost"
-              size="1"
-              color="red"
-              disabled={busy}
-              onClick={() =>
-                void run(() =>
-                  authClient.passkey.deletePasskey({ id: passkey.id }),
-                ).then(reload)
-              }
-            >
-              Remove
-            </Button>
-          </div>
-        ))}
-
-        <Separator className="w-full" />
-
+    <List
+      title="Passkeys"
+      hint="Face ID, Touch ID or a security key"
+      action={
         <Button
           variant="surface"
-          size="2"
-          className="self-start"
+          size="1"
           disabled={busy}
           onClick={() =>
             void run(() => authClient.passkey.addPasskey()).then(reload)
           }
         >
-          Add a passkey
+          Add
         </Button>
-        <Feedback error={error} />
-      </div>
-    </Card>
+      }
+    >
+      {passkeys.map((passkey) => (
+        <div
+          key={passkey.id}
+          className="flex items-center justify-between gap-3"
+        >
+          <Text size="2" className="truncate">
+            {passkey.name || "Passkey"}
+          </Text>
+          <Button
+            variant="ghost"
+            size="1"
+            color="red"
+            disabled={busy}
+            onClick={() =>
+              void run(() =>
+                authClient.passkey.deletePasskey({ id: passkey.id }),
+              ).then(reload)
+            }
+          >
+            Remove
+          </Button>
+        </div>
+      ))}
+      <Feedback error={error} />
+    </List>
   );
 }
 
@@ -262,55 +274,13 @@ function AgentKeys({ locked }: { locked: boolean }) {
   const busy = pending || locked;
 
   return (
-    <Card size="3">
-      <div className="flex flex-col gap-3">
-        <Heading size="3">Agent keys</Heading>
-        <Text size="2" color="gray">
-          Long-lived credentials for agents and scripts. Sent as{" "}
-          <Code size="1">x-api-key</Code>.
-        </Text>
-
-        {fresh && (
-          <div className="flex flex-col gap-2 rounded-md border border-[var(--amber-a6)] bg-[var(--amber-a2)] p-3">
-            <Text size="1" weight="medium">
-              Copy this now — it isn't shown again.
-            </Text>
-            <Code size="2" className="break-all">
-              {fresh}
-            </Code>
-          </div>
-        )}
-
-        {keys.map((key) => (
-          <div key={key.id} className="flex items-center justify-between gap-3">
-            <Text size="2">
-              Key {key.name}{" "}
-              <Text size="1" color="gray">
-                {key.start ? `${key.start}…` : ""}
-              </Text>
-            </Text>
-            <Button
-              variant="ghost"
-              size="1"
-              color="red"
-              disabled={busy}
-              onClick={() =>
-                void run(() =>
-                  authClient.apiKey.delete({ keyId: key.id }),
-                ).then(reload)
-              }
-            >
-              Revoke
-            </Button>
-          </div>
-        ))}
-
-        <Separator className="w-full" />
-
+    <List
+      title="Agent keys"
+      hint="sent as x-api-key"
+      action={
         <Button
           variant="surface"
-          size="2"
-          className="self-start"
+          size="1"
           disabled={busy}
           onClick={() =>
             void run(async () => {
@@ -325,8 +295,43 @@ function AgentKeys({ locked }: { locked: boolean }) {
         >
           Create key {nextKeyName(keys)}
         </Button>
-        <Feedback error={error} />
-      </div>
-    </Card>
+      }
+    >
+      {fresh && (
+        <div className="flex flex-col gap-1 rounded-md border border-[var(--amber-a6)] bg-[var(--amber-a2)] p-2">
+          <Text size="1" weight="medium">
+            Copy this now — it isn't shown again.
+          </Text>
+          <Code size="1" color="amber" className="break-all">
+            {fresh}
+          </Code>
+        </div>
+      )}
+
+      {keys.map((key) => (
+        <div key={key.id} className="flex items-center justify-between gap-3">
+          <Text size="2" className="truncate">
+            Key {key.name}{" "}
+            <Text size="1" color="gray">
+              {key.start ? `${key.start}…` : ""}
+            </Text>
+          </Text>
+          <Button
+            variant="ghost"
+            size="1"
+            color="red"
+            disabled={busy}
+            onClick={() =>
+              void run(() => authClient.apiKey.delete({ keyId: key.id })).then(
+                reload,
+              )
+            }
+          >
+            Revoke
+          </Button>
+        </div>
+      ))}
+      <Feedback error={error} />
+    </List>
   );
 }
