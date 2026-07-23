@@ -18,7 +18,7 @@
     "cosmos:export": "cosmos-export"
   },
   "dependencies": {
-    "@aussieljk/frosted": "^0.0.1-1",
+    "@aussieljk/frosted": "^0.0.1-2",
     "@better-auth/api-key": "^1.6.23",
     "@better-auth/expo": "1.6.23",
     "@better-auth/passkey": "^1.6.23",
