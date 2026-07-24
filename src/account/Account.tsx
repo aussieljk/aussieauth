@@ -5,12 +5,17 @@ import type { FunctionReturnType } from "convex/server";
 import { type ReactNode, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isDemoUser } from "@/convex/lib/demo";
-import { Destructive, Feedback } from "@/auth/ui";
-import { useRemoteList } from "@/auth/useRemoteList";
-import { useRunner } from "@/auth/useRunner";
-import { authClient } from "@/lib/auth-client";
-import { forgetRemembered, localSignOut } from "@/lib/rememberedAccounts";
-import { AUTH_COOKIE, PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
+import {
+  AUTH_COOKIE,
+  authClient,
+  Destructive,
+  Feedback,
+  forgetRemembered,
+  localSignOut,
+  PENDING_ACCOUNT_NUMBER,
+  useRemoteList,
+  useRunner,
+} from "@aussieljk/auth";
 import { SignInMethods } from "./SignInMethods";
 
 const { Code, Heading, Text } = Typography;

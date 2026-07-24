@@ -1,8 +1,8 @@
 import { Button, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient, callbackURL } from "@/lib/auth-client";
-import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
-import { signWithWallet } from "@/lib/wallet";
+import { authClient, callbackURL } from "./client";
+import { PENDING_ACCOUNT_NUMBER } from "./storage";
+import { signWithWallet } from "./wallet";
 import { byId, ctaFor } from "./providers";
 import { useRunner } from "./useRunner";
 import { BigButton, CodeField, Feedback, Field, PanelForm, RedirectOverlay, Submit } from "./ui";

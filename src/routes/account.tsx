@@ -3,7 +3,7 @@ import { useConvexAuth } from "convex/react";
 import { useEffect } from "react";
 import { Account } from "@/account/Account";
 import { AuthProvider } from "@/auth/AuthProvider";
-import { RouteLoading } from "@/auth/ui";
+import { RouteLoading } from "@aussieljk/auth";
 
 export const Route = createFileRoute("/account")({
   ssr: false,

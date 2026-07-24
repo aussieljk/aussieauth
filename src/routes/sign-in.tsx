@@ -1,8 +1,8 @@
 import { createFileRoute, Navigate, useRouter } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { useEffect } from "react";
+import { SignIn } from "@aussieljk/auth";
 import { AuthProvider } from "@/auth/AuthProvider";
-import { SignIn } from "@/auth/SignIn";
 
 export const Route = createFileRoute("/sign-in")({
   // The session is a cookie jar in localStorage — `crossDomainClient` can't be
@@ -52,5 +52,14 @@ function SignInOrAccount() {
   }, [router]);
 
   if (isAuthenticated) return <Navigate to="/account" replace />;
-  return <SignIn />;
+  // The app already sits inside a `<Theme>` (see __root.tsx), so this uses the
+  // raw `SignIn` rather than `AussieAuthSignIn`. `setupHints` is on because this
+  // is the deployment's own admin site — the place you configure credentials.
+  return (
+    <SignIn
+      appName="AussieAuth"
+      setupHints
+      footer="Your apps talk to this server directly — no AussieAuth consent screen, ever."
+    />
+  );
 }

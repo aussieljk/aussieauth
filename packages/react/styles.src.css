@@ -1,0 +1,7 @@
+/* Compiled to dist/styles.css by the build:css step. Scans the package source
+   for the Tailwind utility classes the card uses and emits just those, so a
+   consuming app whose own Tailwind doesn't scan node_modules still gets them.
+   Frosted's design tokens come from @aussieljk/frosted/styles.css, loaded
+   alongside this inside <AussieAuthSignIn>'s <Theme>. */
+@import "tailwindcss";
+@source "./src";

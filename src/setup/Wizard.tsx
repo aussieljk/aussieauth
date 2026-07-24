@@ -1,7 +1,7 @@
 import { Badge, Button, Card, Spinner, Tooltip, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import { type ReactNode, useState } from "react";
-import { useSetupStatus } from "@/auth/useSetupStatus";
+import { useSetupStatus } from "@aussieljk/auth";
 
 const { Heading, Text } = Typography;
 
@@ -122,7 +122,7 @@ export function VerifyStep({
   label: string;
   children?: ReactNode;
 }) {
-  const { setup, refetch } = useSetupStatus();
+  const { setup, refetch } = useSetupStatus(true);
   const [checking, setChecking] = useState(false);
   const ready = setup?.[method];
 

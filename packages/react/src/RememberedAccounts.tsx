@@ -1,14 +1,14 @@
 import { Avatar, Spinner, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import { useEffect, useRef, useState } from "react";
-import { authClient, callbackURL } from "@/lib/auth-client";
+import { authClient, callbackURL } from "./client";
 import {
   checkRemembered,
   forgetRemembered,
   listRemembered,
   restoreRemembered,
   type RememberedAccount,
-} from "@/lib/rememberedAccounts";
+} from "./remembered";
 import { tryById } from "./providers";
 import { Destructive, Feedback } from "./ui";
 

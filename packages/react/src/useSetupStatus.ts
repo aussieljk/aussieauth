@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { baseURL } from "./client";
 
 /**
  * Which methods this deployment actually has credentials for, so the card can
@@ -8,52 +9,40 @@ import { useCallback, useEffect, useState } from "react";
  * that's where the credentials are read in the first place — `convex/auth.ts`
  * decides which providers to register from the same env vars, so asking
  * anywhere else means keeping two lists in step.
+ *
+ * Opt-in via `enabled`: this only matters on the AussieAuth deployment's own
+ * site, where you configure the thing. An app that merely embeds it (Boxpo)
+ * leaves it off and never touches the endpoint.
  */
 
 export type SetupStatus = Record<string, boolean>;
 
 /**
- * A bare `fetch` rather than `authClient.aussieauth.status()`.
- *
- * The endpoint is an unauthenticated GET, so the auth client buys nothing here
- * — and it costs a great deal. The setup wizards use this hook, the sign-in
- * card uses this hook, and going through the client would make all fourteen
- * Better Auth plugins a shared dependency of both: ~90 kB gzip hoisted into the
- * chunk every page loads, including the landing page and the docs.
- *
- * `VITE_CONVEX_SITE_URL` is empty in the workbench, which leaves this relative
- * and pointing at the fixture's own origin — which is what the MSW handlers
- * expect.
+ * Resolved per call rather than at module load — `baseURL` is empty until
+ * `createAussieAuthClient` runs, and this module can be evaluated (its chunk
+ * loaded) around the same time.
  */
-const ENDPOINT = `${import.meta.env.VITE_CONVEX_SITE_URL ?? ""}/api/auth/aussieauth/status`;
+const endpoint = () => `${baseURL}/api/auth/aussieauth/status`;
 
 /**
- * Started as soon as this module is imported rather than from an effect.
- * Importing happens during module evaluation and effects only run after
- * hydration, so hoisting it lets the round trip overlap the work React is doing
- * anyway instead of queueing behind it.
- *
  * Held as a promise so several mounted components share one request, and
  * cleared by `refetch` when something has changed on the server.
  */
 let pending: Promise<SetupStatus | undefined> | undefined;
 
 const probe = () =>
-  (pending ??= fetch(ENDPOINT, { credentials: "include" })
+  (pending ??= fetch(endpoint(), { credentials: "include" })
     .then((res) => (res.ok ? (res.json() as Promise<SetupStatus>) : undefined))
     // Nothing to badge if the probe can't be reached; leave it unknown.
     .catch(() => undefined));
 
-// Fired at import time. The `void` is the point: nothing awaits it, it's simply
-// in flight by the time the first component wants an answer.
-if (typeof window !== "undefined") void probe();
-
-export function useSetupStatus() {
+export function useSetupStatus(enabled = false) {
   /** `undefined` until the answer lands — callers read that as "assume fine", so
    *  nothing is greyed out during the first paint and then ungreyed. */
   const [setup, setSetup] = useState<SetupStatus>();
 
   useEffect(() => {
+    if (!enabled || typeof window === "undefined") return;
     let live = true;
     void probe().then((data) => {
       if (live && data) setSetup(data);
@@ -61,7 +50,7 @@ export function useSetupStatus() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [enabled]);
 
   /** Asks again, ignoring the cached answer — for after `convex env set`. */
   const refetch = useCallback(async () => {
@@ -74,6 +63,6 @@ export function useSetupStatus() {
   return {
     setup,
     refetch,
-    needsSetup: (id: string) => setup !== undefined && setup[id] === false,
+    needsSetup: (id: string) => enabled && setup !== undefined && setup[id] === false,
   };
 }

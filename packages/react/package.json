@@ -1,0 +1,55 @@
+{
+  "name": "@aussieljk/auth",
+  "version": "0.0.1",
+  "description": "AussieAuth's drop-in React sign-in card and auth client.",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aussieljk/aussieauth.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://aussieauth.com",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "scripts": {
+    "build": "bun run build:js && bun run build:css",
+    "build:js": "tsup",
+    "build:css": "tailwindcss -i ./styles.src.css -o ./dist/styles.css",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "@aussieljk/frosted": "^0.0.1-2",
+    "@better-auth/api-key": "1.6.23",
+    "@better-auth/passkey": "1.6.23",
+    "@convex-dev/better-auth": "^0.12.5",
+    "@noble/curves": "^2.2.0",
+    "better-auth": "1.6.23",
+    "bs58": "^6.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.2.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  }
+}

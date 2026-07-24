@@ -1,6 +1,6 @@
 import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient, callbackURL } from "@/lib/auth-client";
+import { authClient, callbackURL } from "./client";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
@@ -12,14 +12,28 @@ import { useSetupStatus } from "./useSetupStatus";
 const { Heading, Text } = Typography;
 
 export type SignInProps = {
-  /** Method ids to offer, in order. Defaults to all sixteen. */
+  /** The app this card signs into — drives the default heading. */
+  appName?: string;
+  /** Method ids to offer, in order. Defaults to every method. */
   methods?: string[];
   /** Method ids shown as buttons on the front of the card. */
   featured?: string[];
   /** The method whose form sits inline under the buttons. */
   primary?: string;
+  /** Overrides the `Welcome to ${appName}` heading. */
   title?: string;
+  /** Overrides the `${n} ways in. Pick one.` line under the heading. */
   subtitle?: string;
+  /** A mark shown above the heading. */
+  logo?: React.ReactNode;
+  /** A line at the foot of the card. Omit for none. */
+  footer?: React.ReactNode;
+  /**
+   * Badge methods whose credentials aren't set on the server as "needs setup".
+   * Only useful on the AussieAuth deployment's own admin site; off by default,
+   * so an embedding app never probes the status endpoint.
+   */
+  setupHints?: boolean;
 };
 
 const DEFAULT_FEATURED = ["google", "github", "apple"];
@@ -31,15 +45,19 @@ const DEFAULT_PRIMARY = "email-password";
  * from "more ways to sign in" swaps the body for that method's panel.
  */
 export function SignIn({
+  appName = "AussieAuth",
   methods,
   featured = DEFAULT_FEATURED,
   primary = DEFAULT_PRIMARY,
-  title = "Welcome to AussieAuth",
+  title,
   subtitle,
+  logo,
+  footer,
+  setupHints = false,
 }: SignInProps = {}) {
   const [method, setMethod] = useState<string | null>(null);
   const [prefill, setPrefill] = useState("");
-  const { needsSetup } = useSetupStatus();
+  const { needsSetup } = useSetupStatus(setupHints);
 
   const offered = methods ? PROVIDERS.filter((p) => methods.includes(p.id)) : PROVIDERS;
 
@@ -77,7 +95,8 @@ export function SignIn({
   return (
     <Shell>
       <div className="flex flex-col gap-1">
-        <Heading>{title}</Heading>
+        {logo && <div className="mb-2">{logo}</div>}
+        <Heading>{title ?? `Welcome to ${appName}`}</Heading>
         <Text color="gray">{subtitle ?? `${offered.length} ways in. Pick one.`}</Text>
       </div>
 
@@ -109,9 +128,11 @@ export function SignIn({
         ))}
       </div>
 
-      <Text color="gray" className="text-center">
-        Your apps talk to this server directly — no AussieAuth consent screen, ever.
-      </Text>
+      {footer && (
+        <Text color="gray" className="text-center">
+          {footer}
+        </Text>
+      )}
     </Shell>
   );
 }

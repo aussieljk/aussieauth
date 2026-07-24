@@ -1,0 +1,54 @@
+import type { BetterAuthPlugin } from "better-auth";
+import { APIError, createAuthEndpoint, sessionMiddleware } from "better-auth/api";
+import * as z from "zod";
+
+/**
+ * Lets a signed-in user bolt a password onto an account that never had one —
+ * the account you got from Google, a passkey or an SMS code can grow an
+ * email + password credential without a reset email round-trip.
+ *
+ * Better Auth ships this logic as `auth.api.setPassword`, but registers it
+ * `serverOnly`, so there's no route a browser can reach. This is the same
+ * check-then-`linkAccount` sequence, exposed as one.
+ */
+export const linking = () =>
+  ({
+    id: "linking",
+    endpoints: {
+      setPassword: createAuthEndpoint(
+        "/linking/set-password",
+        {
+          method: "POST",
+          body: z.object({ newPassword: z.string() }),
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          const { newPassword } = ctx.body;
+          const { minPasswordLength, maxPasswordLength } = ctx.context.password.config;
+          if (newPassword.length < minPasswordLength || newPassword.length > maxPasswordLength) {
+            throw new APIError("BAD_REQUEST", {
+              message: `Password must be ${minPasswordLength}–${maxPasswordLength} characters`,
+            });
+          }
+
+          const userId = ctx.context.session.user.id;
+          const existing = (await ctx.context.internalAdapter.findAccounts(userId)).find(
+            (a) => a.providerId === "credential" && a.password,
+          );
+          if (existing) {
+            throw new APIError("BAD_REQUEST", {
+              message: "This account already has a password — change it instead of adding one",
+            });
+          }
+
+          await ctx.context.internalAdapter.linkAccount({
+            userId,
+            providerId: "credential",
+            accountId: userId,
+            password: await ctx.context.password.hash(newPassword),
+          });
+          return ctx.json({ status: true });
+        },
+      ),
+    },
+  }) satisfies BetterAuthPlugin;

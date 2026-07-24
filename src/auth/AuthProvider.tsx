@@ -1,8 +1,8 @@
 import { ConvexBetterAuthProvider, type AuthClient } from "@convex-dev/better-auth/react";
 import { ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
-import { authClient } from "@/lib/auth-client";
-import { useRememberSignedInAccount } from "@/lib/rememberedAccounts";
+import { useRememberSignedInAccount } from "@aussieljk/auth";
+import { authClient } from "@/lib/auth";
 
 /**
  * Convex + Better Auth, for the two routes that actually sign someone in.

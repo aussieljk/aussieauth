@@ -1,6 +1,6 @@
 import { Badge, Button, Card, Typography } from "@aussieljk/frosted";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PROVIDERS } from "@/auth/providers";
+import { PROVIDERS } from "@aussieljk/auth";
 import { DocLink } from "@/docs/DocLink";
 import { Chrome } from "@/site/Chrome";
 

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { authClient } from "./auth-client";
+import { authClient } from "./client";
 import { AUTH_COOKIE, AUTH_SESSION_DATA, REMEMBERED_ACCOUNTS } from "./storage";
 
 /**

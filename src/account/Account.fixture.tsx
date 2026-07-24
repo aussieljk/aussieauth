@@ -1,4 +1,4 @@
-import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
+import { PENDING_ACCOUNT_NUMBER } from "@aussieljk/auth";
 import { handlers } from "@/testing/handlers";
 import { MockApi } from "@/testing/MockApi";
 import { Account } from "./Account";

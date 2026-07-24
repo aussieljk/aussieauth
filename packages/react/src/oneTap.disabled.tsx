@@ -1,5 +1,5 @@
 import { Typography } from "@aussieljk/frosted";
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "./client";
 import { BigButton, Feedback } from "./ui";
 import { useRunner } from "./useRunner";
 
@@ -21,7 +21,7 @@ const { Text } = Typography;
  * To re-enable:
  *   1. methods.ts — add `"google-one-tap": OneTapPanel` back to PANELS,
  *      importing OneTapPanel from here.
- *   2. SignIn.tsx — re-add the import `GOOGLE_CLIENT_ID` from "@/lib/auth-client"
+ *   2. SignIn.tsx — re-add the import `GOOGLE_CLIENT_ID` from "./client"
  *      and `OneTapButton` from here, then restore:
  *        const oneTapOffered =
  *          Boolean(GOOGLE_CLIENT_ID) &&

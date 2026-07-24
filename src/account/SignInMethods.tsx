@@ -1,11 +1,16 @@
 import { Badge, Button, Card, Input, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import { type ReactNode, useCallback, useState } from "react";
-import { CodeInput, Destructive, Feedback } from "@/auth/ui";
-import { useRemoteList } from "@/auth/useRemoteList";
-import { useRunner } from "@/auth/useRunner";
-import { authClient, callbackURL } from "@/lib/auth-client";
-import { signWithWallet } from "@/lib/wallet";
+import {
+  authClient,
+  callbackURL,
+  CodeInput,
+  Destructive,
+  Feedback,
+  signWithWallet,
+  useRemoteList,
+  useRunner,
+} from "@aussieljk/auth";
 
 const { Heading, Text } = Typography;
 
