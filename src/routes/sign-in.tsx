@@ -1,5 +1,6 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useRouter } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
+import { useEffect } from "react";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { SignIn } from "@/auth/SignIn";
 
@@ -36,9 +37,20 @@ function SignInRoute() {
 }
 
 function SignInOrAccount() {
+  const router = useRouter();
   // `useConvexAuth` rather than `<AuthLoading>`: while auth is settling we want
   // the sign-in form itself on screen, not a spinner standing in for it.
   const { isAuthenticated } = useConvexAuth();
+
+  // A credential or passkey sign-in flips `isAuthenticated` in place and this
+  // navigates on to `/account` — a client navigation, so preloading its chunk
+  // now is the difference between that redirect being instant and stalling on a
+  // download. (OAuth methods leave via a full page load and can't benefit, but
+  // the spinner on `/account` covers those.)
+  useEffect(() => {
+    void router.preloadRoute({ to: "/account" });
+  }, [router]);
+
   if (isAuthenticated) return <Navigate to="/account" replace />;
   return <SignIn />;
 }

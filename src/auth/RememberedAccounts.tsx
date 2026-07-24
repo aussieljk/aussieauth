@@ -32,7 +32,13 @@ const replay = (account: RememberedAccount): (() => Promise<unknown>) | { panel:
           callbackURL: callbackURL(),
         });
     case "google-one-tap":
-      return () => authClient.oneTap();
+      // One Tap is retired from the card; replay a remembered One Tap account as
+      // a standard same-window Google redirect rather than reopening the popup.
+      return () =>
+        authClient.signIn.social({
+          provider: "google",
+          callbackURL: callbackURL(),
+        });
     case "passkey":
       return () => authClient.signIn.passkey();
     case "demo":

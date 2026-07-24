@@ -1,4 +1,4 @@
-import { Alert, Button, IconButton, Input, Tooltip, Typography } from "@aussieljk/frosted";
+import { Alert, Button, IconButton, Input, Spinner, Tooltip, Typography } from "@aussieljk/frosted";
 import { Icons, type IconProps } from "@aussieljk/frosted/icons";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
 
@@ -122,6 +122,40 @@ export function Destructive({
         <Icon size={16} />
       </IconButton>
     </Tooltip>
+  );
+}
+
+/**
+ * Fills the viewport while a gated route waits on `useConvexAuth` to settle.
+ * `/account` used to render `null` here — a blank screen for the whole beat it
+ * takes the cross-domain session to exchange after an OAuth return, which read
+ * as the page having frozen. A spinner says the same "not ready" without the
+ * dead air.
+ */
+export function RouteLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <Spinner size="3" />
+    </div>
+  );
+}
+
+/**
+ * Covers the sign-in card the instant a social button is clicked, so the screen
+ * visibly hands off to the provider rather than sitting unchanged for the
+ * round-trip it takes Better Auth to fetch the OAuth URL before it can redirect.
+ * Stays up until the browser navigates away; the caller pulls it back down only
+ * if the sign-in call comes back with an error instead.
+ */
+export function RedirectOverlay({ label, icon }: { label: string; icon?: ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[var(--color-background)]">
+      {icon}
+      <div className="flex items-center gap-2">
+        <Spinner size="3" />
+        <Text color="gray">Taking you to {label}…</Text>
+      </div>
+    </div>
   );
 }
 

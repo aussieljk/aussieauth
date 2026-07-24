@@ -5,7 +5,7 @@ import { PENDING_ACCOUNT_NUMBER } from "@/lib/storage";
 import { signWithWallet } from "@/lib/wallet";
 import { byId, ctaFor } from "./providers";
 import { useRunner } from "./useRunner";
-import { BigButton, CodeField, Feedback, Field, PanelForm, Submit } from "./ui";
+import { BigButton, CodeField, Feedback, Field, PanelForm, RedirectOverlay, Submit } from "./ui";
 
 const { Code, Text } = Typography;
 
@@ -20,17 +20,46 @@ function Mark({ id }: { id: string }) {
   return Logo ? <Logo size={18} /> : null;
 }
 
-/** Social providers and the other true one-click methods. */
-function OneClick({ id, action }: { id: string; action: () => Promise<unknown> }) {
+/**
+ * Social providers and the other true one-click methods. `redirect` marks the
+ * methods that hand the whole page off to a provider: for those the button
+ * drops a full-screen overlay on click so the screen changes immediately rather
+ * than waiting on the round-trip that fetches the OAuth URL.
+ */
+function OneClick({
+  id,
+  action,
+  redirect = false,
+}: {
+  id: string;
+  action: () => Promise<unknown>;
+  redirect?: boolean;
+}) {
   const { pending, error, run } = useRunner();
+  const [redirecting, setRedirecting] = useState(false);
   const provider = byId(id);
   return (
     <div className="flex flex-col gap-3">
       <Text color="gray">{provider.hint}</Text>
-      <BigButton pending={pending} icon={<Mark id={id} />} onClick={() => void run(action)}>
+      <BigButton
+        pending={pending}
+        icon={<Mark id={id} />}
+        onClick={() => {
+          if (redirect) setRedirecting(true);
+          void run(action).then((ok) => {
+            if (!ok) setRedirecting(false);
+          });
+        }}
+      >
         {ctaFor(provider)}
       </BigButton>
       <Feedback error={error} />
+      {redirecting && (
+        <RedirectOverlay
+          label={provider.label}
+          icon={provider.Logo ? <provider.Logo size={40} /> : null}
+        />
+      )}
     </div>
   );
 }
@@ -39,16 +68,13 @@ const social = (provider: "google" | "github" | "apple") => () =>
   authClient.signIn.social({ provider, callbackURL: callbackURL() });
 
 export function GooglePanel() {
-  return <OneClick id="google" action={social("google")} />;
+  return <OneClick id="google" action={social("google")} redirect />;
 }
 export function GitHubPanel() {
-  return <OneClick id="github" action={social("github")} />;
+  return <OneClick id="github" action={social("github")} redirect />;
 }
 export function ApplePanel() {
-  return <OneClick id="apple" action={social("apple")} />;
-}
-export function OneTapPanel() {
-  return <OneClick id="google-one-tap" action={() => authClient.oneTap()} />;
+  return <OneClick id="apple" action={social("apple")} redirect />;
 }
 export function DemoPanel() {
   return <OneClick id="demo" action={() => authClient.signIn.demo()} />;

@@ -103,8 +103,9 @@ export const authClient = createAuthClient({
     linkingClient(),
     statusClient(),
     apiKeyClient(),
-    // Registered unconditionally so the client's type stays stable; the UI
-    // hides the One Tap entry when there's no client id to prompt with.
+    // Kept registered even though the One Tap button is retired from the card
+    // (auth/oneTap.disabled.tsx): it keeps `authClient.oneTap()` and the
+    // client's plugin type stable, so switching One Tap back on is UI-only.
     oneTapClient({
       clientId: GOOGLE_CLIENT_ID,
       promptOptions: { maxAttempts: 1 },

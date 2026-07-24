@@ -1,11 +1,11 @@
 import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient, callbackURL, GOOGLE_CLIENT_ID } from "@/lib/auth-client";
+import { authClient, callbackURL } from "@/lib/auth-client";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
 import { RememberedAccounts } from "./RememberedAccounts";
-import { BigButton, Feedback } from "./ui";
+import { BigButton, Feedback, RedirectOverlay } from "./ui";
 import { useRunner } from "./useRunner";
 import { useSetupStatus } from "./useSetupStatus";
 
@@ -43,15 +43,12 @@ export function SignIn({
 
   const offered = methods ? PROVIDERS.filter((p) => methods.includes(p.id)) : PROVIDERS;
 
-  // One Tap is a variant of the Google button rather than its own row, so it
-  // never appears in the "more ways" list.
+  // One Tap is retired from the card (it opens a Google popup) but stays a
+  // listed method — so it's filtered out of "more ways" here rather than shown.
+  // Its UI lives in auth/oneTap.disabled.tsx for when it's switched back on.
   const rest: Provider[] = offered.filter(
     (p) => p.id !== primary && !featured.includes(p.id) && p.id !== "google-one-tap",
   );
-  const oneTapOffered =
-    Boolean(GOOGLE_CLIENT_ID) &&
-    offered.some((p) => p.id === "google-one-tap") &&
-    !needsSetup("google");
 
   const open = (id: string, withPrefill = "") => {
     setPrefill(withPrefill);
@@ -90,7 +87,6 @@ export function SignIn({
         {featured.map((id) => (
           <SocialButton key={id} id={id} disabled={needsSetup(id)} />
         ))}
-        {oneTapOffered && <OneTapButton />}
       </div>
 
       <OrDivider label={`or continue with ${byId(primary).label.toLowerCase()}`} />
@@ -132,20 +128,26 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 function SocialButton({ id, disabled }: { id: string; disabled: boolean }) {
   const { pending, error, run } = useRunner();
+  // Covers the card the moment it's clicked; only pulled back if the sign-in
+  // call fails, since a success redirects the whole page to the provider.
+  const [redirecting, setRedirecting] = useState(false);
   const provider = byId(id);
   return (
     <div className="flex flex-col gap-2">
       <BigButton
         pending={pending || disabled}
         icon={provider.Logo ? <provider.Logo size={18} /> : null}
-        onClick={() =>
+        onClick={() => {
+          setRedirecting(true);
           void run(() =>
             authClient.signIn.social({
               provider: id,
               callbackURL: callbackURL(),
             }),
-          )
-        }
+          ).then((ok) => {
+            if (!ok) setRedirecting(false);
+          });
+        }}
       >
         {ctaFor(provider)}
         {disabled && (
@@ -155,18 +157,12 @@ function SocialButton({ id, disabled }: { id: string; disabled: boolean }) {
         )}
       </BigButton>
       <Feedback error={error} />
-    </div>
-  );
-}
-
-function OneTapButton() {
-  const { pending, error, run } = useRunner();
-  return (
-    <div className="flex flex-col gap-2">
-      <BigButton pending={pending} onClick={() => void run(() => authClient.oneTap())}>
-        One Tap sign-in
-      </BigButton>
-      <Feedback error={error} />
+      {redirecting && (
+        <RedirectOverlay
+          label={provider.label}
+          icon={provider.Logo ? <provider.Logo size={40} /> : null}
+        />
+      )}
     </div>
   );
 }
