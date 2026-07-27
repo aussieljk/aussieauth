@@ -21,7 +21,16 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run build
         working-directory: packages/react
-      - run: bun publish --access public
+      # Idempotent, so re-pushing a tag (or tagging a version that was already
+      # published from a laptop) is a green no-op rather than a failed publish.
+      - name: Publish if this version isn't on npm yet
         working-directory: packages/react
+        run: |
+          VERSION=$(jq -r .version package.json)
+          if npm view "@aussieljk/auth@$VERSION" version >/dev/null 2>&1; then
+            echo "@aussieljk/auth@$VERSION is already on npm — nothing to publish."
+          else
+            bun publish --access public
+          fi
         env:
           NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
