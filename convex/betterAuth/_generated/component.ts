@@ -41,6 +41,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name: string;
                   phoneNumber?: null | string;
                   phoneNumberVerified?: null | boolean;
+                  twoFactorEnabled?: null | boolean;
                   updatedAt: number;
                   userId?: null | string;
                   username?: null | string;
@@ -101,6 +102,17 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   userId: string;
                 };
                 model: "passkey";
+              }
+            | {
+                data: {
+                  backupCodes: string;
+                  failedVerificationCount?: null | number;
+                  lockedUntil?: null | number;
+                  secret: string;
+                  userId: string;
+                  verified?: null | boolean;
+                };
+                model: "twoFactor";
               }
             | {
                 data: { address: string; createdAt: number; userId: string };
@@ -171,6 +183,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "displayUsername"
                     | "phoneNumber"
                     | "phoneNumberVerified"
+                    | "twoFactorEnabled"
                     | "isAnonymous"
                     | "lastLoginMethod"
                     | "userId"
@@ -321,6 +334,40 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "transports"
                     | "createdAt"
                     | "aaguid"
+                    | "_id";
+                  mode?: "sensitive" | "insensitive";
+                  operator?:
+                    | "lt"
+                    | "lte"
+                    | "gt"
+                    | "gte"
+                    | "eq"
+                    | "in"
+                    | "not_in"
+                    | "ne"
+                    | "contains"
+                    | "starts_with"
+                    | "ends_with";
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
+                }>;
+              }
+            | {
+                model: "twoFactor";
+                where?: Array<{
+                  connector?: "AND" | "OR";
+                  field:
+                    | "secret"
+                    | "backupCodes"
+                    | "userId"
+                    | "verified"
+                    | "failedVerificationCount"
+                    | "lockedUntil"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -512,6 +559,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "displayUsername"
                     | "phoneNumber"
                     | "phoneNumberVerified"
+                    | "twoFactorEnabled"
                     | "isAnonymous"
                     | "lastLoginMethod"
                     | "userId"
@@ -662,6 +710,40 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "transports"
                     | "createdAt"
                     | "aaguid"
+                    | "_id";
+                  mode?: "sensitive" | "insensitive";
+                  operator?:
+                    | "lt"
+                    | "lte"
+                    | "gt"
+                    | "gte"
+                    | "eq"
+                    | "in"
+                    | "not_in"
+                    | "ne"
+                    | "contains"
+                    | "starts_with"
+                    | "ends_with";
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
+                }>;
+              }
+            | {
+                model: "twoFactor";
+                where?: Array<{
+                  connector?: "AND" | "OR";
+                  field:
+                    | "secret"
+                    | "backupCodes"
+                    | "userId"
+                    | "verified"
+                    | "failedVerificationCount"
+                    | "lockedUntil"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -837,6 +919,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | "account"
             | "verification"
             | "passkey"
+            | "twoFactor"
             | "solanaWallet"
             | "apikey"
             | "jwks"
@@ -886,6 +969,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | "account"
             | "verification"
             | "passkey"
+            | "twoFactor"
             | "solanaWallet"
             | "apikey"
             | "jwks"
@@ -932,6 +1016,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name?: string;
                   phoneNumber?: null | string;
                   phoneNumberVerified?: null | boolean;
+                  twoFactorEnabled?: null | boolean;
                   updatedAt?: number;
                   userId?: null | string;
                   username?: null | string;
@@ -949,6 +1034,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "displayUsername"
                     | "phoneNumber"
                     | "phoneNumberVerified"
+                    | "twoFactorEnabled"
                     | "isAnonymous"
                     | "lastLoginMethod"
                     | "userId"
@@ -1142,6 +1228,48 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "transports"
                     | "createdAt"
                     | "aaguid"
+                    | "_id";
+                  mode?: "sensitive" | "insensitive";
+                  operator?:
+                    | "lt"
+                    | "lte"
+                    | "gt"
+                    | "gte"
+                    | "eq"
+                    | "in"
+                    | "not_in"
+                    | "ne"
+                    | "contains"
+                    | "starts_with"
+                    | "ends_with";
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
+                }>;
+              }
+            | {
+                model: "twoFactor";
+                update: {
+                  backupCodes?: string;
+                  failedVerificationCount?: null | number;
+                  lockedUntil?: null | number;
+                  secret?: string;
+                  userId?: string;
+                  verified?: null | boolean;
+                };
+                where?: Array<{
+                  connector?: "AND" | "OR";
+                  field:
+                    | "secret"
+                    | "backupCodes"
+                    | "userId"
+                    | "verified"
+                    | "failedVerificationCount"
+                    | "lockedUntil"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
@@ -1366,6 +1494,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   name?: string;
                   phoneNumber?: null | string;
                   phoneNumberVerified?: null | boolean;
+                  twoFactorEnabled?: null | boolean;
                   updatedAt?: number;
                   userId?: null | string;
                   username?: null | string;
@@ -1383,6 +1512,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "displayUsername"
                     | "phoneNumber"
                     | "phoneNumberVerified"
+                    | "twoFactorEnabled"
                     | "isAnonymous"
                     | "lastLoginMethod"
                     | "userId"
@@ -1576,6 +1706,48 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                     | "transports"
                     | "createdAt"
                     | "aaguid"
+                    | "_id";
+                  mode?: "sensitive" | "insensitive";
+                  operator?:
+                    | "lt"
+                    | "lte"
+                    | "gt"
+                    | "gte"
+                    | "eq"
+                    | "in"
+                    | "not_in"
+                    | "ne"
+                    | "contains"
+                    | "starts_with"
+                    | "ends_with";
+                  value:
+                    | string
+                    | number
+                    | boolean
+                    | Array<string>
+                    | Array<number>
+                    | null;
+                }>;
+              }
+            | {
+                model: "twoFactor";
+                update: {
+                  backupCodes?: string;
+                  failedVerificationCount?: null | number;
+                  lockedUntil?: null | number;
+                  secret?: string;
+                  userId?: string;
+                  verified?: null | boolean;
+                };
+                where?: Array<{
+                  connector?: "AND" | "OR";
+                  field:
+                    | "secret"
+                    | "backupCodes"
+                    | "userId"
+                    | "verified"
+                    | "failedVerificationCount"
+                    | "lockedUntil"
                     | "_id";
                   mode?: "sensitive" | "insensitive";
                   operator?:
