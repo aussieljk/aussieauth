@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { PROVIDERS } from "@aussieljk/auth";
 import { DocLink } from "@/docs/DocLink";
+import { ErrorBoundary } from "@/ErrorBoundary";
 import { Chrome } from "@/site/Chrome";
 
 const { Heading, Text } = Typography;
@@ -224,14 +225,19 @@ function LiveCard() {
     );
   }
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[420px] items-center justify-center lg:min-h-screen">
-          <Spinner size="3" />
-        </div>
-      }
-    >
-      <LandingCard />
-    </Suspense>
+    // Its own boundary, so a broken card (a misconfigured deployment URL, a
+    // failed chunk) degrades to an error box in this column instead of taking
+    // the whole marketing page with it.
+    <ErrorBoundary>
+      <Suspense
+        fallback={
+          <div className="flex min-h-[420px] items-center justify-center lg:min-h-screen">
+            <Spinner size="3" />
+          </div>
+        }
+      >
+        <LandingCard />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
