@@ -1,5 +1,5 @@
 /**
- * Which of our sixteen methods a request represents.
+ * Which of our fifteen methods a request represents.
  *
  * Two callers, and they must agree: `lastLoginMethod` records what you used so
  * the sign-in card can offer it again, and the per-app method allow-list
@@ -22,7 +22,9 @@ export const LOGIN_METHOD_PATHS: Record<string, string> = {
   "/sign-in/demo": "demo",
   "/sign-in/account-number": "account-number",
   "/sign-up/account-number": "account-number",
-  "/one-tap/callback": "google-one-tap",
+  // Completing a TOTP challenge finishes a password sign-in, so that's the
+  // method worth remembering for next time.
+  "/two-factor/verify-totp": "email-password",
 };
 
 const callbackProvider = (path: string, params: unknown) => {
@@ -76,10 +78,10 @@ export const ENFORCEABLE_PREFIXES = [
   "/link-social",
   "/callback/",
   "/oauth2/callback/",
-  "/one-tap/callback",
   "/magic-link/verify",
   "/passkey/verify-authentication",
   "/phone-number/verify",
+  "/two-factor/verify-totp",
 ];
 
 export const isEnforceablePath = (path: string | undefined) =>

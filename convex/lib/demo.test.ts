@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isDemoUser, isLocked } from "./demo";
+import { LOGIN_METHOD_PATHS } from "./methods";
 
 /**
  * The demo account is shared by every visitor, so its session is deliberately
@@ -67,6 +68,63 @@ describe("isLocked", () => {
     // The matcher is a prefix test, so an endpoint added later under a
     // different root must not be caught by accident.
     expect(isLocked("/app/update-user")).toBe(false);
+  });
+});
+
+/**
+ * The paths that would let a demo session *acquire* each method's credential,
+ * keyed by method id. An empty list is an explicit judgement that the method
+ * mints nothing on an existing account (anonymous and account-number sign-up
+ * create a fresh user; the demo endpoint is the way in, not a credential).
+ *
+ * Every method in the registry must appear here — that's the invariant. Add a
+ * method to `LOGIN_METHOD_PATHS` (or a social provider) without classifying it
+ * and the first test below fails, instead of the demo account quietly growing
+ * a write path.
+ */
+const CREDENTIAL_PATHS: Record<string, string[]> = {
+  "email-password": ["/set-password", "/change-password", "/linking/set-password"],
+  // Claiming a username rides on the generic profile update.
+  "username-password": ["/update-user"],
+  "phone-password": ["/phone-number/send-otp", "/phone-number/verify"],
+  "ios-otp": ["/phone-number/send-otp"],
+  "email-otp": ["/email-otp/send-verification-otp"],
+  // Owning the demo's magic links would mean owning its address.
+  "magic-link": ["/change-email"],
+  passkey: ["/passkey/generate-register-options", "/passkey/verify-registration"],
+  solana: ["/solana/link"],
+  google: ["/link-social"],
+  github: ["/link-social"],
+  apple: ["/link-social"],
+  agent: ["/api-key/create"],
+  demo: [],
+  anonymous: [],
+  "account-number": [],
+};
+
+describe("the deny-list covers the method registry", () => {
+  // The registry: every path-mapped method, plus the social providers and
+  // agent keys, which identify themselves by body or header rather than path.
+  const registry = new Set([
+    ...Object.values(LOGIN_METHOD_PATHS),
+    "google",
+    "github",
+    "apple",
+    "agent",
+  ]);
+
+  it("classifies every registered method", () => {
+    for (const method of registry) {
+      expect(CREDENTIAL_PATHS, `add "${method}" to CREDENTIAL_PATHS`).toHaveProperty(method);
+    }
+  });
+
+  it("locks every credential-acquiring path", () => {
+    for (const [method, paths] of Object.entries(CREDENTIAL_PATHS)) {
+      for (const path of paths) {
+        expect(isLocked(path), `${method}: ${path}`).toBe(true);
+      }
+    }
   });
 });
 

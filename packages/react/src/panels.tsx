@@ -2,7 +2,6 @@ import { Button, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
 import { authClient, callbackURL } from "./client";
 import { PENDING_ACCOUNT_NUMBER } from "./storage";
-import { signWithWallet } from "./wallet";
 import { byId, ctaFor } from "./providers";
 import { useRunner } from "./useRunner";
 import { BigButton, CodeField, Feedback, Field, PanelForm, RedirectOverlay, Submit } from "./ui";
@@ -91,6 +90,9 @@ export function SolanaPanel() {
     <OneClick
       id="solana"
       action={async () => {
+        // Loaded on click rather than imported: wallet signing is the one
+        // place the card needs bs58, and most sign-ins never reach it.
+        const { signWithWallet } = await import("./wallet");
         // The server composes the message and remembers it, so the wallet
         // signs exactly the challenge we'll verify against.
         const { address, signature } = await signWithWallet(async (address) => {
@@ -113,27 +115,90 @@ export function SolanaPanel() {
  */
 export type PanelProps = { prefill?: string };
 
+/**
+ * True when a password sign-in came back asking for the second factor instead
+ * of a session — Better Auth's `twoFactorRedirect` marker.
+ */
+const needsSecondFactor = (result: unknown) =>
+  Boolean(
+    (result as { data?: { twoFactorRedirect?: boolean } | null } | null | undefined)?.data
+      ?.twoFactorRedirect,
+  );
+
+/** The TOTP challenge that follows a password sign-in with 2FA enabled. */
+function TwoFactorStep({ onBack }: { onBack: () => void }) {
+  const { pending, error, run } = useRunner();
+  const [code, setCode] = useState("");
+  const [backup, setBackup] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <Text color="gray">
+        {backup
+          ? "Enter one of your backup codes. Each works once."
+          : "Enter the six-digit code from your authenticator app."}
+      </Text>
+      <PanelForm
+        onSubmit={() =>
+          void run(() =>
+            backup
+              ? authClient.twoFactor.verifyBackupCode({ code })
+              : authClient.twoFactor.verifyTotp({ code }),
+          )
+        }
+      >
+        {backup ? (
+          <Field
+            label="Backup code"
+            required
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+        ) : (
+          <CodeField value={code} required onChange={(e) => setCode(e.target.value)} />
+        )}
+        <Submit pending={pending}>Verify and sign in</Submit>
+      </PanelForm>
+      <Feedback error={error} />
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setBackup(!backup);
+          setCode("");
+        }}
+      >
+        {backup ? "Use my authenticator instead" : "Use a backup code"}
+      </Button>
+      <Button variant="ghost" onClick={onBack}>
+        ← Back
+      </Button>
+    </div>
+  );
+}
+
 /** Email + password, with a create-account mode. */
 export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
   const { pending, error, notice, run } = useRunner();
   const [creating, setCreating] = useState(false);
+  const [totp, setTotp] = useState(false);
   const [email, setEmail] = useState(prefill);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+
+  if (totp) return <TwoFactorStep onBack={() => setTotp(false)} />;
 
   return (
     <div className="flex flex-col gap-3">
       <PanelForm
         onSubmit={() =>
-          void run(() =>
-            creating
-              ? authClient.signUp.email({
-                  email,
-                  password,
-                  name: name || email,
-                })
-              : authClient.signIn.email({ email, password }),
-          )
+          void run(async () => {
+            if (creating) {
+              return authClient.signUp.email({ email, password, name: name || email });
+            }
+            const result = await authClient.signIn.email({ email, password });
+            if (needsSecondFactor(result)) setTotp(true);
+            return result;
+          })
         }
       >
         {creating && (
@@ -175,24 +240,25 @@ export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
 export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
   const { pending, error, run } = useRunner();
   const [creating, setCreating] = useState(false);
+  const [totp, setTotp] = useState(false);
   const [username, setUsername] = useState(prefill);
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+
+  if (totp) return <TwoFactorStep onBack={() => setTotp(false)} />;
 
   return (
     <div className="flex flex-col gap-3">
       <PanelForm
         onSubmit={() =>
-          void run(() =>
-            creating
-              ? authClient.signUp.email({
-                  email,
-                  password,
-                  username,
-                  name: username,
-                })
-              : authClient.signIn.username({ username, password }),
-          )
+          void run(async () => {
+            if (creating) {
+              return authClient.signUp.email({ email, password, username, name: username });
+            }
+            const result = await authClient.signIn.username({ username, password });
+            if (needsSecondFactor(result)) setTotp(true);
+            return result;
+          })
         }
       >
         <Field
@@ -233,14 +299,21 @@ export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
 
 export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
   const { pending, error, run } = useRunner();
+  const [totp, setTotp] = useState(false);
   const [phone, setPhone] = useState(prefill);
   const [password, setPassword] = useState("");
+
+  if (totp) return <TwoFactorStep onBack={() => setTotp(false)} />;
 
   return (
     <div className="flex flex-col gap-3">
       <PanelForm
         onSubmit={() =>
-          void run(() => authClient.signIn.phoneNumber({ phoneNumber: phone, password }))
+          void run(async () => {
+            const result = await authClient.signIn.phoneNumber({ phoneNumber: phone, password });
+            if (needsSecondFactor(result)) setTotp(true);
+            return result;
+          })
         }
       >
         <Field

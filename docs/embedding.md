@@ -29,7 +29,7 @@ await fetch(`${AUSSIEAUTH_URL}/apps/register`, {
     slug: "portfolio", // stable id; survives a domain move
     name: "Portfolio",
     origins: ["https://portfolio.com", "http://localhost:5173"],
-    methods: ["google", "passkey"], // omit for all sixteen
+    methods: ["google", "passkey"], // omit for all fifteen
   }),
 });
 ```
@@ -85,6 +85,24 @@ related-origins list, so registering is also what lets a passkey created on
 
 Scheme origins are filtered out of that list — a browser can't act on them, and
 every entry counts against WebAuthn's five-site limit.
+
+Because browsers honour at most **five** distinct sites and silently ignore the
+rest, `/apps/register` answers with the slot usage:
+
+```json
+{
+  "slug": "portfolio",
+  "origins": 2,
+  "passkeyOrigins": {
+    "limit": 5,
+    "active": ["https://aussieauth.com", "https://portfolio.com"],
+    "dropped": []
+  }
+}
+```
+
+If your app's origin shows up in `dropped`, passkeys won't work from it —
+unregister something or consolidate onto fewer sites.
 
 ## Method allow-lists
 

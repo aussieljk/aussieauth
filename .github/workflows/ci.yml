@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # The app resolves @aussieljk/auth through its dist, so build it first.
+      - run: bun run build
+        working-directory: packages/react
+      # Component tests run in a real browser via @vitest/browser-playwright.
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run lint
+      - run: bun run test

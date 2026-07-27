@@ -1,7 +1,7 @@
 import { Typography } from "@aussieljk/frosted";
 import { createFileRoute } from "@tanstack/react-router";
 import { DocLink } from "@/docs/DocLink";
-import { callbackFor, SITE_URL } from "@/setup/deployment";
+import { callbackFor } from "@/setup/deployment";
 import { Copyable, Note, Step, VerifyStep, Wizard } from "@/setup/Wizard";
 import { Chrome } from "@/site/Chrome";
 
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/setup/google")({
       {
         name: "description",
         content:
-          "A guided walkthrough for adding Google sign-in and Google One Tap to an AussieAuth deployment: OAuth client, redirect URI, JavaScript origins and environment variables.",
+          "A guided walkthrough for adding Google sign-in to an AussieAuth deployment: OAuth client, redirect URI and environment variables.",
       },
     ],
   }),
@@ -71,21 +71,7 @@ function GoogleSetup() {
           />
         </Step>
 
-        <Step n={3} title="Add the JavaScript origins">
-          <Note>
-            Under <strong>Authorized JavaScript origins</strong>, add every origin that will show a
-            sign-in card. Only One Tap needs these, but adding them now saves a confusing failure
-            later.
-          </Note>
-          <Copyable label="This site" value={SITE_URL} />
-          <Copyable
-            label="Your development origin"
-            value="https://aussieauth.localhost"
-            hint="Whatever `bun dev` serves — add each app's origin too."
-          />
-        </Step>
-
-        <Step n={4} title="Set the credentials">
+        <Step n={3} title="Set the credentials">
           <Note>
             Both are required for the provider to register at all — <code>convex/auth.ts</code>{" "}
             checks the pair, so setting one leaves Google switched off.
@@ -97,21 +83,7 @@ function GoogleSetup() {
           />
         </Step>
 
-        <Step n={5} title="One Tap, if you want it">
-          <Note>
-            One Tap renders in your page rather than through a redirect, so the client id has to be
-            in the frontend bundle as well. It&rsquo;s read from the bundle deliberately: a late
-            answer from the server would shove the sign-in card&rsquo;s contents down the page a
-            beat after first paint.
-          </Note>
-          <Copyable
-            label=".env.local"
-            value='VITE_GOOGLE_CLIENT_ID="<the same client id>"'
-            hint="Leave it unset and the card simply hides the One Tap entry — that's a supported state, not a broken one."
-          />
-        </Step>
-
-        <VerifyStep n={6} method="google" label="Google">
+        <VerifyStep n={4} method="google" label="Google">
           <Text color="gray" className="block">
             Once this goes green the Google button on the sign-in card loses its &ldquo;needs
             setup&rdquo; badge.

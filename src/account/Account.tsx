@@ -40,6 +40,7 @@ export function Account() {
         <div className="flex flex-col gap-3">
           <Passkeys locked={demo} />
           <AgentKeys locked={demo} />
+          <Sessions locked={demo} />
         </div>
       </div>
     </div>
@@ -209,6 +210,94 @@ function Passkeys({ locked }: { locked: boolean }) {
               void run(() => authClient.passkey.deletePasskey({ id: passkey.id })).then(reload)
             }
           />
+        </div>
+      ))}
+      <Feedback error={error} />
+    </List>
+  );
+}
+
+type SessionRow = {
+  token: string;
+  userAgent?: string | null;
+  createdAt?: string | Date;
+  current: boolean;
+};
+
+/** One fetch for the list and one for which of them is *this* tab's session. */
+const listSessions = async () => {
+  const [{ data: sessions }, { data: here }] = await Promise.all([
+    authClient.listSessions(),
+    authClient.getSession(),
+  ]);
+  const currentToken = here?.session?.token;
+  return {
+    data: sessions?.map(
+      (s: Omit<SessionRow, "current">): SessionRow => ({ ...s, current: s.token === currentToken }),
+    ),
+  };
+};
+
+/** "Safari on macOS" from a User-Agent — just enough to tell devices apart. */
+const describeSession = (ua: string | null | undefined) => {
+  if (!ua) return "Unknown device";
+  const os = /iPhone|iPad/.test(ua)
+    ? "iOS"
+    : /Android/.test(ua)
+      ? "Android"
+      : /Mac OS X/.test(ua)
+        ? "macOS"
+        : /Windows/.test(ua)
+          ? "Windows"
+          : /Linux/.test(ua)
+            ? "Linux"
+            : null;
+  const browser = /Edg\//.test(ua)
+    ? "Edge"
+    : /Firefox\//.test(ua)
+      ? "Firefox"
+      : /Chrome\//.test(ua)
+        ? "Chrome"
+        : /Safari\//.test(ua)
+          ? "Safari"
+          : null;
+  if (browser && os) return `${browser} on ${os}`;
+  return browser ?? os ?? "Unknown device";
+};
+
+/**
+ * Every live session on this account, with the one control that matters: end
+ * the ones that aren't this device. The demo account is excluded server-side —
+ * revoking its sessions would sign out every other visitor.
+ */
+function Sessions({ locked }: { locked: boolean }) {
+  const { pending, error, run } = useRunner();
+  const { items: sessions, reload } = useRemoteList<SessionRow>(listSessions);
+  const busy = pending || locked;
+
+  return (
+    <List title="Sessions" hint="everywhere you're signed in" action={null}>
+      {sessions.map((session) => (
+        <div key={session.token} className="flex items-center justify-between gap-3">
+          <Text className="truncate">
+            {describeSession(session.userAgent)}{" "}
+            <Text color="gray">
+              {session.current
+                ? "· this device"
+                : session.createdAt
+                  ? `· ${new Date(session.createdAt).toLocaleDateString()}`
+                  : ""}
+            </Text>
+          </Text>
+          {!session.current && (
+            <Destructive
+              label={`End the ${describeSession(session.userAgent)} session`}
+              disabled={busy}
+              onClick={() =>
+                void run(() => authClient.revokeSession({ token: session.token })).then(reload)
+              }
+            />
+          )}
         </div>
       ))}
       <Feedback error={error} />

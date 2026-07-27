@@ -1,12 +1,5 @@
 import type { ComponentType } from "react";
-import {
-  AgentLogo,
-  AppleLogo,
-  GitHubLogo,
-  GoogleLogo,
-  GoogleOneTapLogo,
-  SolanaLogo,
-} from "./logos";
+import { AgentLogo, AppleLogo, GitHubLogo, GoogleLogo, SolanaLogo } from "./logos";
 
 /**
  * The display half of every sign-in method. The behaviour half lives in
@@ -33,13 +26,6 @@ export const PROVIDERS: Provider[] = [
     label: "Google",
     hint: "OAuth via your Google account",
     Logo: GoogleLogo,
-  },
-  {
-    id: "google-one-tap",
-    label: "Google One Tap",
-    hint: "Silent sign-in from an existing Google session",
-    Logo: GoogleOneTapLogo,
-    cta: "One Tap sign-in",
   },
   {
     id: "github",

@@ -44,9 +44,6 @@ export function GoogleLogo(props: LogoProps) {
   );
 }
 
-/** One Tap is the same brand — the difference is the flow, not the mark. */
-export const GoogleOneTapLogo = GoogleLogo;
-
 export function GitHubLogo(props: LogoProps) {
   return (
     <svg {...svgProps(props)} viewBox="0 0 1024 1024">

@@ -15,7 +15,7 @@ export const Route = createFileRoute("/sign-in")({
       {
         name: "description",
         content:
-          "Sign in to AussieAuth with any of sixteen methods: Google, Apple, GitHub, passkeys, Solana, magic links, one-time codes and more.",
+          "Sign in to AussieAuth with any of fifteen methods: Google, Apple, GitHub, passkeys, Solana, magic links, one-time codes and more.",
       },
     ],
   }),

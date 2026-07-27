@@ -10,6 +10,15 @@ test("passkeys and agent keys arrive from plain fetches", async () => {
   await expect.element(screen.getByRole("button", { name: "Create key 3" })).toBeVisible();
 });
 
+test("sessions are listed with this device marked and only the others revocable", async () => {
+  const screen = await renderFixture(fixtures.Loaded);
+  await expect.element(screen.getByText("this device")).toBeVisible();
+  // The current session can't be revoked from here; the iPhone one can.
+  await expect
+    .element(screen.getByRole("button", { name: /End the Safari on iOS session/ }))
+    .toBeVisible();
+});
+
 test("a fresh account number is shown once, grouped for writing down", async () => {
   const screen = await renderFixture(fixtures["Fresh account number"]);
   const heading = screen.getByRole("heading", { name: /save your account number/i });

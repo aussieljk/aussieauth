@@ -2,10 +2,10 @@
   "name": "aussieauth",
   "version": "0.0.0",
   "private": true,
-  "type": "module",
   "workspaces": [
     "packages/*"
   ],
+  "type": "module",
   "scripts": {
     "dev": "portless run vite",
     "dev:backend": "convex dev",

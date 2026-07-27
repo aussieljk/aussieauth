@@ -1,13 +1,13 @@
 ---
 title: What AussieAuth is
-description: A self-hosted auth server on Convex and Better Auth, with sixteen sign-in methods and no consent screen of its own.
+description: A self-hosted auth server on Convex and Better Auth, with fifteen sign-in methods and no consent screen of its own.
 order: 1
 ---
 
 # What AussieAuth is
 
 AussieAuth is a self-hosted authentication server built on [Convex](https://convex.dev)
-and [Better Auth](https://better-auth.com). It offers sixteen sign-in methods and,
+and [Better Auth](https://better-auth.com). It offers fifteen sign-in methods and,
 unlike a hosted auth provider, it has no consent screen of its own.
 
 ## Why there's no second consent screen
@@ -21,12 +21,11 @@ approvals — the identity provider's, then the auth provider's, on behalf of th
 app you were actually trying to use. AussieAuth removes the middle one by never
 being a page you visit.
 
-## The sixteen methods
+## The fifteen methods
 
 | Method              | What it is                                                 |
 | ------------------- | ---------------------------------------------------------- |
 | Google              | OAuth via a Google account                                 |
-| Google One Tap      | Silent sign-in from an existing Google session             |
 | GitHub              | OAuth via a GitHub account                                 |
 | Apple               | Sign in with Apple, including Hide My Email                |
 | Solana Wallet       | Sign a message with Phantom, Solflare or Backpack          |

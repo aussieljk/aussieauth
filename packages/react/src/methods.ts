@@ -21,7 +21,6 @@ import {
 /** Provider id → the panel that drives it. Mirrors `PROVIDERS` in providers.ts. */
 export const PANELS: Record<string, ComponentType<PanelProps>> = {
   google: GooglePanel,
-  // "google-one-tap" retired from the card — see auth/oneTap.disabled.tsx.
   github: GitHubPanel,
   apple: ApplePanel,
   solana: SolanaPanel,

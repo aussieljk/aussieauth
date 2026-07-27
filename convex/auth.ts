@@ -9,8 +9,8 @@ import {
   emailOTP,
   lastLoginMethod,
   magicLink,
-  oneTap,
   phoneNumber,
+  twoFactor,
   username,
 } from "better-auth/plugins";
 import { components } from "./_generated/api";
@@ -76,12 +76,15 @@ const staticOrigins = [
  * act on web origins, and every entry costs against the five-label limit below
  * — so letting them through would push real origins off the end.
  */
-export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
+export const relatedOriginUsage = async (ctx: GenericCtx<DataModel>) => {
   const all = [siteUrl, ...envOrigins(), ...(await registeredOrigins(ctx))]
     .filter((o) => /^https?:\/\//.test(o))
     .filter((o, i, xs) => xs.indexOf(o) === i);
+  return capToRelatedOriginLimit(all);
+};
 
-  const { kept, dropped } = capToRelatedOriginLimit(all);
+export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
+  const { kept, dropped } = await relatedOriginUsage(ctx);
   if (dropped.length) {
     console.warn(
       `Related origins: dropped ${dropped.length} past the ${RELATED_ORIGIN_LABEL_LIMIT}-site WebAuthn limit — ${dropped.join(", ")}`,
@@ -335,7 +338,9 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
           }),
         },
       }),
-      oneTap(),
+      // A second factor rather than a sixteenth method: TOTP codes from an
+      // authenticator app, offered after a password sign-in when enabled.
+      twoFactor({ issuer: "AussieAuth" }),
 
       // Wallet.
       solana({ domain: hostname(siteUrl) }),

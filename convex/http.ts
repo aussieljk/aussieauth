@@ -1,9 +1,9 @@
 import { httpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
-import { authComponent, createAuth, relatedOrigins } from "./auth";
+import { authComponent, createAuth, relatedOrigins, relatedOriginUsage } from "./auth";
 import { env, httpAction } from "./_generated/server";
-import { invalidateApps } from "./lib/apps";
+import { invalidateApps, RELATED_ORIGIN_LABEL_LIMIT } from "./lib/apps";
 import { parseRegistration, secretMatches } from "./lib/registration";
 
 const http = httpRouter();
@@ -133,7 +133,16 @@ http.route({
       const result = await ctx.runMutation(internal.apps.register, parsed.app);
       // So this isolate stops serving the pre-registration origin list.
       invalidateApps();
-      return Response.json(result);
+      // WebAuthn honours related origins on at most five distinct sites, and a
+      // browser ignores the overflow silently — passkeys just don't work on
+      // whichever app landed past the cap. Answering with the slot usage puts
+      // that in the registering app's logs instead of leaving it to be
+      // discovered as an unexplainable passkey failure.
+      const { kept, dropped } = await relatedOriginUsage(ctx);
+      return Response.json({
+        ...result,
+        passkeyOrigins: { limit: RELATED_ORIGIN_LABEL_LIMIT, active: kept, dropped },
+      });
     } catch (e) {
       // The one expected failure is an origin another app already owns, which
       // is the caller's problem to fix rather than a server fault. Anything

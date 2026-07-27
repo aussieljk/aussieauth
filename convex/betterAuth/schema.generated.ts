@@ -25,6 +25,7 @@ export const tables = {
     displayUsername: v.optional(v.union(v.null(), v.string())),
     phoneNumber: v.optional(v.union(v.null(), v.string())),
     phoneNumberVerified: v.optional(v.union(v.null(), v.boolean())),
+    twoFactorEnabled: v.optional(v.union(v.null(), v.boolean())),
     isAnonymous: v.optional(v.union(v.null(), v.boolean())),
     lastLoginMethod: v.optional(v.union(v.null(), v.string())),
     userId: v.optional(v.union(v.null(), v.string())),
@@ -86,6 +87,15 @@ export const tables = {
     transports: v.optional(v.union(v.null(), v.string())),
     createdAt: v.optional(v.union(v.null(), v.number())),
     aaguid: v.optional(v.union(v.null(), v.string())),
+  })
+    .index("userId", ["userId"]),
+  twoFactor: defineTable({
+    secret: v.string(),
+    backupCodes: v.string(),
+    userId: v.string(),
+    verified: v.optional(v.union(v.null(), v.boolean())),
+    failedVerificationCount: v.optional(v.union(v.null(), v.number())),
+    lockedUntil: v.optional(v.union(v.null(), v.number())),
   })
     .index("userId", ["userId"]),
   solanaWallet: defineTable({

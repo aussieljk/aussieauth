@@ -1,6 +1,6 @@
 ---
 title: Method notes
-description: What's non-obvious about each of AussieAuth's sixteen sign-in methods — passkeys, Solana, account numbers, the demo account, agent keys and the rest.
+description: What's non-obvious about each of AussieAuth's fifteen sign-in methods — passkeys, Solana, account numbers, the demo account, agent keys and the rest.
 order: 9
 ---
 
@@ -77,6 +77,25 @@ API keys, not sessions. Mint one on the account page; the agent sends it as an
 
 Keys are numbered, never named. The next key is one past the highest number in
 use, so revoking key 2 doesn't hand the number out twice.
+
+## Two-factor (TOTP)
+
+A second factor rather than a sixteenth method: authenticator-app codes offered
+after a password sign-in when the account has switched them on, from the account
+page. Enabling and disabling both require the password — that's Better Auth's
+rule, so an account without a password can't enrol.
+
+Enrolment hands out backup codes once. Each works once, from the "use a backup
+code" link on the challenge screen.
+
+The demo account can't enrol: `/two-factor/` is on the deny-list, for the same
+reason it can't set a password.
+
+## Sessions
+
+The account page lists every live session with a coarse device label from the
+User-Agent, and can end any session except the current one. "Sign out
+everywhere" on the account header is the bulk version.
 
 ## Apple
 

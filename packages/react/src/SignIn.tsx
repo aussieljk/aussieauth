@@ -61,12 +61,7 @@ export function SignIn({
 
   const offered = methods ? PROVIDERS.filter((p) => methods.includes(p.id)) : PROVIDERS;
 
-  // One Tap is retired from the card (it opens a Google popup) but stays a
-  // listed method — so it's filtered out of "more ways" here rather than shown.
-  // Its UI lives in auth/oneTap.disabled.tsx for when it's switched back on.
-  const rest: Provider[] = offered.filter(
-    (p) => p.id !== primary && !featured.includes(p.id) && p.id !== "google-one-tap",
-  );
+  const rest: Provider[] = offered.filter((p) => p.id !== primary && !featured.includes(p.id));
 
   const open = (id: string, withPrefill = "") => {
     setPrefill(withPrefill);

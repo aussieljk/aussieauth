@@ -61,6 +61,28 @@ export const handlers = {
       ]),
     ),
     http.get(auth("solana/list"), () => HttpResponse.json([])),
+    // The sessions card cross-references the list against the current session's
+    // token to find "this device". `get-session` answers with the session and
+    // user side by side — not the flat shape the sign-in mocks use.
+    http.get(auth("get-session"), () =>
+      HttpResponse.json({ session: { token: session.token }, user: session.user }),
+    ),
+    http.get(auth("list-sessions"), () =>
+      HttpResponse.json([
+        {
+          token: "fixture-session",
+          userAgent:
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
+          createdAt: "2026-07-01T00:00:00.000Z",
+        },
+        {
+          token: "other-session",
+          userAgent:
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+          createdAt: "2026-07-20T00:00:00.000Z",
+        },
+      ]),
+    ),
   ],
   /** The sign-in card's mount-time probe finds the stored session still good. */
   sessionAlive: [http.get(auth("get-session"), () => HttpResponse.json(session))],

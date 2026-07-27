@@ -3,7 +3,8 @@ export * from "./client";
 // Session persistence + the account chooser's non-React helpers (localSignOut).
 export * from "./storage";
 export * from "./remembered";
-export * from "./wallet";
+// Wallet helpers live behind `@aussieljk/auth/solana`, so apps that never show
+// the Solana button don't carry bs58 in their main bundle.
 // Hooks.
 export * from "./useRunner";
 export * from "./useRemoteList";

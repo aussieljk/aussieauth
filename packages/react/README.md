@@ -43,26 +43,25 @@ correctly without any CSS wiring on your side.
 
 `createAussieAuthClient(options)`
 
-| Option | Type | Notes |
-| --- | --- | --- |
-| `baseURL` | `string` | The deployment's `.convex.site` origin. Required. |
+| Option        | Type                       | Notes                                                                     |
+| ------------- | -------------------------- | ------------------------------------------------------------------------- |
+| `baseURL`     | `string`                   | The deployment's `.convex.site` origin. Required.                         |
 | `callbackURL` | `string \| (() => string)` | Where a provider returns the user. Defaults to the current origin's root. |
-| `googleClientId` | `string` | Only needed to prompt Google One Tap. |
 
 It returns the configured Better Auth client — pass it straight to
 `ConvexBetterAuthProvider`.
 
 `<AussieAuthSignIn>`
 
-| Prop | Type | Notes |
-| --- | --- | --- |
-| `appName` | `string` | Drives the default heading. |
-| `methods` | `string[]` | Method ids to offer, in order. Defaults to all. |
-| `featured` | `string[]` | Method ids shown as buttons on the front of the card. |
-| `primary` | `string` | The method whose form sits inline under the buttons. |
-| `title` / `subtitle` | `string` | Override the default copy. |
-| `logo` / `footer` | `ReactNode` | A mark above the heading; a line at the foot. |
-| `appearance` / `accentColor` / `grayColor` | theme tokens | Basic branding. |
+| Prop                                       | Type         | Notes                                                 |
+| ------------------------------------------ | ------------ | ----------------------------------------------------- |
+| `appName`                                  | `string`     | Drives the default heading.                           |
+| `methods`                                  | `string[]`   | Method ids to offer, in order. Defaults to all.       |
+| `featured`                                 | `string[]`   | Method ids shown as buttons on the front of the card. |
+| `primary`                                  | `string`     | The method whose form sits inline under the buttons.  |
+| `title` / `subtitle`                       | `string`     | Override the default copy.                            |
+| `logo` / `footer`                          | `ReactNode`  | A mark above the heading; a line at the foot.         |
+| `appearance` / `accentColor` / `grayColor` | theme tokens | Basic branding.                                       |
 
 ## Going lower-level
 

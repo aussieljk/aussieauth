@@ -10,6 +10,5 @@ import { createAussieAuthClient } from "@aussieljk/auth";
  */
 export const authClient = createAussieAuthClient({
   baseURL: import.meta.env.VITE_CONVEX_SITE_URL ?? "",
-  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID,
   callbackURL: () => `${window.location.origin}/account`,
 });

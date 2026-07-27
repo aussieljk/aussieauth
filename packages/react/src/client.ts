@@ -6,8 +6,8 @@ import {
   anonymousClient,
   emailOTPClient,
   magicLinkClient,
-  oneTapClient,
   phoneNumberClient,
+  twoFactorClient,
   usernameClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
@@ -74,8 +74,6 @@ const statusClient = () =>
 export type AussieAuthClientOptions = {
   /** The AussieAuth deployment's origin — its `.convex.site` URL. */
   baseURL: string;
-  /** Google client id. Only needed to prompt One Tap; omit to leave it off. */
-  googleClientId?: string;
   /**
    * Where a provider drops the user once sign-in is done. A string, or a
    * function evaluated per call (so it can read `window.location`). Defaults to
@@ -102,13 +100,7 @@ const build = (options: AussieAuthClientOptions) =>
       linkingClient(),
       statusClient(),
       apiKeyClient(),
-      // Registered unconditionally so the client's type stays stable; the card
-      // no longer surfaces One Tap (see oneTap.disabled.tsx) but the plugin and
-      // its `authClient.oneTap()` method stay available.
-      oneTapClient({
-        clientId: options.googleClientId ?? "",
-        promptOptions: { maxAttempts: 1 },
-      }),
+      twoFactorClient(),
       crossDomainClient(),
       convexClient(),
     ],

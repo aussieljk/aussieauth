@@ -17,7 +17,7 @@ const FAQ = [
   },
   {
     q: "How many sign-in methods does it support?",
-    a: "Sixteen: Google, Google One Tap, GitHub, Apple, Solana wallet, passkeys, email/password, phone/password, username/password, magic links, email OTP, SMS codes, a shared demo account, anonymous sessions, Mullvad-style account numbers, and API keys for agents.",
+    a: "Fifteen: Google, GitHub, Apple, Solana wallet, passkeys, email/password, phone/password, username/password, magic links, email OTP, SMS codes, a shared demo account, anonymous sessions, Mullvad-style account numbers, and API keys for agents.",
   },
   {
     q: "Can one deployment serve several apps?",
@@ -28,11 +28,11 @@ const FAQ = [
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "AussieAuth — one auth server, sixteen ways in" },
+      { title: "AussieAuth — one auth server, fifteen ways in" },
       {
         name: "description",
         content:
-          "A self-hosted auth server on Convex and Better Auth. Sixteen sign-in methods, and no consent screen of its own — your users only ever approve the identity provider.",
+          "A self-hosted auth server on Convex and Better Auth. Fifteen sign-in methods, and no consent screen of its own — your users only ever approve the identity provider.",
       },
     ],
     scripts: [
@@ -49,7 +49,7 @@ export const Route = createFileRoute("/")({
             operatingSystem: "Any",
             url: "https://aussieauth.com",
             description:
-              "A self-hosted authentication server on Convex and Better Auth with sixteen sign-in methods and no consent screen of its own.",
+              "A self-hosted authentication server on Convex and Better Auth with fifteen sign-in methods and no consent screen of its own.",
             offers: { "@type": "Offer", price: "0", priceCurrency: "AUD" },
           },
           {
@@ -72,9 +72,9 @@ function Landing() {
   return (
     <Chrome>
       <section className="flex flex-col items-start gap-5 py-10">
-        <Badge color="green">Sixteen methods, one deployment</Badge>
+        <Badge color="green">Fifteen methods, one deployment</Badge>
         <Heading className="max-w-3xl text-balance text-4xl leading-tight sm:text-5xl">
-          One auth server. Sixteen ways in. No consent screen of its own.
+          One auth server. Fifteen ways in. No consent screen of its own.
         </Heading>
         <Text color="gray" className="max-w-2xl text-lg">
           AussieAuth is a self-hosted auth server on Convex and Better Auth. Your app talks to it

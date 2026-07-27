@@ -7,12 +7,12 @@ import {
   CodeInput,
   Destructive,
   Feedback,
-  signWithWallet,
   useRemoteList,
   useRunner,
 } from "@aussieljk/auth";
+import { signWithWallet } from "@aussieljk/auth/solana";
 
-const { Heading, Text } = Typography;
+const { Code, Heading, Text } = Typography;
 
 /**
  * Everything that can get you into *this* account, one row each. Adding a
@@ -40,6 +40,7 @@ export function SignInMethods({
     email: string;
     username?: string | null;
     phoneNumber?: string | null;
+    twoFactorEnabled?: boolean | null;
   } | null;
   /** The shared demo account: the server refuses all of these, so grey them. */
   locked?: boolean;
@@ -73,6 +74,13 @@ export function SignInMethods({
           locked={locked}
           open={open === "phone"}
           onToggle={() => toggle("phone")}
+        />
+        <TwoFactor
+          enabled={Boolean(user?.twoFactorEnabled)}
+          hasPassword={hasPassword}
+          locked={locked}
+          open={open === "two-factor"}
+          onToggle={() => toggle("two-factor")}
         />
         <Wallets locked={locked} />
       </div>
@@ -397,6 +405,137 @@ function Phone({
             </Button>
           </InlineForm>
         ))}
+      <Feedback error={error} notice={notice} />
+    </Row>
+  );
+}
+
+/** The authenticator secret, pulled back out of the otpauth:// URI for typing by hand. */
+const totpSecret = (uri: string) => {
+  try {
+    return new URL(uri).searchParams.get("secret") ?? uri;
+  } catch {
+    return uri;
+  }
+};
+
+/**
+ * TOTP as a second factor on password sign-ins. Enabling asks for the password
+ * (Better Auth requires it), hands back the authenticator secret and backup
+ * codes, and only switches on once a first code verifies.
+ */
+function TwoFactor({
+  enabled,
+  hasPassword,
+  locked,
+  open,
+  onToggle,
+}: {
+  enabled: boolean;
+  hasPassword: boolean;
+  locked: boolean;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const { pending, error, notice, run } = useRunner();
+  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
+  const [enrolment, setEnrolment] = useState<{ totpURI: string; backupCodes: string[] } | null>(
+    null,
+  );
+
+  const close = () => {
+    setPassword("");
+    setCode("");
+    setEnrolment(null);
+    onToggle();
+  };
+
+  return (
+    <Row
+      label="Two-factor (TOTP)"
+      status={
+        enabled ? (
+          <Badge color="green">on</Badge>
+        ) : hasPassword ? undefined : (
+          <Text color="gray">needs a password</Text>
+        )
+      }
+      action={
+        <Button variant="surface" disabled={locked || !hasPassword} onClick={close}>
+          {open ? "Cancel" : enabled ? "Disable" : "Enable"}
+        </Button>
+      }
+    >
+      {open && !enrolment && (
+        <InlineForm
+          onSubmit={() =>
+            void run(
+              async () => {
+                if (enabled) {
+                  const result = await authClient.twoFactor.disable({ password });
+                  if (!result.error) close();
+                  return result;
+                }
+                const { data, error } = await authClient.twoFactor.enable({ password });
+                if (error) return { error };
+                setEnrolment(data);
+              },
+              enabled ? "Two-factor disabled." : undefined,
+            )
+          }
+        >
+          <Input.Control
+            className="flex-1"
+            aria-label="Your password"
+            type="password"
+            required
+            value={password}
+            autoComplete="current-password"
+            placeholder="Your password"
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Button type="submit" variant="classic" disabled={pending || locked}>
+            {enabled ? "Disable" : "Continue"}
+          </Button>
+        </InlineForm>
+      )}
+      {open && enrolment && (
+        <div className="flex flex-col gap-2">
+          <Text color="gray">
+            Add the secret to your authenticator —{" "}
+            <a href={enrolment.totpURI} className="underline">
+              open it directly
+            </a>{" "}
+            or type it in — then confirm a code to switch it on.
+          </Text>
+          <Code className="break-all">{totpSecret(enrolment.totpURI)}</Code>
+          <Text color="gray">
+            Backup codes, in case you lose the authenticator. Each works once:
+          </Text>
+          <Code className="break-all">{enrolment.backupCodes.join(" ")}</Code>
+          <InlineForm
+            onSubmit={() =>
+              void run(async () => {
+                const result = await authClient.twoFactor.verifyTotp({ code });
+                if (!result.error) close();
+                return result;
+              }, "Two-factor enabled.")
+            }
+          >
+            <CodeInput
+              className="flex-1"
+              aria-label="Authenticator code"
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+            />
+            <Button type="submit" variant="classic" disabled={pending || locked}>
+              Confirm
+            </Button>
+          </InlineForm>
+        </div>
+      )}
       <Feedback error={error} notice={notice} />
     </Row>
   );

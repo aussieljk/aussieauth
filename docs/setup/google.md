@@ -1,6 +1,6 @@
 ---
 title: Setting up Google
-description: Register a Google OAuth client, set the redirect URI, and enable Google sign-in and One Tap on an AussieAuth deployment.
+description: Register a Google OAuth client, set the redirect URI, and enable Google sign-in on an AussieAuth deployment.
 order: 3
 ---
 
@@ -32,14 +32,7 @@ Apple, Google doesn't verify the domain, so the callback can go straight to the
 deployment and never touch your site. Getting this wrong is what produces
 `redirect_uri_mismatch`.
 
-## 3. Add the JavaScript origins
-
-Under **Authorized JavaScript origins**, add every origin that will show a
-sign-in card — your production domain and your development origin. This is only
-needed for One Tap, which runs in the page rather than through a redirect, but
-adding it now saves a confusing failure later.
-
-## 4. Set the credentials
+## 3. Set the credentials
 
 ```sh
 bunx convex env set GOOGLE_CLIENT_ID "<client id>"
@@ -49,23 +42,7 @@ bunx convex env set GOOGLE_CLIENT_SECRET "<client secret>"
 Both must be present for the provider to register at all —
 `convex/auth.ts` checks the pair, so setting one leaves Google switched off.
 
-## 5. One Tap, if you want it
-
-One Tap needs the client id in the frontend bundle as well, because the prompt is
-rendered by Google's script in your page:
-
-```sh
-# .env.local
-VITE_GOOGLE_CLIENT_ID="<the same client id>"
-```
-
-It's read from the bundle rather than from the server deliberately: a late answer
-would shove the sign-in card's contents down the page a beat after first paint.
-
-The sign-in card hides the One Tap entry when there's no client id to prompt with,
-so leaving it unset is a supported state rather than a broken one.
-
-## 6. Check it
+## 4. Check it
 
 Reload the sign-in card. The Google button loses its "needs setup" badge once the
 deployment can see both variables — that badge is driven by a live probe against
@@ -85,8 +62,7 @@ counts as a mismatch.
 
 **Can one client id serve several apps?**
 Yes. Every app that embeds AussieAuth talks to the same deployment, so they share
-this one OAuth client. Add each app's origin under Authorized JavaScript origins
-if it uses One Tap.
+this one OAuth client.
 
 **Does the user see a consent screen for my app as well as for Google?**
 No. Google's is the only one. The app talks to the deployment from its own

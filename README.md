@@ -1,6 +1,6 @@
 # AussieAuth
 
-A self-hosted auth server on Convex + Better Auth, with sixteen sign-in methods
+A self-hosted auth server on Convex + Better Auth, with fifteen sign-in methods
 and no consent screen of its own.
 
 The point: an app that uses AussieAuth talks to this Convex deployment straight
@@ -36,13 +36,13 @@ truth — the site pages, `/llms.txt`, `/llms-full.txt` and the raw markdown at
 |                                                  |                                                                |
 | ------------------------------------------------ | -------------------------------------------------------------- |
 | [Quickstart](./docs/quickstart.md)               | Environment variables, third-party credentials, tests          |
-| [Setting up Google](./docs/setup/google.md)      | OAuth client, redirect URI, One Tap                            |
+| [Setting up Google](./docs/setup/google.md)      | OAuth client, redirect URI                                     |
 | [Setting up Apple](./docs/setup/apple.md)        | Services ID, signing key, domain verification                  |
 | [Using it from another app](./docs/embedding.md) | Registering an app, trusting its origins, dropping in the card |
 | [Native apps](./docs/native.md)                  | Expo, scheme origins, prefix matching                          |
 | [Deploying](./docs/deploying.md)                 | Vercel, and the four paths that must be proxied                |
 | [Architecture](./docs/architecture.md)           | What's in each directory, and why                              |
-| [Method notes](./docs/methods.md)                | What's non-obvious about each of the sixteen                   |
+| [Method notes](./docs/methods.md)                | What's non-obvious about each of the fifteen                   |
 
 ## Commands
 

@@ -9,7 +9,7 @@ import { ErrorBoundary } from "../ErrorBoundary";
 
 const SITE = "https://aussieauth.com";
 const DESCRIPTION =
-  "A self-hosted auth server with sixteen sign-in methods and no consent screen of its own.";
+  "A self-hosted auth server with fifteen sign-in methods and no consent screen of its own.";
 
 /**
  * Every auth call in the app goes to this origin. Naming it here lets the
@@ -26,7 +26,7 @@ export const Route = createRootRoute({
       // Paints form controls and the pre-hydration canvas dark, so there's no
       // white flash before React mounts.
       { name: "color-scheme", content: "dark" },
-      { title: "AussieAuth — one auth server, sixteen ways in" },
+      { title: "AussieAuth — one auth server, fifteen ways in" },
       { name: "description", content: DESCRIPTION },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "AussieAuth" },
