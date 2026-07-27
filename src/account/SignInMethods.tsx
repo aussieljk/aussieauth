@@ -438,17 +438,26 @@ function TwoFactor({
   onToggle: () => void;
 }) {
   const { pending, error, notice, run } = useRunner();
+  // What the password being asked for is *for* — enabling, disabling, or
+  // minting a fresh set of backup codes (which invalidates the old set).
+  const [purpose, setPurpose] = useState<"enable" | "disable" | "codes">("enable");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [enrolment, setEnrolment] = useState<{ totpURI: string; backupCodes: string[] } | null>(
     null,
   );
+  const [freshCodes, setFreshCodes] = useState<string[] | null>(null);
 
+  const begin = (next: typeof purpose) => {
+    setPurpose(next);
+    if (!open) onToggle();
+  };
   const close = () => {
     setPassword("");
     setCode("");
     setEnrolment(null);
-    onToggle();
+    setFreshCodes(null);
+    if (open) onToggle();
   };
 
   return (
@@ -462,26 +471,62 @@ function TwoFactor({
         )
       }
       action={
-        <Button variant="surface" disabled={locked || !hasPassword} onClick={close}>
-          {open ? "Cancel" : enabled ? "Disable" : "Enable"}
-        </Button>
+        open ? (
+          <Button variant="surface" onClick={close}>
+            Cancel
+          </Button>
+        ) : enabled ? (
+          <div className="flex gap-2">
+            <Button variant="surface" disabled={locked} onClick={() => begin("codes")}>
+              New codes
+            </Button>
+            <Button variant="surface" disabled={locked} onClick={() => begin("disable")}>
+              Disable
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="surface"
+            disabled={locked || !hasPassword}
+            onClick={() => begin("enable")}
+          >
+            Enable
+          </Button>
+        )
       }
     >
-      {open && !enrolment && (
+      {open && freshCodes && (
+        <div className="flex flex-col gap-2">
+          <Text color="gray">Your new backup codes. The old set no longer works:</Text>
+          <Code className="break-all">{freshCodes.join(" ")}</Code>
+          <Button variant="classic" className="self-start" onClick={close}>
+            I&rsquo;ve saved them
+          </Button>
+        </div>
+      )}
+      {open && !enrolment && !freshCodes && (
         <InlineForm
           onSubmit={() =>
             void run(
               async () => {
-                if (enabled) {
+                if (purpose === "disable") {
                   const result = await authClient.twoFactor.disable({ password });
                   if (!result.error) close();
                   return result;
+                }
+                if (purpose === "codes") {
+                  const { data, error } = await authClient.twoFactor.generateBackupCodes({
+                    password,
+                  });
+                  if (error) return { error };
+                  setFreshCodes(data.backupCodes);
+                  return;
                 }
                 const { data, error } = await authClient.twoFactor.enable({ password });
                 if (error) return { error };
                 setEnrolment(data);
               },
-              enabled ? "Two-factor disabled." : undefined,
+              purpose === "disable" ? "Two-factor disabled." : undefined,
             )
           }
         >
@@ -496,7 +541,7 @@ function TwoFactor({
             onChange={(e) => setPassword(e.target.value)}
           />
           <Button type="submit" variant="classic" disabled={pending || locked}>
-            {enabled ? "Disable" : "Continue"}
+            {purpose === "disable" ? "Disable" : "Continue"}
           </Button>
         </InlineForm>
       )}

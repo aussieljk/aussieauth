@@ -41,10 +41,11 @@ export default defineConfig({
             sitemap: { enabled: false },
             pages: [
               // Prerendered so a hard refresh works, but there is nothing on
-              // either that a search engine should hold: one is a form, the
-              // other is behind a session.
+              // any of them that a search engine should hold: one is a form,
+              // the others are behind a session.
               { path: "/sign-in", sitemap: { exclude: true } },
               { path: "/account", sitemap: { exclude: true } },
+              { path: "/admin", sitemap: { exclude: true } },
             ],
           }),
         ]),
@@ -80,6 +81,23 @@ export default defineConfig({
           },
         },
       },
+      // Whole flows against a *running* site and a *real* deployment — see
+      // e2e/flows.test.ts for what it needs. Registered only when E2E is set,
+      // so `bun run test` and CI never trip over a server that isn't there.
+      ...(process.env.E2E
+        ? [
+            {
+              extends: true as const,
+              test: {
+                name: "e2e",
+                environment: "node",
+                include: ["e2e/**/*.test.ts"],
+                testTimeout: 120_000,
+                hookTimeout: 60_000,
+              },
+            },
+          ]
+        : []),
     ],
   },
 });

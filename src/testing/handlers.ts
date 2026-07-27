@@ -27,6 +27,11 @@ export const handlers = {
     http.post(auth("sign-up/email"), () => HttpResponse.json(session)),
   ],
   signInFailure: [http.post(auth("sign-in/email"), () => failure("Invalid email or password"))],
+  /** The password was right, but the account wants its second factor. */
+  signInTotp: [
+    http.post(auth("sign-in/email"), () => HttpResponse.json({ twoFactorRedirect: true })),
+    http.post(auth("two-factor/verify-totp"), () => HttpResponse.json(session)),
+  ],
   magicLink: [http.post(auth("sign-in/magic-link"), () => HttpResponse.json({ status: true }))],
   emailOtp: [
     http.post(auth("email-otp/send-verification-otp"), () => HttpResponse.json({ success: true })),

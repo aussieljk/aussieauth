@@ -64,6 +64,9 @@ const app = defineApp({
     // Bearer secret for /apps/register. Unset means registration is closed,
     // which those routes answer with a 503 rather than accepting anything.
     AUSSIEAUTH_SECRET: v.optional(v.string()),
+
+    // Whose signed-in email may read `/admin`. Unset means nobody's.
+    ADMIN_EMAIL: v.optional(v.string()),
   },
 });
 

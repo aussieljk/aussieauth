@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { Badge, Button, Card, Typography } from "@aussieljk/frosted";
+import { Badge, Button, Card, Input, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import type { FunctionReturnType } from "convex/server";
 import { type ReactNode, useState } from "react";
@@ -9,6 +9,7 @@ import {
   AUTH_COOKIE,
   authClient,
   Destructive,
+  dropRemembered,
   Feedback,
   forgetRemembered,
   localSignOut,
@@ -43,7 +44,107 @@ export function Account() {
           <Sessions locked={demo} />
         </div>
       </div>
+      <DangerZone user={user} locked={demo} />
     </div>
+  );
+}
+
+/**
+ * Take your data, or take your leave. Export assembles everything the existing
+ * endpoints already hand this user — no new server surface — and deletion is
+ * Better Auth's `/delete-user`, which the demo deny-list already refuses.
+ */
+function DangerZone({ user, locked }: { user: User | undefined; locked: boolean }) {
+  const { pending, error, notice, run } = useRunner();
+  const [confirming, setConfirming] = useState(false);
+  const [password, setPassword] = useState("");
+
+  const exportData = () =>
+    run(async () => {
+      const [accounts, sessions, passkeys, keys, wallets] = await Promise.all([
+        authClient.listAccounts(),
+        authClient.listSessions(),
+        authClient.passkey.listUserPasskeys(),
+        authClient.apiKey.list(),
+        authClient.solana.list(),
+      ]);
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        user,
+        accounts: accounts.data,
+        sessions: sessions.data,
+        passkeys: passkeys.data,
+        apiKeys: keys.data,
+        wallets: wallets.data,
+      };
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }),
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "aussieauth-export.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }, "Exported.");
+
+  const deleteAccount = () =>
+    run(async () => {
+      const result = await authClient.deleteUser(password ? { password } : {});
+      if (result.error) return result;
+      if (user?._id) dropRemembered(user._id);
+      localSignOut();
+      window.location.assign("/");
+    });
+
+  return (
+    <Card>
+      <div className="flex flex-col gap-2">
+        <div className="flex min-h-7 flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-baseline gap-2">
+            <Heading>Your data</Heading>
+            <Text color="gray" className="truncate">
+              everything this server holds about you
+            </Text>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="surface" disabled={pending} onClick={() => void exportData()}>
+              Export JSON
+            </Button>
+            <Button
+              variant="soft"
+              color="danger"
+              disabled={pending || locked}
+              onClick={() => setConfirming(!confirming)}
+            >
+              {confirming ? "Keep my account" : "Delete account"}
+            </Button>
+          </div>
+        </div>
+        {confirming && (
+          <form
+            className="flex items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void deleteAccount();
+            }}
+          >
+            <Input.Control
+              className="flex-1"
+              aria-label="Your password"
+              type="password"
+              value={password}
+              autoComplete="current-password"
+              placeholder="Password (leave empty if you never set one)"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button type="submit" variant="classic" color="danger" disabled={pending || locked}>
+              Delete forever
+            </Button>
+          </form>
+        )}
+        <Feedback error={error} notice={notice} />
+      </div>
+    </Card>
   );
 }
 

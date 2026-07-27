@@ -86,7 +86,9 @@ page. Enabling and disabling both require the password — that's Better Auth's
 rule, so an account without a password can't enrol.
 
 Enrolment hands out backup codes once. Each works once, from the "use a backup
-code" link on the challenge screen.
+code" link on the challenge screen; a fresh set can be minted from the account
+page (which invalidates the old one). The challenge offers "don't ask again on
+this device for 30 days", which is Better Auth's trusted-device cookie.
 
 The demo account can't enrol: `/two-factor/` is on the deny-list, for the same
 reason it can't set a password.
@@ -96,6 +98,13 @@ reason it can't set a password.
 The account page lists every live session with a coarse device label from the
 User-Agent, and can end any session except the current one. "Sign out
 everywhere" on the account header is the bulk version.
+
+## Your data
+
+The account page's footer card exports everything the server holds about you as
+JSON — assembled client-side from the same endpoints the page already uses —
+and can delete the account outright, password-confirmed. The demo account is
+refused both ways.
 
 ## Apple
 

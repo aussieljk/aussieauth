@@ -34,6 +34,7 @@ const replay = (account: RememberedAccount): (() => Promise<unknown>) | { panel:
     case "google-one-tap":
       // One Tap is gone, but browsers still remember accounts recorded under
       // it — replay those as a standard same-window Google redirect.
+      // Remembered entries churn within weeks; delete this case after 2026-09-01.
       return () =>
         authClient.signIn.social({
           provider: "google",

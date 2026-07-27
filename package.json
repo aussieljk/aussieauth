@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:unit": "vitest run --project=unit",
     "test:component": "vitest run --project=component",
+    "test:e2e": "E2E=1 vitest run --project=e2e",
     "preview": "vite preview",
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",

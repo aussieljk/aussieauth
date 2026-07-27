@@ -50,6 +50,7 @@ truth — the site pages, `/llms.txt`, `/llms-full.txt` and the raw markdown at
 bun dev                  # the site, at https://aussieauth.localhost
 bun run dev:backend      # convex dev
 bun run test             # unit + component  (not `bun test` — that's Bun's own runner)
+bun run test:e2e         # whole flows against the running site — start `bun dev` first
 bun run lint             # tsc --noEmit && oxlint --type-aware
 bun run format           # oxfmt
 bun run cosmos           # the fixture workbench, at localhost:7007

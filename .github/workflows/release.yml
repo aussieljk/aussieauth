@@ -1,0 +1,27 @@
+name: Release
+
+# Publishes @aussieljk/auth when a version tag is pushed, so npm always
+# matches a commit on master:
+#
+#   cd packages/react && npm version minor
+#   git commit -am "auth 0.2.0" && git tag v0.2.0 && git push origin master v0.2.0
+#
+# Needs an `NPM_TOKEN` repository secret (npmjs.com → Access Tokens →
+# Automation).
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+        working-directory: packages/react
+      - run: bun publish --access public
+        working-directory: packages/react
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}

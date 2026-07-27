@@ -1,4 +1,4 @@
-import { Button, Typography } from "@aussieljk/frosted";
+import { Button, Checkbox, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
 import { authClient, callbackURL } from "./client";
 import { PENDING_ACCOUNT_NUMBER } from "./storage";
@@ -130,6 +130,7 @@ function TwoFactorStep({ onBack }: { onBack: () => void }) {
   const { pending, error, run } = useRunner();
   const [code, setCode] = useState("");
   const [backup, setBackup] = useState(false);
+  const [trust, setTrust] = useState(false);
 
   return (
     <div className="flex flex-col gap-3">
@@ -142,8 +143,8 @@ function TwoFactorStep({ onBack }: { onBack: () => void }) {
         onSubmit={() =>
           void run(() =>
             backup
-              ? authClient.twoFactor.verifyBackupCode({ code })
-              : authClient.twoFactor.verifyTotp({ code }),
+              ? authClient.twoFactor.verifyBackupCode({ code, trustDevice: trust })
+              : authClient.twoFactor.verifyTotp({ code, trustDevice: trust }),
           )
         }
       >
@@ -157,6 +158,10 @@ function TwoFactorStep({ onBack }: { onBack: () => void }) {
         ) : (
           <CodeField value={code} required onChange={(e) => setCode(e.target.value)} />
         )}
+        <label className="flex items-center gap-2">
+          <Checkbox checked={trust} onCheckedChange={setTrust} />
+          <Text color="gray">Don&rsquo;t ask again on this device for 30 days</Text>
+        </label>
         <Submit pending={pending}>Verify and sign in</Submit>
       </PanelForm>
       <Feedback error={error} />

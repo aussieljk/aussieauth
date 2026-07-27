@@ -245,6 +245,12 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       },
     },
 
+    user: {
+      // The account page's danger zone. Password-confirmed; the demo account
+      // is refused separately by the deny-list in lib/demo.ts.
+      deleteUser: { enabled: true },
+    },
+
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
