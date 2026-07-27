@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Spinner, Typography } from "@aussieljk/frosted";
+import { Badge, Button, Card, HStack, Spinner, Typography, VStack } from "@aussieljk/frosted";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { PROVIDERS } from "@aussieljk/auth";
@@ -74,82 +74,127 @@ export const Route = createFileRoute("/")({
   component: Landing,
 });
 
+/**
+ * Layout, top to bottom: a 50/50 split — the pitch on the left, the live
+ * sign-in card on the right — then everything that reads better wide (the
+ * embedding cards, the FAQ) at full width underneath.
+ *
+ * Structure is Tailwind (frosted has no responsive column primitive); all
+ * type, colour and spacing inside it are frosted props.
+ */
 function Landing() {
   return (
     <Chrome>
-      {/* Half the page is the pitch, half is the product: the details on the
-          left, the live sign-in card on the right, side by side on anything
-          wide enough and stacked below it on mobile. */}
-      {/* `grid` at every width (one column stacked, two from lg) rather than
-          flex-to-grid: the package stylesheet also declares `.flex`, and its
-          copy loads later, so a `flex lg:grid` combination loses the toss. */}
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
-        <div className="min-w-0">
-          <section className="flex flex-col items-start gap-5 py-10">
-            <Badge color="green">Fifteen methods, one deployment</Badge>
-            <Heading className="max-w-3xl text-balance text-4xl leading-tight sm:text-5xl">
-              One auth server. Fifteen ways in. No consent screen of its own.
-            </Heading>
-            <Text color="gray" className="max-w-2xl text-lg">
-              AussieAuth is a self-hosted auth server on Convex and Better Auth. Your app talks to
-              it from its own origin, so signing in with Google shows Google&rsquo;s consent screen
-              — and nothing else.
-            </Text>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link to="/sign-in">
-                <Button size="3">Try every method</Button>
-              </Link>
-              <Link to="/docs">
-                <Button size="3" variant="surface">
-                  Read the docs
-                </Button>
-              </Link>
-            </div>
-          </section>
+      <VStack alignment="leading" spacing={56} className="w-full">
+        {/* `grid` at every width (one column stacked, two from lg) rather than
+            flex-to-grid: the package stylesheet also declares `.flex`, and its
+            copy loads later, so a `flex lg:grid` combination loses the toss. */}
+        <div className="grid w-full gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
+          <VStack alignment="leading" spacing={48} className="min-w-0 pt-10">
+            <Hero />
+            <Methods />
+          </VStack>
+          {/* Offset by the sticky header's height, so the card's own heading
+              doesn't tuck underneath it on scroll. */}
+          <div className="min-w-0 lg:sticky lg:top-[65px]">
+            <LiveCard />
+          </div>
+        </div>
 
-          <section className="py-10">
-            <Heading className="text-xl">Every method, ready to configure</Heading>
-            <Text color="gray" className="mt-1 block">
-              Each one registers only when its credentials are set, so a deployment offers exactly
-              what it&rsquo;s configured for.
-            </Text>
-            {/* Driven off the same list the sign-in card renders, so this can't
-            advertise a method the app doesn't actually implement. */}
-            <div className="mt-5 grid gap-2 sm:grid-cols-2">
-              {PROVIDERS.map((provider) => (
-                <div
-                  key={provider.id}
-                  className="flex items-start gap-2.5 rounded-md border border-[var(--gray-a4)] px-3 py-2.5"
-                >
-                  {provider.Logo && (
-                    <span className="mt-0.5">
-                      <provider.Logo size={16} />
-                    </span>
-                  )}
-                  <span className="flex min-w-0 flex-col">
-                    <Text weight="medium">{provider.label}</Text>
-                    <Text color="gray">{provider.hint}</Text>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
+        <section className="grid w-full gap-4 md:grid-cols-2">
+          <RegisterCard />
+          <DropInCard />
+        </section>
 
-          <section className="grid gap-4 py-10">
-            <Card>
-              <div className="flex flex-col gap-2">
-                <Heading className="text-lg">An app registers itself</Heading>
-                <Text color="gray">
-                  One POST, on boot. Its origins become trusted, land in the passkey related-origins
-                  list, and stamp every session it creates.
+        <Questions />
+      </VStack>
+    </Chrome>
+  );
+}
+
+function Hero() {
+  return (
+    <VStack alignment="leading" spacing={20}>
+      <Badge color="green">Fifteen methods, one deployment</Badge>
+      {/* The page's only h1; every other heading steps down from it. */}
+      <Heading size="8" className="max-w-3xl text-balance">
+        One auth server. Fifteen ways in. No consent screen of its own.
+      </Heading>
+      <Text size="4" className="max-w-2xl">
+        AussieAuth is a self-hosted auth server on Convex and Better Auth. Your app talks to it from
+        its own origin, so signing in with Google shows Google&rsquo;s consent screen — and nothing
+        else.
+      </Text>
+      <HStack spacing={12}>
+        <Link to="/sign-in">
+          <Button size="3" variant="classic" color="green">
+            Try every method
+          </Button>
+        </Link>
+        <Link to="/docs">
+          <Button size="3" variant="surface">
+            Read the docs
+          </Button>
+        </Link>
+      </HStack>
+    </VStack>
+  );
+}
+
+function Methods() {
+  return (
+    <VStack alignment="leading" spacing={16} className="w-full">
+      <VStack alignment="leading" spacing={4}>
+        <Heading render={<h2 />} size="5">
+          Every method, ready to configure
+        </Heading>
+        <Text>
+          Each one registers only when its credentials are set, so a deployment offers exactly what
+          it&rsquo;s configured for.
+        </Text>
+      </VStack>
+      {/* Driven off the same list the sign-in card renders, so this can't
+          advertise a method the app doesn't actually implement. */}
+      <div className="grid w-full gap-2 sm:grid-cols-2">
+        {PROVIDERS.map((provider) => (
+          <Card key={provider.id} size="1">
+            <HStack alignment="top" spacing={10}>
+              {/* Always rendered, so labels line up whether or not there's a
+                  brand mark — an empty slot beats a zigzagging text column. */}
+              <span className="mt-0.5 flex w-4 shrink-0 justify-center">
+                {provider.Logo && <provider.Logo size={16} />}
+              </span>
+              <VStack alignment="leading" spacing={2} className="min-w-0 flex-1">
+                <Text size="2" weight="medium">
+                  {provider.label}
                 </Text>
-                <pre className="mt-1 overflow-x-auto rounded-md border border-[var(--gray-a4)] bg-[var(--gray-2)] p-3 text-[12.5px] leading-relaxed">
-                  {`await fetch(\`\${AUSSIEAUTH_URL}/apps/register\`, {
+                <Text size="1" color="gray" className="w-full truncate">
+                  {provider.hint}
+                </Text>
+              </VStack>
+            </HStack>
+          </Card>
+        ))}
+      </div>
+    </VStack>
+  );
+}
+
+function RegisterCard() {
+  return (
+    <Card size="3">
+      <VStack alignment="leading" spacing={8}>
+        <Heading render={<h2 />} size="4">
+          An app registers itself
+        </Heading>
+        <Text>
+          One POST, on boot. Its origins become trusted, land in the passkey related-origins list,
+          and stamp every session it creates.
+        </Text>
+        <Snippet>
+          {`await fetch(\`\${AUSSIEAUTH_URL}/apps/register\`, {
   method: "POST",
-  headers: {
-    authorization: \`Bearer \${process.env.AUSSIEAUTH_SECRET}\`,
-    "content-type": "application/json",
-  },
+  headers: { authorization: \`Bearer \${SECRET}\` },
   body: JSON.stringify({
     slug: "portfolio",
     name: "Portfolio",
@@ -157,53 +202,66 @@ function Landing() {
     methods: ["google", "passkey"],
   }),
 });`}
-                </pre>
-                <DocLink slug="embedding" className="mt-1 underline">
-                  How embedding works →
-                </DocLink>
-              </div>
-            </Card>
+        </Snippet>
+        <DocLink slug="embedding" className="underline">
+          How embedding works →
+        </DocLink>
+      </VStack>
+    </Card>
+  );
+}
 
-            <Card>
-              <div className="flex flex-col gap-2">
-                <Heading className="text-lg">Then drop in the card</Heading>
-                <Text color="gray">
-                  Install <code>@aussieljk/auth</code> and point it at the deployment. It
-                  doesn&rsquo;t import Convex, so it works in a non-Convex frontend too.
-                </Text>
-                <pre className="mt-1 overflow-x-auto rounded-md border border-[var(--gray-a4)] bg-[var(--gray-2)] p-3 text-[12.5px] leading-relaxed">
-                  {`import { AussieAuthSignIn } from "@aussieljk/auth";
+function DropInCard() {
+  return (
+    <Card size="3">
+      <VStack alignment="leading" spacing={8}>
+        <Heading render={<h2 />} size="4">
+          Then drop in the card
+        </Heading>
+        <Text>
+          Install <code>@aussieljk/auth</code> and point it at the deployment. It doesn&rsquo;t
+          import Convex, so it works in a non-Convex frontend too.
+        </Text>
+        <Snippet>
+          {`import { AussieAuthSignIn } from "@aussieljk/auth";
 
 <AussieAuthSignIn
   featured={["google", "apple"]}
   primary="passkey"
 />;`}
-                </pre>
-                <DocLink slug="quickstart" className="mt-1 underline">
-                  Start here →
-                </DocLink>
-              </div>
-            </Card>
-          </section>
+        </Snippet>
+        <DocLink slug="quickstart" className="underline">
+          Start here →
+        </DocLink>
+      </VStack>
+    </Card>
+  );
+}
 
-          <section className="py-10">
-            <Heading className="text-xl">Questions</Heading>
-            <div className="mt-4 flex max-w-3xl flex-col gap-5">
-              {FAQ.map((item) => (
-                <div key={item.q} className="flex flex-col gap-1">
-                  <Text weight="medium">{item.q}</Text>
-                  <Text color="gray">{item.a}</Text>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+/** One code sample, sized to be read rather than squinted at. */
+function Snippet({ children }: { children: string }) {
+  return (
+    <pre className="w-full overflow-x-auto rounded-lg border border-[var(--gray-a4)] bg-[var(--gray-2)] p-4 text-[13.5px] leading-relaxed">
+      {children}
+    </pre>
+  );
+}
 
-        <div className="min-w-0 lg:sticky lg:top-0">
-          <LiveCard />
-        </div>
+function Questions() {
+  return (
+    <VStack alignment="leading" spacing={16} className="w-full pb-10">
+      <Heading render={<h2 />} size="5">
+        Questions
+      </Heading>
+      <div className="grid w-full gap-x-10 gap-y-6 md:grid-cols-2">
+        {FAQ.map((item) => (
+          <VStack key={item.q} alignment="leading" spacing={4}>
+            <Text weight="medium">{item.q}</Text>
+            <Text color="gray">{item.a}</Text>
+          </VStack>
+        ))}
       </div>
-    </Chrome>
+    </VStack>
   );
 }
 
@@ -217,25 +275,19 @@ function LiveCard() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  if (!mounted) {
-    return (
-      <div className="flex min-h-[420px] items-center justify-center lg:min-h-screen">
-        <Spinner size="3" />
-      </div>
-    );
-  }
+  const placeholder = (
+    <div className="flex min-h-[420px] items-center justify-center lg:min-h-[calc(100vh-65px)]">
+      <Spinner size="3" />
+    </div>
+  );
+
+  if (!mounted) return placeholder;
   return (
     // Its own boundary, so a broken card (a misconfigured deployment URL, a
     // failed chunk) degrades to an error box in this column instead of taking
     // the whole marketing page with it.
     <ErrorBoundary>
-      <Suspense
-        fallback={
-          <div className="flex min-h-[420px] items-center justify-center lg:min-h-screen">
-            <Spinner size="3" />
-          </div>
-        }
-      >
+      <Suspense fallback={placeholder}>
         <LandingCard />
       </Suspense>
     </ErrorBoundary>

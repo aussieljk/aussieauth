@@ -1,4 +1,4 @@
-import { Typography } from "@aussieljk/frosted";
+import { Button, Typography } from "@aussieljk/frosted";
 import { Link, type LinkProps } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
@@ -23,7 +23,13 @@ export function Chrome({ children }: { children: ReactNode }) {
             <NavLink to="/setup/google">Google setup</NavLink>
             <NavLink to="/setup/apple">Apple setup</NavLink>
           </div>
-          <NavLink to="/sign-in">Sign in →</NavLink>
+          {/* The one action in the header, so it gets the accent the text
+              links don't. */}
+          <Link to="/sign-in">
+            <Button size="1" variant="classic" color="green">
+              Sign in →
+            </Button>
+          </Link>
         </nav>
       </header>
 

@@ -109,17 +109,14 @@ export function SignIn({
 
       <OrDivider label="more ways to sign in" />
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      {/* Chips rather than underlined text: even tap targets, even rows, and
+          the same surface language as the rest of the card. */}
+      <div className="flex flex-wrap items-center gap-2">
         {rest.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            onClick={() => open(p.id)}
-            className="flex items-center gap-1.5 text-[13px] text-[var(--gray-11)] underline decoration-[var(--gray-a6)] underline-offset-4 transition-colors hover:text-[var(--gray-12)]"
-          >
+          <Button key={p.id} size="1" variant="surface" onClick={() => open(p.id)}>
             {p.Logo && <p.Logo size={13} />}
             {p.label}
-          </button>
+          </Button>
         ))}
       </div>
 

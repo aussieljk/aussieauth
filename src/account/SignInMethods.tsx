@@ -53,7 +53,7 @@ export function SignInMethods({
 
   return (
     <Card>
-      <div className="flex flex-col gap-2.5">
+      <div className="flex flex-col gap-2">
         <Heading>Sign-in methods</Heading>
         <Social accounts={accounts} reload={reload} locked={locked} />
         <Password
