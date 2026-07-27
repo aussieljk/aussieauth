@@ -72,7 +72,7 @@ html {
 }
 
 .prose :not(pre) > code {
-  background: var(--gray-a3);
+  background: var(--gray-alpha-100);
   border-radius: 4px;
   padding: 0.15em 0.4em;
   font-size: 0.875em;
@@ -80,8 +80,8 @@ html {
 
 /* Shiki writes its own colours onto the `pre`; only the box is ours. */
 .prose pre {
-  background: var(--gray-2) !important;
-  border: 1px solid var(--gray-a4);
+  background: var(--gray-surface) !important;
+  border: 1px solid var(--gray-alpha-200);
   border-radius: 8px;
   padding: 1em 1.1em;
   overflow-x: auto;

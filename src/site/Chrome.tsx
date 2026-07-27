@@ -9,7 +9,7 @@ const { Text } = Typography;
  * account page deliberately don't use it — both are single-purpose screens, and
  * a nav bar on them is just somewhere else to click mid-sign-in.
  */
-export function Chrome({ children }: { children: ReactNode }) {
+export function Chrome({ children, bleed = false }: { children: ReactNode; bleed?: boolean }) {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-10 border-b border-[var(--gray-a4)] bg-[var(--gray-1)]/80 backdrop-blur">
@@ -33,7 +33,11 @@ export function Chrome({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">{children}</main>
+      {/* `bleed` hands the page the full viewport width — the landing's
+          split-screen halves centre their own content instead. */}
+      <main className={bleed ? "w-full flex-1" : "mx-auto w-full max-w-5xl flex-1 px-6 py-10"}>
+        {children}
+      </main>
 
       <footer className="border-t border-[var(--gray-a4)]">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-6">

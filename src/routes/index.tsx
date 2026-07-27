@@ -1,10 +1,14 @@
-import { Badge, Button, Card, HStack, Spinner, Typography, VStack } from "@aussieljk/frosted";
+import { Badge, Button, HStack, Spinner, Typography, VStack } from "@aussieljk/frosted";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { PROVIDERS } from "@aussieljk/auth";
 import { DocLink } from "@/docs/DocLink";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { Chrome } from "@/site/Chrome";
+// Fenced code run through the same shiki pipeline as the docs, at build time —
+// the browser gets coloured HTML, not a highlighter.
+import DropInSnippet from "@/site/snippets/drop-in.md";
+import RegisterSnippet from "@/site/snippets/register-app.md";
 
 const { Heading, Text } = Typography;
 
@@ -75,39 +79,37 @@ export const Route = createFileRoute("/")({
 });
 
 /**
- * Layout, top to bottom: a 50/50 split — the pitch on the left, the live
- * sign-in card on the right — then everything that reads better wide (the
- * embedding cards, the FAQ) at full width underneath.
+ * A true split screen: the pitch fills the left 50vw with its content centred
+ * in that half, the live sign-in card fills the right 50vw on its own raised
+ * surface. The halves read as two different rooms, not two columns of one.
  *
  * Structure is Tailwind (frosted has no responsive column primitive); all
  * type, colour and spacing inside it are frosted props.
  */
 function Landing() {
   return (
-    <Chrome>
-      <VStack alignment="leading" spacing={56} className="w-full">
-        {/* `grid` at every width (one column stacked, two from lg) rather than
-            flex-to-grid: the package stylesheet also declares `.flex`, and its
-            copy loads later, so a `flex lg:grid` combination loses the toss. */}
-        <div className="grid w-full gap-6 lg:grid-cols-2 lg:items-start lg:gap-10">
-          <VStack alignment="leading" spacing={48} className="min-w-0 pt-10">
+    <Chrome bleed>
+      {/* `items-start` is load-bearing: grid items otherwise stretch to the
+          row's full height, which leaves the sticky panel nothing to stick
+          within. */}
+      <div className="grid w-full lg:grid-cols-2 lg:items-start">
+        <div className="flex w-full justify-center px-6 py-14">
+          <VStack alignment="leading" spacing={56} className="w-full min-w-0 max-w-xl">
             <Hero />
             <Methods />
+            <RegisterSection />
+            <DropInSection />
+            <Questions />
           </VStack>
-          {/* Offset by the sticky header's height, so the card's own heading
-              doesn't tuck underneath it on scroll. */}
-          <div className="min-w-0 lg:sticky lg:top-[65px]">
-            <LiveCard />
-          </div>
         </div>
 
-        <section className="grid w-full gap-4 md:grid-cols-2">
-          <RegisterCard />
-          <DropInCard />
-        </section>
-
-        <Questions />
-      </VStack>
+        {/* The product's half: its own raised surface, split off by a
+            hairline, and it stays put (below the sticky header) while the
+            pitch scrolls. */}
+        <div className="min-w-0 border-t border-[var(--gray-alpha-200)] bg-[var(--gray-surface)] lg:sticky lg:top-[65px] lg:min-h-[calc(100vh-65px)] lg:border-l lg:border-t-0">
+          <LiveCard />
+        </div>
+      </div>
     </Chrome>
   );
 }
@@ -117,10 +119,10 @@ function Hero() {
     <VStack alignment="leading" spacing={20}>
       <Badge color="green">Fifteen methods, one deployment</Badge>
       {/* The page's only h1; every other heading steps down from it. */}
-      <Heading size="8" className="max-w-3xl text-balance">
+      <Heading size="8" className="text-balance">
         One auth server. Fifteen ways in. No consent screen of its own.
       </Heading>
-      <Text size="4" className="max-w-2xl">
+      <Text size="4">
         AussieAuth is a self-hosted auth server on Convex and Better Auth. Your app talks to it from
         its own origin, so signing in with Google shows Google&rsquo;s consent screen — and nothing
         else.
@@ -154,113 +156,90 @@ function Methods() {
         </Text>
       </VStack>
       {/* Driven off the same list the sign-in card renders, so this can't
-          advertise a method the app doesn't actually implement. */}
-      <div className="grid w-full gap-2 sm:grid-cols-2">
+          advertise a method the app doesn't actually implement. Plain rows —
+          the content is the surface. */}
+      <div className="grid w-full gap-x-6 gap-y-4 sm:grid-cols-2">
         {PROVIDERS.map((provider) => (
-          <Card key={provider.id} size="1">
-            <HStack alignment="top" spacing={10}>
-              {/* Always rendered, so labels line up whether or not there's a
-                  brand mark — an empty slot beats a zigzagging text column. */}
-              <span className="mt-0.5 flex w-4 shrink-0 justify-center">
-                {provider.Logo && <provider.Logo size={16} />}
-              </span>
-              <VStack alignment="leading" spacing={2} className="min-w-0 flex-1">
-                <Text size="2" weight="medium">
-                  {provider.label}
-                </Text>
-                <Text size="1" color="gray" className="w-full truncate">
-                  {provider.hint}
-                </Text>
-              </VStack>
-            </HStack>
-          </Card>
+          <HStack key={provider.id} alignment="top" spacing={10}>
+            {/* Always rendered, so labels line up whether or not there's a
+                brand mark — an empty slot beats a zigzagging text column. */}
+            <span className="mt-0.5 flex w-4 shrink-0 justify-center">
+              {provider.Logo && <provider.Logo size={16} />}
+            </span>
+            <VStack alignment="leading" spacing={2} className="min-w-0 flex-1">
+              <Text size="2" weight="medium">
+                {provider.label}
+              </Text>
+              <Text size="1" color="gray" className="w-full truncate">
+                {provider.hint}
+              </Text>
+            </VStack>
+          </HStack>
         ))}
       </div>
     </VStack>
   );
 }
 
-function RegisterCard() {
+function RegisterSection() {
   return (
-    <Card size="3">
-      <VStack alignment="leading" spacing={8}>
-        <Heading render={<h2 />} size="4">
-          An app registers itself
-        </Heading>
-        <Text>
-          One POST, on boot. Its origins become trusted, land in the passkey related-origins list,
-          and stamp every session it creates.
-        </Text>
-        <Snippet>
-          {`await fetch(\`\${AUSSIEAUTH_URL}/apps/register\`, {
-  method: "POST",
-  headers: { authorization: \`Bearer \${SECRET}\` },
-  body: JSON.stringify({
-    slug: "portfolio",
-    name: "Portfolio",
-    origins: ["https://portfolio.com"],
-    methods: ["google", "passkey"],
-  }),
-});`}
-        </Snippet>
-        <DocLink slug="embedding" className="underline">
-          How embedding works →
-        </DocLink>
-      </VStack>
-    </Card>
+    <VStack alignment="leading" spacing={8} className="w-full">
+      <Heading render={<h2 />} size="5">
+        An app registers itself
+      </Heading>
+      <Text>
+        One POST, on boot. Its origins become trusted, land in the passkey related-origins list, and
+        stamp every session it creates.
+      </Text>
+      <Snippet>
+        <RegisterSnippet />
+      </Snippet>
+      <DocLink slug="embedding" className="underline">
+        How embedding works →
+      </DocLink>
+    </VStack>
   );
 }
 
-function DropInCard() {
+function DropInSection() {
   return (
-    <Card size="3">
-      <VStack alignment="leading" spacing={8}>
-        <Heading render={<h2 />} size="4">
-          Then drop in the card
-        </Heading>
-        <Text>
-          Install <code>@aussieljk/auth</code> and point it at the deployment. It doesn&rsquo;t
-          import Convex, so it works in a non-Convex frontend too.
-        </Text>
-        <Snippet>
-          {`import { AussieAuthSignIn } from "@aussieljk/auth";
-
-<AussieAuthSignIn
-  featured={["google", "apple"]}
-  primary="passkey"
-/>;`}
-        </Snippet>
-        <DocLink slug="quickstart" className="underline">
-          Start here →
-        </DocLink>
-      </VStack>
-    </Card>
+    <VStack alignment="leading" spacing={8} className="w-full">
+      <Heading render={<h2 />} size="5">
+        Then drop in the card
+      </Heading>
+      <Text>
+        Install <code>@aussieljk/auth</code> and point it at the deployment. It doesn&rsquo;t import
+        Convex, so it works in a non-Convex frontend too.
+      </Text>
+      <Snippet>
+        <DropInSnippet />
+      </Snippet>
+      <DocLink slug="quickstart" className="underline">
+        Start here →
+      </DocLink>
+    </VStack>
   );
 }
 
-/** One code sample, sized to be read rather than squinted at. */
-function Snippet({ children }: { children: string }) {
-  return (
-    <pre className="w-full overflow-x-auto rounded-lg border border-[var(--gray-a4)] bg-[var(--gray-2)] p-4 text-[13.5px] leading-relaxed">
-      {children}
-    </pre>
-  );
+/** The docs' code-box styling (`.prose pre`), shiki colours included. */
+function Snippet({ children }: { children: React.ReactNode }) {
+  return <div className="prose w-full">{children}</div>;
 }
 
 function Questions() {
   return (
-    <VStack alignment="leading" spacing={16} className="w-full pb-10">
+    <VStack alignment="leading" spacing={16} className="w-full">
       <Heading render={<h2 />} size="5">
         Questions
       </Heading>
-      <div className="grid w-full gap-x-10 gap-y-6 md:grid-cols-2">
+      <VStack alignment="leading" spacing={20} className="w-full">
         {FAQ.map((item) => (
           <VStack key={item.q} alignment="leading" spacing={4}>
             <Text weight="medium">{item.q}</Text>
             <Text color="gray">{item.a}</Text>
           </VStack>
         ))}
-      </div>
+      </VStack>
     </VStack>
   );
 }
