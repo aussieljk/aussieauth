@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "type": "module",
   "scripts": {
@@ -12,7 +13,12 @@
     "prebuild": "bun run docs:llms",
     "build": "vite build",
     "docs:llms": "bun run scripts/generate-llms.ts",
-    "lint": "tsc --noEmit && oxlint --type-aware --max-warnings 0",
+    "sync:plugins": "bun run scripts/sync-server-plugins.ts",
+    "vercel:config": "bun run scripts/generate-vercel-config.ts",
+    "generated:check": "bun run scripts/sync-server-plugins.ts --check && bun run scripts/generate-vercel-config.ts --check",
+    "deploy:site": "bun run build && vercel build --prod && vercel deploy --prebuilt --prod",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p convex && tsc --noEmit -p packages/react && tsc --noEmit -p examples/expo-router",
+    "lint": "bun run typecheck && oxlint --type-aware --max-warnings 0",
     "test": "vitest run",
     "test:unit": "vitest run --project=unit",
     "test:component": "vitest run --project=component",

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { authClient } from "./client";
+import { requireAuthClient } from "./client";
+import { useAuthClient } from "./context";
 import { AUTH_COOKIE, AUTH_SESSION_DATA, REMEMBERED_ACCOUNTS } from "./storage";
 
 /**
@@ -14,6 +15,14 @@ import { AUTH_COOKIE, AUTH_SESSION_DATA, REMEMBERED_ACCOUNTS } from "./storage";
  * All of this is per-browser. The jar already lives in localStorage because
  * `crossDomainClient` puts it there; keeping a second copy under our own key
  * doesn't widen the blast radius, it just stops sign-out from erasing it.
+ *
+ * Everything here except the hook runs from a click handler rather than a
+ * render, so it reaches for `requireAuthClient()` instead of `useAuthClient()`
+ * — there is no hook to call from an event. That means these helpers always
+ * act on the client `createAussieAuthClient()` configured, not on whichever
+ * provider happens to be nearest. Only matters if you have two, which the
+ * account chooser wouldn't make sense across anyway: it's one list of accounts
+ * per browser.
  */
 
 export type RememberedAccount = {
@@ -60,7 +69,7 @@ export const dropRemembered = (id: string) => write(read().filter((a) => a.id !=
  * session is what the stored jar has to match, and it's already in memory.
  */
 export function useRememberSignedInAccount() {
-  const { data } = authClient.useSession();
+  const { data } = useAuthClient().useSession();
   const user = data?.user as
     | {
         id: string;
@@ -98,7 +107,7 @@ export function useRememberSignedInAccount() {
 export function localSignOut() {
   localStorage.removeItem(AUTH_COOKIE);
   localStorage.removeItem(AUTH_SESSION_DATA);
-  void authClient.updateSession();
+  void requireAuthClient().updateSession();
 }
 
 /** Swaps a jar in, runs `body`, and puts back whatever was there before. */
@@ -130,7 +139,7 @@ export async function checkRemembered(account: RememberedAccount) {
 
   const answer = await withJar(account.cookie, async () => {
     try {
-      return Boolean((await authClient.getSession()).data);
+      return Boolean((await requireAuthClient().getSession()).data);
     } catch {
       // Couldn't ask — offline, or the deployment is down. Distinct from a
       // "no" and treated as one: the click path will ask again for real.
@@ -159,16 +168,16 @@ export async function restoreRemembered(account: RememberedAccount, { prechecked
 
   if (prechecked) {
     localStorage.setItem(AUTH_COOKIE, account.cookie);
-    void authClient.updateSession();
+    void requireAuthClient().updateSession();
     return true;
   }
 
   const previous = localStorage.getItem(AUTH_COOKIE);
   localStorage.setItem(AUTH_COOKIE, account.cookie);
 
-  const { data } = await authClient.getSession();
+  const { data } = await requireAuthClient().getSession();
   if (data) {
-    void authClient.updateSession();
+    void requireAuthClient().updateSession();
     return true;
   }
 
@@ -188,7 +197,7 @@ export async function forgetRemembered(account: RememberedAccount) {
   if (account.cookie) {
     await withJar(account.cookie, async () => {
       try {
-        await authClient.signOut();
+        await requireAuthClient().signOut();
       } catch {
         // A dead session is already what we wanted; drop it either way.
       }

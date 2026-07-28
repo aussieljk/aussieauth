@@ -19,8 +19,11 @@ bun dev
 
 That's enough for every method that doesn't need a third party: email/password,
 username, passkeys, Solana, anonymous, account numbers, demo, and agent keys.
-Magic links and OTP codes work too — without `RESEND_API_KEY` the link or code
-is written to the Convex logs instead of an inbox.
+Magic links and OTP codes work too — with a localhost `SITE_URL` and no
+`RESEND_API_KEY`, the link or code is written to the Convex logs instead of an
+inbox. Point `SITE_URL` at a real domain and a missing key becomes an error
+instead: a deployment real people use shouldn't answer "check your email" and
+then log the credential.
 
 Google and Apple each have a guided walkthrough in the app itself, at
 `/setup/google` and `/setup/apple`, which fill in this deployment's real

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { baseURL } from "./client";
+import { useAuthBaseURL } from "./context";
 
 /**
  * Which methods this deployment actually has credentials for, so the card can
@@ -17,26 +17,31 @@ import { baseURL } from "./client";
 
 export type SetupStatus = Record<string, boolean>;
 
-/**
- * Resolved per call rather than at module load — `baseURL` is empty until
- * `createAussieAuthClient` runs, and this module can be evaluated (its chunk
- * loaded) around the same time.
- */
-const endpoint = () => `${baseURL}/api/auth/aussieauth/status`;
+const endpoint = (baseURL: string) => `${baseURL}/api/auth/aussieauth/status`;
 
 /**
  * Held as a promise so several mounted components share one request, and
  * cleared by `refetch` when something has changed on the server.
+ *
+ * Keyed by base URL rather than a single slot, so two deployments in one
+ * bundle don't answer each other's probe — the whole point of the answer is
+ * which credentials *that* deployment has.
  */
-let pending: Promise<SetupStatus | undefined> | undefined;
+const pending = new Map<string, Promise<SetupStatus | undefined>>();
 
-const probe = () =>
-  (pending ??= fetch(endpoint(), { credentials: "include" })
+const probe = (baseURL: string) => {
+  const cached = pending.get(baseURL);
+  if (cached) return cached;
+  const request = fetch(endpoint(baseURL), { credentials: "include" })
     .then((res) => (res.ok ? (res.json() as Promise<SetupStatus>) : undefined))
     // Nothing to badge if the probe can't be reached; leave it unknown.
-    .catch(() => undefined));
+    .catch(() => undefined);
+  pending.set(baseURL, request);
+  return request;
+};
 
 export function useSetupStatus(enabled = false) {
+  const baseURL = useAuthBaseURL();
   /** `undefined` until the answer lands — callers read that as "assume fine", so
    *  nothing is greyed out during the first paint and then ungreyed. */
   const [setup, setSetup] = useState<SetupStatus>();
@@ -44,21 +49,21 @@ export function useSetupStatus(enabled = false) {
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
     let live = true;
-    void probe().then((data) => {
+    void probe(baseURL).then((data) => {
       if (live && data) setSetup(data);
     });
     return () => {
       live = false;
     };
-  }, [enabled]);
+  }, [enabled, baseURL]);
 
   /** Asks again, ignoring the cached answer — for after `convex env set`. */
   const refetch = useCallback(async () => {
-    pending = undefined;
-    const data = await probe();
+    pending.delete(baseURL);
+    const data = await probe(baseURL);
     if (data) setSetup(data);
     return data;
-  }, []);
+  }, [baseURL]);
 
   return {
     setup,

@@ -1,7 +1,8 @@
 import { Avatar, Spinner, Typography } from "@aussieljk/frosted";
 import { Icons } from "@aussieljk/frosted/icons";
 import { useEffect, useRef, useState } from "react";
-import { authClient, callbackURL } from "./client";
+import { type AussieAuthClient } from "./client";
+import { useAuthClient, useCallbackURL } from "./context";
 import {
   checkRemembered,
   forgetRemembered,
@@ -20,7 +21,11 @@ const { Text } = Typography;
  * screen; anything credential-shaped can't be replayed, so those hand back the
  * panel id for the caller to open with the address filled in.
  */
-const replay = (account: RememberedAccount): (() => Promise<unknown>) | { panel: string } => {
+const replay = (
+  account: RememberedAccount,
+  authClient: AussieAuthClient,
+  callbackURL: () => string,
+): (() => Promise<unknown>) | { panel: string } => {
   const method = account.method ?? "";
   switch (method) {
     case "google":
@@ -59,6 +64,8 @@ export function RememberedAccounts({
   /** Open a panel, pre-filled with the account's address, as a fallback. */
   onNeedsPanel: (panel: string, prefill: string) => void;
 }) {
+  const authClient = useAuthClient();
+  const callbackURL = useCallbackURL();
   // Read synchronously: the list must be on screen in the first frame, or the
   // card grows a row under the cursor a moment after paint.
   const [accounts, setAccounts] = useState(listRemembered);
@@ -97,7 +104,7 @@ export function RememberedAccounts({
     try {
       const prechecked = verified.current.has(account.id);
       if (await restoreRemembered(account, { prechecked })) return;
-      const next = replay(account);
+      const next = replay(account, authClient, callbackURL);
       if (typeof next === "function") {
         await next();
         return;

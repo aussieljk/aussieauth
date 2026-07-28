@@ -21,18 +21,31 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./expo": {
+      "types": "./dist/expo.d.ts",
+      "import": "./dist/expo.js"
+    },
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "import": "./dist/native.js"
+    },
     "./solana": {
       "types": "./dist/solana.d.ts",
       "import": "./dist/solana.js"
     },
     "./styles.css": "./dist/styles.css"
   },
+  "bin": {
+    "aussieauth": "./dist/cli.js"
+  },
   "scripts": {
     "build": "bun run build:js && bun run build:css",
     "build:js": "tsup",
     "build:css": "tailwindcss -i ./styles.src.css -o ./dist/styles.css",
-    "dev": "tsup --watch",
+    "dev": "bun run sync && tsup --watch",
     "lint": "tsc --noEmit",
+    "sync": "bun run ../../scripts/sync-server-plugins.ts",
+    "prebuild": "bun run sync",
     "release": "bun run build && bun publish --access public"
   },
   "dependencies": {
@@ -46,6 +59,7 @@
     "@convex-dev/better-auth": "^0.12.5",
     "@noble/curves": "^2.2.0",
     "@tailwindcss/cli": "^4.2.2",
+    "@types/node": "^26",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "better-auth": "1.6.23",
@@ -55,10 +69,32 @@
   },
   "peerDependencies": {
     "@better-auth/api-key": "1.6.23",
+    "@better-auth/expo": "1.6.23",
     "@better-auth/passkey": "1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
     "better-auth": "1.6.23",
     "react": "^19.0.0",
+    "expo-secure-store": "*",
+    "expo-web-browser": "*",
+    "expo-router": "*",
+    "react-native": "*",
     "react-dom": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@better-auth/expo": {
+      "optional": true
+    },
+    "expo-secure-store": {
+      "optional": true
+    },
+    "expo-web-browser": {
+      "optional": true
+    },
+    "expo-router": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    }
   }
 }

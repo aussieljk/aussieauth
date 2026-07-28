@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatAccountNumber, generateAccountNumber, normalize } from "./accountNumber";
+import {
+  findFreeAccountNumber,
+  formatAccountNumber,
+  generateAccountNumber,
+  normalize,
+} from "./accountNumber";
 
 /**
  * The account number is the entire credential — no email, no password, no
@@ -45,5 +50,35 @@ describe("normalize", () => {
 describe("formatAccountNumber", () => {
   it("groups in fours without a trailing space", () => {
     expect(formatAccountNumber("1234567890123456")).toBe("1234 5678 9012 3456");
+  });
+});
+
+describe("findFreeAccountNumber", () => {
+  it("hands back the first free number", async () => {
+    const number = await findFreeAccountNumber(async () => false);
+    expect(number).toMatch(/^\d{16}$/);
+  });
+
+  it("re-rolls past a number that's taken", async () => {
+    const offered: string[] = [];
+    const number = await findFreeAccountNumber(async (candidate) => {
+      offered.push(candidate);
+      return offered.length < 3;
+    });
+    expect(offered).toHaveLength(3);
+    expect(number).toBe(offered[2]);
+  });
+
+  it("gives up rather than issuing a number that's already someone's", async () => {
+    // Five collisions on a 10^16 space means the uniqueness check isn't
+    // answering. Returning a duplicate here would put two people in one
+    // account, and the number is the only thing telling them apart.
+    let asked = 0;
+    const number = await findFreeAccountNumber(async () => {
+      asked++;
+      return true;
+    });
+    expect(number).toBe(null);
+    expect(asked).toBe(5);
   });
 });

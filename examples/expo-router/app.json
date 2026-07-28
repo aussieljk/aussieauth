@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "AussieAuth Expo",
+    "slug": "aussieauth-expo",
+    "scheme": "aussieauthdemo",
+    "plugins": ["expo-router"],
+    "extra": {
+      "router": {}
+    }
+  }
+}

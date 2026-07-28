@@ -1,6 +1,6 @@
 import { Button, Checkbox, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient, callbackURL } from "./client";
+import { useAuthClient, useCallbackURL } from "./context";
 import { PENDING_ACCOUNT_NUMBER } from "./storage";
 import { byId, ctaFor } from "./providers";
 import { useRunner } from "./useRunner";
@@ -63,29 +63,43 @@ function OneClick({
   );
 }
 
-const social = (provider: "google" | "github" | "apple") => () =>
-  authClient.signIn.social({ provider, callbackURL: callbackURL() });
+/** The one-click social panels differ only in which provider they name. */
+function SocialPanel({ provider }: { provider: "google" | "github" | "apple" }) {
+  const authClient = useAuthClient();
+  const callbackURL = useCallbackURL();
+  return (
+    <OneClick
+      id={provider}
+      action={() => authClient.signIn.social({ provider, callbackURL: callbackURL() })}
+      redirect
+    />
+  );
+}
 
 export function GooglePanel() {
-  return <OneClick id="google" action={social("google")} redirect />;
+  return <SocialPanel provider="google" />;
 }
 export function GitHubPanel() {
-  return <OneClick id="github" action={social("github")} redirect />;
+  return <SocialPanel provider="github" />;
 }
 export function ApplePanel() {
-  return <OneClick id="apple" action={social("apple")} redirect />;
+  return <SocialPanel provider="apple" />;
 }
 export function DemoPanel() {
+  const authClient = useAuthClient();
   return <OneClick id="demo" action={() => authClient.signIn.demo()} />;
 }
 export function AnonymousPanel() {
+  const authClient = useAuthClient();
   return <OneClick id="anonymous" action={() => authClient.signIn.anonymous()} />;
 }
 export function PasskeyPanel() {
+  const authClient = useAuthClient();
   return <OneClick id="passkey" action={() => authClient.signIn.passkey()} />;
 }
 
 export function SolanaPanel() {
+  const authClient = useAuthClient();
   return (
     <OneClick
       id="solana"
@@ -127,6 +141,7 @@ const needsSecondFactor = (result: unknown) =>
 
 /** The TOTP challenge that follows a password sign-in with 2FA enabled. */
 function TwoFactorStep({ onBack }: { onBack: () => void }) {
+  const authClient = useAuthClient();
   const { pending, error, run } = useRunner();
   const [code, setCode] = useState("");
   const [backup, setBackup] = useState(false);
@@ -183,6 +198,7 @@ function TwoFactorStep({ onBack }: { onBack: () => void }) {
 
 /** Email + password, with a create-account mode. */
 export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
+  const authClient = useAuthClient();
   const { pending, error, notice, run } = useRunner();
   const [creating, setCreating] = useState(false);
   const [totp, setTotp] = useState(false);
@@ -243,6 +259,7 @@ export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
 }
 
 export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
+  const authClient = useAuthClient();
   const { pending, error, run } = useRunner();
   const [creating, setCreating] = useState(false);
   const [totp, setTotp] = useState(false);
@@ -303,6 +320,7 @@ export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
 }
 
 export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
+  const authClient = useAuthClient();
   const { pending, error, run } = useRunner();
   const [totp, setTotp] = useState(false);
   const [phone, setPhone] = useState(prefill);
@@ -349,6 +367,8 @@ export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
 }
 
 export function MagicLinkPanel({ prefill = "" }: PanelProps) {
+  const authClient = useAuthClient();
+  const callbackURL = useCallbackURL();
   const { pending, error, notice, run } = useRunner();
   const [email, setEmail] = useState(prefill);
 
@@ -449,6 +469,7 @@ function OtpPanel({
 }
 
 export function EmailOtpPanel({ prefill }: PanelProps) {
+  const authClient = useAuthClient();
   return (
     <OtpPanel
       label="Email"
@@ -463,6 +484,7 @@ export function EmailOtpPanel({ prefill }: PanelProps) {
 }
 
 export function SmsOtpPanel({ prefill }: PanelProps) {
+  const authClient = useAuthClient();
   return (
     <OtpPanel
       label="Phone number"
@@ -477,6 +499,7 @@ export function SmsOtpPanel({ prefill }: PanelProps) {
 }
 
 export function AccountNumberPanel() {
+  const authClient = useAuthClient();
   const { pending, error, run } = useRunner();
   const [number, setNumber] = useState("");
 

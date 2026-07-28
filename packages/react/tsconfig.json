@@ -5,7 +5,7 @@
     "moduleResolution": "Bundler",
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["react", "react-dom"],
+    "types": ["node", "react", "react-dom"],
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,

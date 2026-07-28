@@ -26,7 +26,7 @@ import type { status } from "./server-plugins/status";
  * behaviour — the server plugin's type is all `createAuthClient` needs to
  * expose `signIn.demo()` and friends with real types.
  */
-const accountNumberClient = () =>
+export const accountNumberClient = () =>
   ({
     id: "account-number",
     $InferServerPlugin: {} as ReturnType<typeof accountNumber>,
@@ -38,14 +38,14 @@ const accountNumberClient = () =>
     },
   }) satisfies BetterAuthClientPlugin;
 
-const demoClient = () =>
+export const demoClient = () =>
   ({
     id: "demo",
     $InferServerPlugin: {} as ReturnType<typeof demo>,
     pathMethods: { "/sign-in/demo": "POST" },
   }) satisfies BetterAuthClientPlugin;
 
-const solanaClient = () =>
+export const solanaClient = () =>
   ({
     id: "solana",
     $InferServerPlugin: {} as ReturnType<typeof solana>,
@@ -57,14 +57,14 @@ const solanaClient = () =>
     },
   }) satisfies BetterAuthClientPlugin;
 
-const linkingClient = () =>
+export const linkingClient = () =>
   ({
     id: "linking",
     $InferServerPlugin: {} as ReturnType<typeof linking>,
     pathMethods: { "/linking/set-password": "POST" },
   }) satisfies BetterAuthClientPlugin;
 
-const statusClient = () =>
+export const statusClient = () =>
   ({
     id: "status",
     $InferServerPlugin: {} as ReturnType<typeof status>,
@@ -106,34 +106,90 @@ const build = (options: AussieAuthClientOptions) =>
     ],
   });
 
+export type AussieAuthClient = ReturnType<typeof build>;
+
 /**
- * The configured auth client.
+ * The client `createAussieAuthClient` last built, for the code that can't take
+ * one as an argument.
  *
- * `undefined` until {@link createAussieAuthClient} runs — call that once at your
- * app's entry, before any sign-in UI renders. It's an ESM live binding, so the
- * package's own components and `localSignOut` see the assignment.
+ * Components should reach for `useAuthClient()` instead — it reads from
+ * `<AussieAuthClientProvider>` and so works with more than one deployment in a
+ * bundle, and doesn't depend on module evaluation order. This is the fallback
+ * that hook falls back *to*, and the only thing available to the imperative
+ * helpers (`localSignOut`, `restoreRemembered`) which run from event handlers
+ * where there are no hooks to call.
  */
-export let authClient: ReturnType<typeof build>;
+let configured: AussieAuthClient | null = null;
+
+/** The configured client, or a message explaining what to do about it. */
+export function requireAuthClient(): AussieAuthClient {
+  if (!configured) {
+    throw new Error(
+      "AussieAuth has no client yet. Call createAussieAuthClient({ baseURL }) once " +
+        "at your app's entry — before any sign-in UI renders — or wrap the tree in " +
+        "<AussieAuthClientProvider client={...}>.",
+    );
+  }
+  return configured;
+}
+
+/**
+ * The configured client, as a value you can hold onto.
+ *
+ * A proxy rather than the client itself, because it's imported at module scope
+ * all over the place and `createAussieAuthClient` hasn't necessarily run yet
+ * when that import is evaluated. It used to be a bare `let`, which meant every
+ * such read landed on `undefined` and failed later as
+ * "cannot read properties of undefined (reading 'signIn')" — pointing at the
+ * call site rather than at the missing setup. Now it says what to do.
+ */
+export const authClient: AussieAuthClient = new Proxy({} as AussieAuthClient, {
+  // Forwarded untouched, and deliberately not bound. Better Auth's client is
+  // itself a proxy that returns callable proxies for paths it hasn't seen —
+  // `signIn` is one of those, and `.bind()`ing it produces an ordinary
+  // function that has lost the `get` trap `signIn.email` depends on. Reading
+  // through means `this` is this proxy rather than the client, which forwards
+  // here again and lands in the same place.
+  get: (_target, property) => Reflect.get(requireAuthClient(), property) as unknown,
+  has: (_target, property) => Reflect.has(requireAuthClient(), property),
+});
 
 /** Base URL of the configured server — read by the setup-status probe. */
 export let baseURL = "";
 
-let resolveCallback: () => string = () =>
+const originCallback = () =>
   typeof window !== "undefined" ? `${window.location.origin}/` : "/";
+
+let resolveCallback: () => string = originCallback;
 
 /** The absolute return URL to hand a provider, resolved per call. */
 export const callbackURL = () => resolveCallback();
+
+/** Normalises the two shapes `callbackURL` may be given into one function. */
+export const toCallbackResolver = (
+  callback: AussieAuthClientOptions["callbackURL"],
+): (() => string) => {
+  if (callback === undefined) return originCallback;
+  return typeof callback === "function" ? callback : () => callback;
+};
 
 /**
  * Build the AussieAuth client and register it as the one the package's UI uses.
  * Returns it so you can pass it to `ConvexBetterAuthProvider`.
  */
-export function createAussieAuthClient(options: AussieAuthClientOptions) {
-  authClient = build(options);
+export function configureAussieAuthClientState(
+  client: ReturnType<typeof createAuthClient>,
+  options: AussieAuthClientOptions,
+) {
+  configured = client as AussieAuthClient;
   baseURL = options.baseURL;
   if (options.callbackURL !== undefined) {
-    const cb = options.callbackURL;
-    resolveCallback = typeof cb === "function" ? cb : () => cb;
+    resolveCallback = toCallbackResolver(options.callbackURL);
   }
-  return authClient;
+}
+
+export function createAussieAuthClient(options: AussieAuthClientOptions) {
+  const client = build(options);
+  configureAussieAuthClientState(client, options);
+  return client;
 }

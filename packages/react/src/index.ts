@@ -1,5 +1,7 @@
 // The configured client + factory.
 export * from "./client";
+// The provider and hooks components read their client through.
+export * from "./context";
 // Session persistence + the account chooser's non-React helpers (localSignOut).
 export * from "./storage";
 export * from "./remembered";

@@ -13,8 +13,18 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       # The app resolves @aussieljk/auth through its dist, so build it first.
+      # This also regenerates the server-plugin copies, via the package's
+      # prebuild — the check below then proves the committed ones matched.
       - run: bun run build
         working-directory: packages/react
+      # Two files in this repo are generated and committed: the package's
+      # server-plugin copies, and vercel.json. Both are read by something that
+      # can't run a generator first, and both fail silently when stale.
+      - run: bun run generated:check
+        env:
+          # `.env.local` isn't in CI, so hand the checker the same deployment
+          # the committed vercel.json points at.
+          VITE_CONVEX_SITE_URL: https://giddy-dinosaur-765.convex.site
       # Component tests run in a real browser via @vitest/browser-playwright.
       - run: bunx playwright install --with-deps chromium
       - run: bun run lint

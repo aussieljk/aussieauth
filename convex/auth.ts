@@ -22,34 +22,31 @@ import { accountNumber } from "./lib/accountNumber";
 import { appleClientSecret } from "./lib/apple";
 import {
   appMethods,
-  capToRelatedOriginLimit,
   RELATED_ORIGIN_LABEL_LIMIT,
   registeredOrigins,
   resolveApp,
 } from "./lib/apps";
+import { DEFAULT_SITE_URL, parseOrigins, passkeyOrigins } from "./lib/site";
 import { demo } from "./lib/demo";
 import { linking } from "./lib/linking";
 import { resolveLoginMethod } from "./lib/methods";
 import { sendEmail, sendSms } from "./lib/notify";
 import { solana } from "./lib/solana";
 import { status } from "./lib/status";
+import { gateTwoFactor } from "./lib/twoFactorGate";
 
 /**
  * AussieAuth's own site — where the hosted sign-in page lives. Apps that use
  * AussieAuth never redirect here; this is only the default for links we email.
  */
-const siteUrl = env.SITE_URL ?? "http://localhost:5173";
+const siteUrl = env.SITE_URL ?? DEFAULT_SITE_URL;
 
 /**
  * Origins from the environment. These are the bootstrap set — this site and
  * whatever you're developing against — and they work with an empty `apps`
  * table, which is what a fresh checkout has.
  */
-const envOrigins = (): string[] =>
-  (env.TRUSTED_ORIGINS ?? "")
-    .split(",")
-    .map((o: string) => o.trim())
-    .filter(Boolean);
+const envOrigins = (): string[] => parseOrigins(env.TRUSTED_ORIGINS);
 
 const staticOrigins = [
   siteUrl,
@@ -71,17 +68,16 @@ const staticOrigins = [
  * Apple's origin is not in here: it posts an OAuth callback, it never touches
  * WebAuthn.
  *
- * Native app schemes (`exp://`, `aussieauthios://`) are filtered out for the
- * same reason. A browser is the only thing that reads this file, it can only
- * act on web origins, and every entry costs against the five-label limit below
- * — so letting them through would push real origins off the end.
+ * The list itself is assembled by `lib/site.ts`, which `/admin` also calls —
+ * the page reports how the five-site budget is spent, and it can only report
+ * it honestly if it's reading the same answer this route publishes.
  */
-export const relatedOriginUsage = async (ctx: GenericCtx<DataModel>) => {
-  const all = [siteUrl, ...envOrigins(), ...(await registeredOrigins(ctx))]
-    .filter((o) => /^https?:\/\//.test(o))
-    .filter((o, i, xs) => xs.indexOf(o) === i);
-  return capToRelatedOriginLimit(all);
-};
+export const relatedOriginUsage = async (ctx: GenericCtx<DataModel>) =>
+  passkeyOrigins({
+    siteUrl,
+    envOrigins: envOrigins(),
+    appOrigins: await registeredOrigins(ctx),
+  });
 
 export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
   const { kept, dropped } = await relatedOriginUsage(ctx);
@@ -346,7 +342,10 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
       }),
       // A second factor rather than a sixteenth method: TOTP codes from an
       // authenticator app, offered after a password sign-in when enabled.
-      twoFactor({ issuer: "AussieAuth" }),
+      //
+      // Wrapped, because the plugin only gates the three sign-in paths Better
+      // Auth ships — see twoFactorGate.ts for why ours needed adding.
+      gateTwoFactor(twoFactor({ issuer: "AussieAuth" })),
 
       // Wallet.
       solana({ domain: hostname(siteUrl) }),

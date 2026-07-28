@@ -61,7 +61,14 @@ export default defineConfig({
         test: {
           name: "unit",
           environment: "node",
-          include: ["convex/**/*.test.ts", "src/**/*.test.ts"],
+          include: [
+            "convex/**/*.test.ts",
+            "src/**/*.test.ts",
+            "scripts/**/*.test.ts",
+            // The published package is tested by the same runner as the site
+            // that embeds it, rather than carrying a second vitest setup.
+            "packages/react/src/**/*.test.ts",
+          ],
         },
       },
       {
@@ -71,7 +78,7 @@ export default defineConfig({
         extends: true,
         test: {
           name: "component",
-          include: ["src/**/*.test.tsx"],
+          include: ["src/**/*.test.tsx", "packages/react/src/**/*.test.tsx"],
           setupFiles: ["./src/testing/setup.ts"],
           browser: {
             enabled: true,

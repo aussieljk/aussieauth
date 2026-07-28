@@ -1,22 +1,92 @@
 ---
 title: Native apps
-description: How an Expo app signs in against AussieAuth, why it registers a scheme origin, and how prefix matching keeps Expo Go working.
+description: Expo setup for AussieAuth, native scheme origins, and Expo Go registration.
 order: 6
 ---
 
 # Native apps
 
-`../aussieauth-ios` is the Expo client; its README covers the client half.
+## Expo in 5 minutes
+
+Install the SDK and native session storage:
+
+```sh
+bun add @aussieljk/auth @better-auth/expo
+npx expo install expo-secure-store expo-web-browser
+```
+
+Scaffold the client, layout provider, sign-in route, and app scheme:
+
+```sh
+bunx aussieauth init expo --scheme myapp
+```
+
+Set environment variables:
+
+```sh
+EXPO_PUBLIC_AUSSIEAUTH_URL=https://your-deployment.convex.site
+EXPO_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
+```
+
+Register the native origins with the AussieAuth deployment:
+
+```sh
+bunx aussieauth apps register \
+  --auth-url "$EXPO_PUBLIC_AUSSIEAUTH_URL" \
+  --secret "$AUSSIEAUTH_SECRET" \
+  --slug myapp \
+  --name "My App" \
+  --scheme myapp \
+  --dev-exp
+```
+
+Use the native card in `app/sign-in.tsx`:
+
+```tsx
+import { AussieAuthNativeSignIn } from "@aussieljk/auth/native";
+import { router } from "expo-router";
+import { authClient } from "../lib/auth-client";
+
+export default function SignIn() {
+  return <AussieAuthNativeSignIn authClient={authClient} onSignedIn={() => router.replace("/")} />;
+}
+```
+
+Protect routes with the Expo helpers:
+
+```tsx
+import { RequireAuth } from "@aussieljk/auth/expo";
+import { authClient } from "../lib/auth-client";
+
+export default function Home() {
+  return <RequireAuth authClient={authClient}>{/* app */}</RequireAuth>;
+}
+```
+
+See `examples/expo-router` for a complete Expo Router app.
+
+## What the SDK provides
+
+- `createAussieAuthExpoClient` builds the Better Auth client with AussieAuth's
+  methods, the Expo cookie/session bridge, cross-domain auth, and Convex token
+  support.
+- `AussieAuthProvider` wraps the usual Expo app setup: native auth client plus
+  `ConvexBetterAuthProvider`.
+- `AussieAuthNativeSignIn` is a React Native sign-in surface using `ScrollView`,
+  `TextInput`, and `Pressable` rather than DOM/CSS.
+- `RequireAuth`, `RedirectIfSignedIn`, `useAussieUser`, and
+  `signOutAndRedirect` cover the common route flows.
+- `aussieauth apps register` registers `myapp://` and optionally `exp://` with
+  the existing `/apps/register` endpoint.
 
 ## No Origin header
 
-A native app has no `Origin` header, so [`@better-auth/expo`](https://better-auth.com/docs/integrations/expo)
-sends its deep-link scheme as `expo-origin` and the `expo()` plugin rewrites it
-back onto the request.
+A native app has no `Origin` header, so `@better-auth/expo` sends its deep-link
+scheme as `expo-origin` and the server-side `expo()` plugin rewrites it back
+onto the request.
 
 Everything downstream — CSRF, `trustedOrigins`, `appMethods`, the session's
-`appId` — then works unchanged, which is why none of them needed a native special
-case.
+`appId` — then works unchanged.
 
 The plugin has a second job on OAuth callbacks: it appends the session cookie to
 the `myapp://` redirect, because a native app has no cookie jar the browser can
@@ -24,17 +94,17 @@ write to.
 
 ## Scheme origins
 
-Such an app registers **scheme origins** rather than URLs:
+Native apps register **scheme origins** rather than URLs:
 
 ```jsonc
 {
-  "slug": "aussieauth-ios",
-  "name": "AussieAuth iOS",
-  "origins": ["aussieauthios://", "exp://"],
+  "slug": "myapp",
+  "name": "My App",
+  "origins": ["myapp://", "exp://"]
 }
 ```
 
-Only the bare scheme is accepted, because these match by _prefix_.
+Only the bare scheme is accepted, because these match by prefix.
 
 That's what makes Expo Go work: its origin is `exp://<lan-ip>:8081/--/`, which
 changes with the network and so can never be registered exactly.
@@ -43,22 +113,11 @@ Prefix matching is confined to non-http origins. Doing it for web origins would
 mean `https://myapp.com` claiming `https://myapp.com.evil`, and registration
 refuses a bare `https://` for the same reason.
 
-## A warning about `exp://`
+## Production notes
 
-Trusting `exp://` means any Expo Go project can reach the deployment. That's fine
-for a dev deployment and should not be set on a production one.
+Trusting `exp://` means any Expo Go project can reach the deployment. Use it for
+development deployments, not production.
 
-## Questions
-
-**Why does my Expo Go origin keep changing?**
-It embeds the LAN address of the machine running the bundler. Register the bare
-`exp://` scheme and let prefix matching handle the rest.
-
-**Can a native app use a passkey created on the website?**
-Yes, once `APPLE_APP_SITE_ASSOCIATION` is set and the app has a real bundle id.
-Under Expo Go the app runs as Expo's own bundle id and none of it applies.
-
-**Why aren't scheme origins in `/.well-known/webauthn`?**
-Only a browser reads that file and it can't act on a custom scheme. Every entry
-also counts against WebAuthn's five-site limit, so including them would push real
-origins off the end.
+Passkeys shared with the website need `APPLE_APP_SITE_ASSOCIATION` set and a
+real bundle id. Expo Go runs as Expo's bundle id, so associated-domain behavior
+only applies to development or production builds.

@@ -1,6 +1,7 @@
 import { env, query } from "./_generated/server";
 import { authComponent } from "./auth";
-import { capToRelatedOriginLimit, RELATED_ORIGIN_LABEL_LIMIT } from "./lib/apps";
+import { RELATED_ORIGIN_LABEL_LIMIT } from "./lib/apps";
+import { DEFAULT_SITE_URL, parseOrigins, passkeyOrigins } from "./lib/site";
 
 /**
  * The registry as `/admin` shows it: every registered app with its origins and
@@ -23,17 +24,14 @@ export const overview = query({
     const apps = await ctx.db.query("apps").collect();
     const origins = await ctx.db.query("appOrigins").collect();
 
-    // The same computation `relatedOrigins` makes per request, minus the ctx
-    // plumbing: static origins first, then everything apps registered.
-    const site = env.SITE_URL ?? "http://localhost:5173";
-    const envOrigins = (env.TRUSTED_ORIGINS ?? "")
-      .split(",")
-      .map((o: string) => o.trim())
-      .filter(Boolean);
-    const web = [site, ...envOrigins, ...origins.map((o) => o.origin)]
-      .filter((o) => /^https?:\/\//.test(o))
-      .filter((o, i, xs) => xs.indexOf(o) === i);
-    const { kept, dropped } = capToRelatedOriginLimit(web);
+    // Literally the function `/.well-known/webauthn` publishes from, so this
+    // page reports the budget the browser will actually see rather than a
+    // second opinion about it.
+    const { kept, dropped } = passkeyOrigins({
+      siteUrl: env.SITE_URL ?? DEFAULT_SITE_URL,
+      envOrigins: parseOrigins(env.TRUSTED_ORIGINS),
+      appOrigins: origins.map((o) => o.origin),
+    });
 
     return {
       apps: apps.map((app) => ({

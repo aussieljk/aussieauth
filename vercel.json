@@ -10,12 +10,12 @@
       "destination": "https://giddy-dinosaur-765.convex.site/.well-known/apple-developer-domain-association.txt"
     },
     {
-      "source": "/.well-known/webauthn",
-      "destination": "https://giddy-dinosaur-765.convex.site/.well-known/webauthn"
-    },
-    {
       "source": "/.well-known/apple-app-site-association",
       "destination": "https://giddy-dinosaur-765.convex.site/.well-known/apple-app-site-association"
+    },
+    {
+      "source": "/.well-known/webauthn",
+      "destination": "https://giddy-dinosaur-765.convex.site/.well-known/webauthn"
     }
   ]
 }

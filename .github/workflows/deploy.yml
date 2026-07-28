@@ -1,0 +1,49 @@
+name: Deploy site
+
+# aussieauth.com has no git integration on the Vercel side, so a push to master
+# used to change nothing until someone ran `vercel deploy` from a laptop — and
+# a docs change that never shipped looks exactly like a docs change that did.
+# This closes that gap.
+#
+# The Convex deployment is *not* touched here. Backend pushes stay manual
+# (`convex dev --once`), because a schema change wants a human watching it.
+#
+# Needs three repository secrets, from `vercel login` + `.vercel/project.json`:
+#   VERCEL_TOKEN       vercel.com → Settings → Tokens
+#   VERCEL_ORG_ID      .vercel/project.json → orgId
+#   VERCEL_PROJECT_ID  .vercel/project.json → projectId
+
+on:
+  push:
+    branches: [master]
+  # So a deploy can be re-run without an empty commit.
+  workflow_dispatch:
+
+concurrency:
+  # A newer push supersedes an in-flight deploy rather than racing it.
+  group: deploy-site
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+
+      # The site imports @aussieljk/auth through its dist, same as CI.
+      - run: bun run build
+        working-directory: packages/react
+
+      - name: Deploy
+        run: |
+          bunx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          bunx vercel build --prod --token="$VERCEL_TOKEN"
+          bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

@@ -32,6 +32,11 @@ Magic links and OTP codes work too — without `RESEND_API_KEY` the link or code
 written to the Convex logs instead of an inbox, which is usually what you want
 while developing.
 
+That fallback is local-only. It applies when `SITE_URL` points at localhost; off
+a real domain, a missing provider key is an error rather than a log line, because
+a magic link *is* the credential and "sent" that quietly means "logged" is the
+worst of both.
+
 ## Environment variables are typed
 
 Every variable the backend reads is declared in `convex/convex.config.ts`, so the
@@ -88,8 +93,10 @@ targets Better Auth 1.4.
 browser provider, or the setup files. It will appear to run and find nothing.
 
 **Do I need `RESEND_API_KEY` to develop?**
-No. Without it, magic links and OTP codes are written to the Convex logs. That's
-faster to work with than a real inbox.
+No. With a localhost `SITE_URL` and no key, magic links and OTP codes are written
+to the Convex logs — faster to work with than a real inbox. On a deployment whose
+`SITE_URL` is a real domain, sending without a key throws instead, so a lapsed
+key surfaces as an error rather than as mail that never arrives.
 
 **Why won't `SITE_URL` accept my localhost origin?**
 It will, but it shouldn't be one. Passkeys bind to `SITE_URL`'s hostname as their

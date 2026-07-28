@@ -50,7 +50,8 @@ Passwords and Android offer the code above the keyboard.
 ## Magic links
 
 Sent by Resend when `RESEND_API_KEY` is set, and written to the Convex logs when
-it isn't. Good for one sign-in.
+it isn't and `SITE_URL` is a localhost one. Off a real domain the key is
+required — see [quickstart](/docs/quickstart). Good for one sign-in.
 
 ## The demo account
 
@@ -84,6 +85,14 @@ A second factor rather than a sixteenth method: authenticator-app codes offered
 after a password sign-in when the account has switched them on, from the account
 page. Enabling and disabling both require the password — that's Better Auth's
 rule, so an account without a password can't enrol.
+
+It also covers the sign-in methods AussieAuth wrote itself. Better Auth's plugin
+only gates the three paths it ships (`/sign-in/email`, `/sign-in/username`,
+`/sign-in/phone-number`), which left a linked wallet or an account number as a
+way in that never asked for the code. `convex/lib/twoFactorGate.ts` widens that
+gate to `/sign-in/solana` and `/sign-in/account-number` — so once TOTP is on, it
+is on for every door into the account, not just the one it was switched on
+from.
 
 Enrolment hands out backup codes once. Each works once, from the "use a backup
 code" link on the challenge screen; a fresh set can be minted from the account

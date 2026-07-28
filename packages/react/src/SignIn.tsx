@@ -1,6 +1,6 @@
 import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { authClient, callbackURL } from "./client";
+import { useAuthClient, useCallbackURL } from "./context";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
@@ -140,6 +140,8 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 function SocialButton({ id, disabled }: { id: string; disabled: boolean }) {
+  const authClient = useAuthClient();
+  const callbackURL = useCallbackURL();
   const { pending, error, run } = useRunner();
   // Covers the card the moment it's clicked; only pulled back if the sign-in
   // call fails, since a success redirects the whole page to the provider.
