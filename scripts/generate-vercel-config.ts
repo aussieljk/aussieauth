@@ -47,8 +47,17 @@ export const PROXIED_PATHS = [
   "/.well-known/webauthn",
 ];
 
-/** Reads the deployment URL the app is pointed at. */
-export const deploymentUrl = async (): Promise<string> => {
+/**
+ * The deployment URL the app is pointed at, or null if this machine doesn't
+ * know one.
+ *
+ * Null is the normal answer in CI: `.env.local` is written by `convex dev` and
+ * is not in the repository, so a checkout has nothing to compare the committed
+ * file against. That makes "does this match the deployment?" a question only a
+ * developer's machine can answer — which is fine, because a developer's
+ * machine is also the only place the answer can change.
+ */
+export const deploymentUrl = async (): Promise<string | null> => {
   const fromEnv = process.env.VITE_CONVEX_SITE_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, "");
 
@@ -56,13 +65,19 @@ export const deploymentUrl = async (): Promise<string> => {
   // from, so the two can't disagree.
   const local = await readFile(join(root, ".env.local"), "utf8").catch(() => "");
   const match = /^VITE_CONVEX_SITE_URL=(.+)$/m.exec(local);
-  if (!match?.[1]) {
+  return match?.[1] ? match[1].trim().replace(/\/$/, "") : null;
+};
+
+/** The same, but for writing — there's nothing to generate without one. */
+const requireDeploymentUrl = async (): Promise<string> => {
+  const url = await deploymentUrl();
+  if (!url) {
     throw new Error(
       "VITE_CONVEX_SITE_URL is not set and .env.local doesn't have it. " +
         "Run `bunx convex dev` once, or set it in the environment.",
     );
   }
-  return match[1].trim().replace(/\/$/, "");
+  return url;
 };
 
 export const buildConfig = (site: string) => ({
@@ -73,26 +88,92 @@ export const buildConfig = (site: string) => ({
 const serialize = (config: ReturnType<typeof buildConfig>) =>
   `${JSON.stringify(config, null, 2)}\n`;
 
-/** The reason the committed file is out of date, or null if it isn't. */
+/**
+ * What's wrong with the committed file on its own terms, without needing to
+ * know which deployment is the right one.
+ *
+ * This is the half that can run anywhere, and it catches the realistic
+ * failure: a hand-edit that updated three rewrites and missed the fourth, or
+ * a path quietly dropped. Both leave a file that is internally inconsistent,
+ * which is visible without any outside knowledge.
+ */
+export const inconsistencies = async (): Promise<string[]> => {
+  const raw = await readFile(CONFIG, "utf8").catch(() => null);
+  if (raw === null) return ["vercel.json is missing"];
+
+  let config: ReturnType<typeof buildConfig>;
+  try {
+    config = JSON.parse(raw) as ReturnType<typeof buildConfig>;
+  } catch {
+    return ["vercel.json is not valid JSON"];
+  }
+
+  const problems: string[] = [];
+  const rewrites = config.rewrites ?? [];
+  const sources = rewrites.map((r) => r.source);
+
+  for (const path of PROXIED_PATHS) {
+    if (!sources.includes(path)) problems.push(`${path} is not proxied`);
+  }
+  for (const source of sources) {
+    if (!PROXIED_PATHS.includes(source)) problems.push(`${source} is proxied but not expected`);
+  }
+
+  const hosts = new Set(
+    rewrites.map((r) => {
+      try {
+        return new URL(r.destination).origin;
+      } catch {
+        problems.push(`${r.source} has an unparseable destination`);
+        return "";
+      }
+    }),
+  );
+  if (hosts.size > 1) {
+    // The half-updated-by-hand case, which is the one that actually happens.
+    problems.push(`rewrites point at more than one deployment: ${[...hosts].join(", ")}`);
+  }
+
+  for (const rewrite of rewrites) {
+    if (!rewrite.destination.endsWith(rewrite.source)) {
+      problems.push(`${rewrite.source} is proxied to a different path`);
+    }
+  }
+  return problems;
+};
+
+/**
+ * Whether the committed file matches the deployment this machine is pointed
+ * at. `null` when it does, or when there's no deployment to compare against.
+ */
 export const drift = async (): Promise<string | null> => {
   const site = await deploymentUrl();
-  const want = serialize(buildConfig(site));
+  if (!site) return null;
   const actual = await readFile(CONFIG, "utf8").catch(() => null);
   if (actual === null) return "vercel.json is missing";
-  if (actual !== want) return `vercel.json does not match ${site}`;
-  return null;
+  return actual === serialize(buildConfig(site)) ? null : `vercel.json does not match ${site}`;
 };
 
 if (import.meta.main) {
   if (process.argv.includes("--check")) {
-    const problem = await drift();
-    if (problem) {
-      console.error(`${problem}\n\nRun \`bun run vercel:config\` and commit the result.`);
+    const problems = [...(await inconsistencies())];
+    const stale = await drift();
+    if (stale) problems.push(stale);
+
+    if (problems.length) {
+      console.error(
+        `vercel.json needs regenerating:\n  ${problems.join("\n  ")}\n\n` +
+          "Run `bun run vercel:config` and commit the result.",
+      );
       process.exit(1);
     }
-    console.log("vercel.json is up to date.");
+    console.log(
+      (await deploymentUrl())
+        ? "vercel.json is up to date."
+        : "vercel.json is self-consistent (no local deployment to compare it against).",
+    );
   } else {
-    const site = await deploymentUrl();
+    const site = await requireDeploymentUrl();
     await writeFile(CONFIG, serialize(buildConfig(site)));
     console.log(`vercel.json now proxies ${PROXIED_PATHS.length} paths to ${site}.`);
   }

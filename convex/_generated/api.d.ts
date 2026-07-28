@@ -20,8 +20,10 @@ import type * as lib_linking from "../lib/linking.js";
 import type * as lib_methods from "../lib/methods.js";
 import type * as lib_notify from "../lib/notify.js";
 import type * as lib_registration from "../lib/registration.js";
+import type * as lib_site from "../lib/site.js";
 import type * as lib_solana from "../lib/solana.js";
 import type * as lib_status from "../lib/status.js";
+import type * as lib_twoFactorGate from "../lib/twoFactorGate.js";
 import type * as users from "../users.js";
 
 import type {
@@ -43,8 +45,10 @@ declare const fullApi: ApiFromModules<{
   "lib/methods": typeof lib_methods;
   "lib/notify": typeof lib_notify;
   "lib/registration": typeof lib_registration;
+  "lib/site": typeof lib_site;
   "lib/solana": typeof lib_solana;
   "lib/status": typeof lib_status;
+  "lib/twoFactorGate": typeof lib_twoFactorGate;
   users: typeof users;
 }>;
 

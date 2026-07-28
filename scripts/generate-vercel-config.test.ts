@@ -1,14 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { buildConfig, deploymentUrl, drift, PROXIED_PATHS } from "./generate-vercel-config";
+import {
+  buildConfig,
+  deploymentUrl,
+  drift,
+  inconsistencies,
+  PROXIED_PATHS,
+} from "./generate-vercel-config";
 
 /**
  * `vercel.json` is committed rather than built, because Vercel reads it before
  * it runs anything. That makes it the one file here that can silently point at
  * a deployment nobody uses any more — and the symptom would be Sign in with
  * Apple and cross-domain passkeys failing on production only.
+ *
+ * Two checks, because they can run in different places. The consistency ones
+ * need nothing but the file. The drift one needs to know which deployment is
+ * *right*, which only a machine with `.env.local` does — so it's skipped in CI
+ * rather than faked with a hardcoded URL, which would just move the duplicated
+ * hostname into the workflow.
  */
+
 describe("vercel.json", () => {
-  it("matches the deployment the app is pointed at", async () => {
+  it("proxies every path, all to one deployment, path for path", async () => {
+    expect(await inconsistencies()).toEqual([]);
+  });
+
+  it("matches the deployment this machine is pointed at", async () => {
+    if (!(await deploymentUrl())) {
+      // No .env.local — nothing to compare against, and nothing to conclude.
+      return;
+    }
     expect(await drift()).toBe(null);
   });
 
