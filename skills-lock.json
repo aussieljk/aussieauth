@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "better-layout": {
+      "source": "jakubkrehel/skills",
+      "sourceType": "github",
+      "skillPath": "skills/better-layout/SKILL.md",
+      "computedHash": "d166f32df548e6da2d45677d959d7020668316b036e8c495b76233b05f7a6c4e"
+    },
     "convex": {
       "source": "get-convex/agent-skills",
       "sourceType": "github",

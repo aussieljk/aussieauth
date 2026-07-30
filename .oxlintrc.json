@@ -7,6 +7,7 @@
     "typeAware": true
   },
   "plugins": ["typescript", "react", "react-hooks", "import", "unicorn"],
+  "jsPlugins": ["./oxlint-plugin-local.ts"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn",
@@ -23,6 +24,9 @@
     "public/docs"
   ],
   "rules": {
+    // Bans every `className` — run `oxlint --fix` to strip them.
+    "local/no-classname": "warn",
+
     // The two that catch real bugs in this codebase: a missing dep in the
     // remembered-account probe, or a floating auth promise nobody awaits.
     "react-hooks/exhaustive-deps": "error",

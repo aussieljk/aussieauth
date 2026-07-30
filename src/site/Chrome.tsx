@@ -1,73 +1,52 @@
-import { Button, Typography } from "@aussieljk/frosted";
-import { Link, type LinkProps } from "@tanstack/react-router";
-import type { ReactNode } from "react";
-
-const { Text } = Typography;
+import { Link } from "@tanstack/react-router";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
 
 /**
- * Header and footer for the pages anyone can read. The sign-in card and the
- * account page deliberately don't use it — both are single-purpose screens, and
- * a nav bar on them is just somewhere else to click mid-sign-in.
+ * A single header for the pages anyone can read. The sign-in card and the
+ * account page deliberately don't use it — both are single-purpose screens.
  */
 export function Chrome({ children, bleed = false }: { children: ReactNode; bleed?: boolean }) {
+  const rowInner = bleed
+    ? "w-full lg:w-1/2 mx-auto max-w-md px-6"
+    : "mx-auto w-full max-w-5xl px-6";
+  // Measuring the header's real height keeps the sticky offset of the landing's
+  // split-screen card correct under zoom and late font loads. Exposed as
+  // `--header-h` for descendants to reference in `top`/`height` calc.
+  const headerRef = useRef<HTMLElement>(null);
+  const [headerH, setHeaderH] = useState(57);
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => setHeaderH(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-10 border-b border-[var(--gray-a4)] bg-[var(--gray-1)]/80 backdrop-blur">
-        <nav className="mx-auto flex w-full max-w-5xl items-center gap-6 px-6 py-4">
+    <div className="flex min-h-screen flex-col" style={{ "--header-h": `${headerH}px` } as CSSProperties}>
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-10 border-b border-[var(--gray-a4)] bg-[var(--gray-1)]/80 backdrop-blur"
+      >
+        <nav className={`${rowInner} flex items-center justify-between gap-6 py-3`}>
           <Link to="/" className="flex items-center gap-2 font-medium">
-            <img src="/logo.svg" alt="" width={22} height={22} />
+            <img src="/logo.svg" alt="" width={20} height={20} />
             AussieAuth
           </Link>
-          <div className="flex flex-1 items-center gap-5 text-[14px]">
-            <NavLink to="/docs">Docs</NavLink>
-            <NavLink to="/playground">Playground</NavLink>
-            <NavLink to="/setup/google">Google setup</NavLink>
-            <NavLink to="/setup/apple">Apple setup</NavLink>
-          </div>
-          {/* The one action in the header, so it gets the accent the text
-              links don't. */}
-          <Link to="/sign-in">
-            <Button size="1" variant="classic" color="green">
-              Sign in →
-            </Button>
+          <Link
+            to="/docs"
+            className="text-[14px] text-[var(--gray-11)] transition-colors hover:text-[var(--gray-12)]"
+          >
+            Docs
           </Link>
         </nav>
       </header>
 
-      {/* `bleed` hands the page the full viewport width — the landing's
-          split-screen halves centre their own content instead. */}
       <main className={bleed ? "w-full flex-1" : "mx-auto w-full max-w-5xl flex-1 px-6 py-10"}>
         {children}
       </main>
-
-      <footer className="border-t border-[var(--gray-a4)]">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-6 py-6">
-          <Text color="gray">
-            Your apps talk to this server directly — no AussieAuth consent screen, ever.
-          </Text>
-          <div className="flex gap-4 text-[13px]">
-            <a href="/llms.txt" className="text-[var(--gray-11)] underline">
-              llms.txt
-            </a>
-            <a href="/sitemap.xml" className="text-[var(--gray-11)] underline">
-              sitemap
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
-  );
-}
-
-/** `to` is the router's own union, so a typo'd nav link is a type error. */
-function NavLink({ to, children }: { to: LinkProps["to"]; children: ReactNode }) {
-  return (
-    <Link
-      to={to}
-      className="text-[var(--gray-11)] transition-colors hover:text-[var(--gray-12)]"
-      activeProps={{ className: "!text-[var(--gray-12)]" }}
-    >
-      {children}
-    </Link>
   );
 }
