@@ -11,6 +11,7 @@
   "bin": {
     "aussieauth": "./dist/cli.js"
   },
+  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "README.md",

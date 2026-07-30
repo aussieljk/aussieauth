@@ -38,3 +38,8 @@ public/docs
 # Vitest browser-mode failure artifacts
 .vitest-attachments
 __screenshots__
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

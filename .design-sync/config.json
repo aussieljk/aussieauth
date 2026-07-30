@@ -1,0 +1,61 @@
+{
+  "projectId": "e67fbe2f-6f0e-488a-934c-b3bb8f417a30",
+  "shape": "package",
+  "pkg": "@aussieljk/auth",
+  "buildCmd": "bun run build",
+  "extraEntries": [
+    "../../.design-sync/ds-provider.tsx"
+  ],
+  "provider": {
+    "component": "PreviewProvider"
+  },
+  "docsMap": {
+    "AussieAuthSignIn": "../../.design-sync/groups/cards.md",
+    "SignIn": "../../.design-sync/groups/cards.md",
+    "GooglePanel": "../../.design-sync/groups/method-panels.md",
+    "GitHubPanel": "../../.design-sync/groups/method-panels.md",
+    "ApplePanel": "../../.design-sync/groups/method-panels.md",
+    "DemoPanel": "../../.design-sync/groups/method-panels.md",
+    "AnonymousPanel": "../../.design-sync/groups/method-panels.md",
+    "PasskeyPanel": "../../.design-sync/groups/method-panels.md",
+    "SolanaPanel": "../../.design-sync/groups/method-panels.md",
+    "EmailPasswordPanel": "../../.design-sync/groups/method-panels.md",
+    "UsernamePasswordPanel": "../../.design-sync/groups/method-panels.md",
+    "PhonePasswordPanel": "../../.design-sync/groups/method-panels.md",
+    "MagicLinkPanel": "../../.design-sync/groups/method-panels.md",
+    "EmailOtpPanel": "../../.design-sync/groups/method-panels.md",
+    "SmsOtpPanel": "../../.design-sync/groups/method-panels.md",
+    "AccountNumberPanel": "../../.design-sync/groups/method-panels.md",
+    "AgentPanel": "../../.design-sync/groups/method-panels.md",
+    "GoogleLogo": "../../.design-sync/groups/logos.md",
+    "GitHubLogo": "../../.design-sync/groups/logos.md",
+    "AppleLogo": "../../.design-sync/groups/logos.md",
+    "SolanaLogo": "../../.design-sync/groups/logos.md",
+    "AgentLogo": "../../.design-sync/groups/logos.md",
+    "Field": "../../.design-sync/groups/form-primitives.md",
+    "CodeInput": "../../.design-sync/groups/form-primitives.md",
+    "CodeField": "../../.design-sync/groups/form-primitives.md",
+    "Feedback": "../../.design-sync/groups/form-primitives.md",
+    "Submit": "../../.design-sync/groups/form-primitives.md",
+    "BigButton": "../../.design-sync/groups/form-primitives.md",
+    "PanelForm": "../../.design-sync/groups/form-primitives.md",
+    "Destructive": "../../.design-sync/groups/form-primitives.md",
+    "RememberedAccounts": "../../.design-sync/groups/accounts.md",
+    "RedirectOverlay": "../../.design-sync/groups/system.md",
+    "RouteLoading": "../../.design-sync/groups/system.md",
+    "AussieAuthClientProvider": "../../.design-sync/groups/system.md"
+  },
+  "overrides": {
+    "RedirectOverlay": {
+      "cardMode": "single",
+      "viewport": "380x260",
+      "primaryStory": "Google"
+    },
+    "RouteLoading": {
+      "cardMode": "single",
+      "viewport": "380x240",
+      "primaryStory": "Default"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}
