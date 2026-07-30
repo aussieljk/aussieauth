@@ -1,4 +1,4 @@
-import { Spinner, Typography, VStack } from "@aussieljk/frosted";
+import { Spinner, Typography, VStack } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "@/ErrorBoundary";
@@ -49,7 +49,7 @@ function Landing() {
   return (
     <Chrome bleed>
       <div className="grid w-full lg:grid-cols-2 lg:items-start">
-        <div className="order-2 flex w-full justify-center px-6 py-14 lg:col-start-1 lg:row-start-1 lg:min-h-[calc(100vh-var(--header-h))] lg:items-center">
+        <div className="order-2 flex w-full justify-center px-6 py-14 lg:col-start-1 lg:row-start-1 lg:min-h-[calc(100vh-3.5rem)] lg:items-center">
           <VStack alignment="leading" spacing={20} className="w-full min-w-0 max-w-md">
             <Heading size="8" className="text-balance">
               One auth server. Fifteen ways in.
@@ -63,7 +63,7 @@ function Landing() {
 
         {/* The product's half: stays put below the sticky header while the
             pitch scrolls, and scrolls internally when taller than the viewport. */}
-        <div className="order-1 min-w-0 border-b border-[var(--gray-alpha-200)] bg-[var(--gray-surface)] lg:col-start-2 lg:row-start-1 lg:sticky lg:top-[var(--header-h)] lg:h-[calc(100vh-var(--header-h))] lg:overflow-y-auto lg:border-b-0 lg:border-s">
+        <div className="order-1 min-w-0 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-14 lg:h-[calc(100vh-3.5rem)] lg:overflow-y-auto">
           <LiveCard />
         </div>
       </div>
@@ -82,7 +82,7 @@ function LiveCard() {
   useEffect(() => setMounted(true), []);
 
   const placeholder = (
-    <div className="flex min-h-[420px] items-center justify-center lg:min-h-[calc(100vh-var(--header-h))]">
+    <div className="flex min-h-[420px] items-center justify-center lg:min-h-[calc(100vh-3.5rem)]">
       <Spinner size="3" />
     </div>
   );

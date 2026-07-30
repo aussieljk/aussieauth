@@ -1,4 +1,4 @@
-import { Alert } from "@aussieljk/frosted";
+import { Alert, Link as UiLink } from "ljkui";
 import { Link } from "@tanstack/react-router";
 import { useConvexAuth } from "convex/react";
 import { SignIn } from "@aussieljk/auth";
@@ -37,9 +37,7 @@ function SignedInNotice() {
     <Alert.Root color="green">
       <Alert.Title>G&rsquo;day — you&rsquo;re already signed in</Alert.Title>
       <Alert.Description>
-        <Link to="/account" className="underline">
-          Your account is over here →
-        </Link>{" "}
+        <UiLink render={<Link to="/account" />}>Your account is over here →</UiLink>{" "}
         Or sign in again below with a different method.
       </Alert.Description>
     </Alert.Root>

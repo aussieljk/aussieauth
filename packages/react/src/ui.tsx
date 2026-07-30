@@ -1,5 +1,5 @@
-import { Alert, Button, IconButton, Input, Spinner, Tooltip, Typography } from "@aussieljk/frosted";
-import { Icons, type IconProps } from "@aussieljk/frosted/icons";
+import { Alert, Button, HStack, IconButton, Input, Spinner, Tooltip, Typography } from "ljkui";
+import { Icons, type IconProps } from "ljkui/icons";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
 
 const { Text } = Typography;
@@ -149,12 +149,12 @@ export function RouteLoading() {
  */
 export function RedirectOverlay({ label, icon }: { label: string; icon?: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[var(--color-background)]">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4">
       {icon}
-      <div className="flex items-center gap-2">
+      <HStack spacing={8}>
         <Spinner size="3" />
         <Text color="gray">Taking you to {label}…</Text>
-      </div>
+      </HStack>
     </div>
   );
 }

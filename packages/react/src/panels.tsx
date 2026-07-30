@@ -1,4 +1,4 @@
-import { Button, Checkbox, Typography } from "@aussieljk/frosted";
+import { Button, Checkbox, Typography } from "ljkui";
 import { useState } from "react";
 import { useAuthClient, useCallbackURL } from "./context";
 import { PENDING_ACCOUNT_NUMBER } from "./storage";
@@ -523,7 +523,7 @@ export function AccountNumberPanel() {
         <Submit pending={pending}>Sign in</Submit>
       </PanelForm>
       <Feedback error={error} />
-      <div className="flex flex-col gap-2 border-t border-[var(--gray-a5)] pt-4">
+      <div className="flex flex-col gap-2 pt-4">
         <Text color="gray">
           No email, no password, no recovery — the number is the whole account.
         </Text>

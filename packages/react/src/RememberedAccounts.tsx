@@ -1,5 +1,5 @@
-import { Avatar, Spinner, Typography } from "@aussieljk/frosted";
-import { Icons } from "@aussieljk/frosted/icons";
+import { Avatar, Button, HStack, Spinner, Typography } from "ljkui";
+import { Icons } from "ljkui/icons";
 import { useEffect, useRef, useState } from "react";
 import { type AussieAuthClient } from "./client";
 import { useAuthClient, useCallbackURL } from "./context";
@@ -121,18 +121,19 @@ export function RememberedAccounts({
   return (
     <div className="flex flex-col gap-2">
       {accounts.map((account) => (
-        <div key={account.id} className="flex items-center gap-1">
-          <button
+        <HStack key={account.id} spacing={4}>
+          <Button
             type="button"
+            variant="surface"
             disabled={busy !== null}
             onClick={() => void signIn(account)}
-            className="flex flex-1 items-center gap-3 rounded-md border border-[var(--gray-a5)] px-3 py-2 text-left transition-colors hover:bg-[var(--gray-a3)] disabled:opacity-60"
+            className="flex-1 justify-start gap-3"
           >
             <Avatar
               src={account.image ?? undefined}
               fallback={(account.name || account.email || "?").slice(0, 1).toUpperCase()}
             />
-            <span className="flex min-w-0 flex-1 flex-col">
+            <span className="flex min-w-0 flex-1 flex-col text-left">
               <Text weight="medium" className="truncate">
                 {account.name || account.email}
               </Text>
@@ -141,14 +142,14 @@ export function RememberedAccounts({
               </Text>
             </span>
             {busy === account.id && <Spinner />}
-          </button>
+          </Button>
           <Destructive
             label={`Forget ${account.name || account.email}`}
             icon={Icons.Close}
             disabled={busy !== null}
             onClick={() => void forgetRemembered(account).then(() => setAccounts(listRemembered))}
           />
-        </div>
+        </HStack>
       ))}
       <Feedback error={error} />
     </div>

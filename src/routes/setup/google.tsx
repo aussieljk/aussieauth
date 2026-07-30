@@ -1,4 +1,4 @@
-import { Typography } from "@aussieljk/frosted";
+import { Link as UiLink, Typography } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
 import { DocLink } from "@/docs/DocLink";
 import { callbackFor } from "@/setup/deployment";
@@ -32,9 +32,7 @@ function GoogleSetup() {
             this deployment — copy them across rather than typing them, since a single character off
             produces <code>redirect_uri_mismatch</code> and nothing more helpful. The same
             walkthrough in prose is at{" "}
-            <DocLink slug="setup/google" className="underline">
-              docs/setup/google
-            </DocLink>
+            <DocLink slug="setup/google">docs/setup/google</DocLink>
             .
           </>
         }
@@ -42,14 +40,13 @@ function GoogleSetup() {
         <Step n={1} title="Create an OAuth client">
           <Note>
             In the{" "}
-            <a
+            <UiLink
               href="https://console.cloud.google.com/apis/credentials"
               target="_blank"
               rel="noreferrer"
-              className="underline"
             >
               Google Cloud Console
-            </a>
+            </UiLink>
             , go to{" "}
             <strong>
               APIs &amp; Services → Credentials → Create Credentials → OAuth client ID
@@ -84,7 +81,7 @@ function GoogleSetup() {
         </Step>
 
         <VerifyStep n={4} method="google" label="Google">
-          <Text color="gray" className="block">
+          <Text color="gray" render={<p />}>
             Once this goes green the Google button on the sign-in card loses its &ldquo;needs
             setup&rdquo; badge.
           </Text>

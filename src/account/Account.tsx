@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
-import { Badge, Button, Card, Input, Typography } from "@aussieljk/frosted";
-import { Icons } from "@aussieljk/frosted/icons";
+import { Alert, Badge, Button, Card, Input, Typography } from "ljkui";
+import { Icons } from "ljkui/icons";
 import type { FunctionReturnType } from "convex/server";
 import { type ReactNode, useState } from "react";
 import { api } from "@/convex/_generated/api";
@@ -215,7 +215,7 @@ function AccountNumberReveal() {
   if (!number) return null;
 
   return (
-    <Card className="border border-[var(--amber-a6)] bg-[var(--amber-a2)]">
+    <Alert.Root color="amber">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex flex-col gap-0.5">
           <Heading>Save your account number</Heading>
@@ -224,9 +224,7 @@ function AccountNumberReveal() {
         <div className="flex items-center gap-3">
           {/* Amber throughout: this is a "write it down or lose the account"
               warning, and the theme accent would dress it up as good news. */}
-          <Code color="amber" className="tracking-[0.2em]">
-            {number.replace(/(\d{4})(?=\d)/g, "$1 ")}
-          </Code>
+          <Code color="amber">{number.replace(/(\d{4})(?=\d)/g, "$1 ")}</Code>
           <Button
             variant="classic"
             color="amber"
@@ -239,7 +237,7 @@ function AccountNumberReveal() {
           </Button>
         </div>
       </div>
-    </Card>
+    </Alert.Root>
   );
 }
 
@@ -461,12 +459,12 @@ function AgentKeys({ locked }: { locked: boolean }) {
       }
     >
       {fresh && (
-        <div className="flex flex-col gap-1 rounded-md border border-[var(--amber-a6)] bg-[var(--amber-a2)] p-2">
+        <Alert.Root color="amber">
           <Text weight="medium">Copy this now — it isn't shown again.</Text>
           <Code color="amber" className="break-all">
             {fresh}
           </Code>
-        </div>
+        </Alert.Root>
       )}
 
       {keys.map((key) => (

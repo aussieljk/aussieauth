@@ -1,4 +1,4 @@
-import { Typography } from "@aussieljk/frosted";
+import { Link as UiLink, Typography, VStack } from "ljkui";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useRef } from "react";
 import { DeploymentField, useDeploymentRewrite } from "@/docs/Deployment";
@@ -56,26 +56,18 @@ function DocPage() {
             <doc.Content />
           </article>
 
-          <Text color="gray" className="mt-10 block">
+          <Text color="gray" className="mt-10" render={<p />}>
             Read this page as markdown:{" "}
-            <a href={`/docs/${slug || "index"}.md`} className="underline">
-              /docs/{slug || "index"}.md
-            </a>
+            <UiLink href={`/docs/${slug || "index"}.md`}>/docs/{slug || "index"}.md</UiLink>
           </Text>
 
-          <nav className="mt-6 flex justify-between gap-4 border-t border-[var(--gray-a4)] pt-6">
+          <nav className="mt-6 flex justify-between gap-4 pt-6">
             {previous ? (
-              <DocLink slug={previous.slug} className="underline">
-                ← {previous.title}
-              </DocLink>
+              <DocLink slug={previous.slug}>← {previous.title}</DocLink>
             ) : (
               <span />
             )}
-            {next && (
-              <DocLink slug={next.slug} className="underline">
-                {next.title} →
-              </DocLink>
-            )}
+            {next && <DocLink slug={next.slug}>{next.title} →</DocLink>}
           </nav>
         </div>
       </div>
@@ -86,7 +78,7 @@ function DocPage() {
 function Sidebar({ current }: { current: string }) {
   return (
     <aside className="hidden w-52 shrink-0 lg:block">
-      <div className="sticky top-24 flex flex-col gap-1 text-[14px]">
+      <VStack alignment="leading" spacing={4} className="sticky top-24">
         {DOCS.map((doc) => (
           <DocLink
             key={doc.slug}
@@ -100,7 +92,7 @@ function Sidebar({ current }: { current: string }) {
             {doc.title}
           </DocLink>
         ))}
-      </div>
+      </VStack>
     </aside>
   );
 }

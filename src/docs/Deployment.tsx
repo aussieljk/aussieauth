@@ -1,4 +1,4 @@
-import { Typography } from "@aussieljk/frosted";
+import { Card, Input, Typography } from "ljkui";
 import { type RefObject, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 
 const { Text } = Typography;
@@ -191,19 +191,18 @@ export function DeploymentField() {
   const resolved = toDeploymentName(shown);
 
   return (
-    <div className="mb-8 flex flex-col gap-2 rounded-[var(--radius-3)] border border-[var(--gray-a5)] bg-[var(--gray-a2)] p-3">
+    <Card className="mb-8 flex flex-col gap-2">
       <label className="flex flex-col gap-1.5">
         <Text color="gray" weight="medium">
           Your deployment
         </Text>
-        <input
+        <Input.Control
           value={shown}
           spellCheck={false}
           autoCapitalize="off"
           autoCorrect="off"
           placeholder="giddy-dinosaur-765"
           onChange={(e) => commit(e.target.value)}
-          className="w-full rounded-[var(--radius-2)] border border-[var(--gray-a6)] bg-[var(--color-background)] px-2.5 py-1.5 font-mono text-[13px] outline-none focus:border-[var(--accent-8)]"
         />
       </label>
       <Text color="gray">
@@ -224,6 +223,6 @@ export function DeploymentField() {
           </>
         )}
       </Text>
-    </div>
+    </Card>
   );
 }

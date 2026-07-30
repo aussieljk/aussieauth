@@ -1,4 +1,4 @@
-import { Typography } from "@aussieljk/frosted";
+import { Typography, VStack } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthProvider } from "@/auth/AuthProvider";
 import { Chrome } from "@/site/Chrome";
@@ -32,14 +32,16 @@ export const Route = createFileRoute("/playground")({
 function PlaygroundRoute() {
   return (
     <Chrome>
+      {/* Stretch container (full-width child) — ljkui stacks hug their content,
+          so this stays a flex column. */}
       <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
+        <VStack alignment="leading" spacing={8}>
           <Heading>Playground</Heading>
           <Text color="gray">
             The real <code>&lt;AussieAuthSignIn&gt;</code>, not a mockup. Change anything on the
             left and the card and the snippet both follow.
           </Text>
-        </div>
+        </VStack>
         {/* The card reaches for a configured client the moment a social button
             renders, so it needs the same provider the sign-in page uses. */}
         <AuthProvider>

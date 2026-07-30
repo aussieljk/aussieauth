@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Typography } from "@aussieljk/frosted";
+import { Badge, Button, Card, FilterChip, HStack, Input, Spacer, Typography } from "ljkui";
 import { AussieAuthSignIn, PROVIDERS } from "@aussieljk/auth";
 import { useMemo, useState } from "react";
 
@@ -73,11 +73,7 @@ export function Playground() {
               <Text color="gray" weight="medium">
                 App name
               </Text>
-              <input
-                value={appName}
-                onChange={(e) => setAppName(e.target.value)}
-                className="w-full rounded-[var(--radius-2)] border border-[var(--gray-a6)] bg-[var(--color-background)] px-2.5 py-1.5 text-[14px] outline-none focus:border-[var(--accent-8)]"
-              />
+              <Input.Control value={appName} onChange={(e) => setAppName(e.target.value)} />
             </label>
 
             <Group
@@ -160,17 +156,18 @@ export function Playground() {
 
       <Card className="min-w-0 flex-1">
         <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-3">
+          <HStack alignment="firstTextBaseline" spacing={12}>
             <Heading>Preview</Heading>
+            <Spacer />
             <Badge color="gray">live component</Badge>
-          </div>
+          </HStack>
           {methods.length === 0 ? (
             <Text color="gray">Pick at least one method.</Text>
           ) : (
             // The card's own shell is a full-height centred screen, which is
             // right where it lives and too tall here — so the preview is a
             // window onto it rather than a resize of it.
-            <div className="max-h-[760px] overflow-auto rounded-[var(--radius-3)] border border-[var(--gray-a5)]">
+            <div className="max-h-[760px] overflow-auto">
               {/* Keyed on everything, because the card holds which panel is open
                   in its own state — changing the method list under it would
                   otherwise leave a panel on screen for a method you just
@@ -214,12 +211,13 @@ function Group({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between gap-2">
+      <HStack alignment="firstTextBaseline" spacing={8}>
         <Text color="gray" weight="medium">
           {label}
         </Text>
+        <Spacer />
         {extra}
-      </div>
+      </HStack>
       <Text color="gray">{hint}</Text>
       <div className="flex flex-wrap gap-1.5">
         {options.map((id) => (
@@ -242,18 +240,9 @@ function Chip({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`rounded-full border px-2.5 py-1 font-mono text-[12px] transition-colors ${
-        active
-          ? "border-[var(--accent-8)] bg-[var(--accent-a3)] text-[var(--gray-12)]"
-          : "border-[var(--gray-a5)] text-[var(--gray-11)] hover:border-[var(--gray-a8)]"
-      }`}
-    >
+    <FilterChip checked={active} onCheckedChange={() => onClick()}>
       {children}
-    </button>
+    </FilterChip>
   );
 }
 
@@ -263,8 +252,9 @@ function Snippet({ code }: { code: string }) {
   return (
     <Card>
       <div className="flex flex-col gap-2">
-        <div className="flex items-baseline justify-between gap-3">
+        <HStack alignment="firstTextBaseline" spacing={12}>
           <Heading>Paste this</Heading>
+          <Spacer />
           <Button
             size="1"
             variant="surface"
@@ -277,8 +267,8 @@ function Snippet({ code }: { code: string }) {
           >
             {copied ? "Copied" : "Copy"}
           </Button>
-        </div>
-        <pre className="overflow-x-auto rounded-[var(--radius-2)] bg-[var(--gray-a2)] p-3 font-mono text-[12px] leading-relaxed">
+        </HStack>
+        <pre className="overflow-x-auto p-3">
           <Code>{code}</Code>
         </pre>
       </div>

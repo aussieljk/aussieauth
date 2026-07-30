@@ -1,4 +1,4 @@
-import { Alert, Typography } from "@aussieljk/frosted";
+import { Alert, Link as UiLink, Typography } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
 import { DocLink } from "@/docs/DocLink";
 import { SITE_URL } from "@/setup/deployment";
@@ -32,9 +32,7 @@ function AppleSetup() {
             secret isn&rsquo;t a secret, and the return URL has to be on a domain Apple has
             verified. Each step below says which value goes where. The same walkthrough in prose is
             at{" "}
-            <DocLink slug="setup/apple" className="underline">
-              docs/setup/apple
-            </DocLink>
+            <DocLink slug="setup/apple">docs/setup/apple</DocLink>
             .
           </>
         }
@@ -42,14 +40,13 @@ function AppleSetup() {
         <Step n={1} title="Create an App ID">
           <Note>
             In the{" "}
-            <a
+            <UiLink
               href="https://developer.apple.com/account/resources/identifiers/list"
               target="_blank"
               rel="noreferrer"
-              className="underline"
             >
               Apple Developer portal
-            </a>
+            </UiLink>
             , go to <strong>Identifiers → + → App IDs → App</strong>. Give it a description —
             that&rsquo;s what users see during sign-in — set a bundle ID, tick{" "}
             <strong>Sign In with Apple</strong>, and register.
@@ -163,7 +160,7 @@ function AppleSetup() {
         </Step>
 
         <VerifyStep n={7} method="apple" label="Apple">
-          <Text color="gray" className="block">
+          <Text color="gray" render={<p />}>
             This checks all four of <code>APPLE_CLIENT_ID</code>, <code>APPLE_TEAM_ID</code>,{" "}
             <code>APPLE_KEY_ID</code> and <code>APPLE_PRIVATE_KEY</code> — the provider only
             registers when every one is present.

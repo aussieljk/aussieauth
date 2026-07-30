@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@aussieljk/auth": "workspace:*",
-    "@aussieljk/frosted": "^0.0.1-4",
+    "ljkui": "^0.0.1-8",
     "@better-auth/api-key": "1.6.25",
     "@better-auth/expo": "1.6.25",
     "@better-auth/passkey": "1.6.25",

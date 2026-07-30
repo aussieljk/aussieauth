@@ -1,4 +1,4 @@
-import { Card, Typography } from "@aussieljk/frosted";
+import { Card, Link as UiLink, Typography, VStack } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
 import { DocLink } from "@/docs/DocLink";
 import { DOCS, docBySlug } from "@/docs/registry";
@@ -31,16 +31,11 @@ function DocsIndex() {
         {overview ? <overview.Content /> : <Heading>Documentation</Heading>}
       </article>
 
-      <Text color="gray" className="mt-8 block">
+      <Text color="gray" className="mt-8" render={<p />}>
         Also available as{" "}
-        <a href="/llms.txt" className="underline">
-          /llms.txt
-        </a>{" "}
-        and{" "}
-        <a href="/llms-full.txt" className="underline">
-          /llms-full.txt
-        </a>
-        , and each page as raw markdown at <code>/docs/&lt;slug&gt;.md</code>.
+        <UiLink href="/llms.txt">/llms.txt</UiLink> and{" "}
+        <UiLink href="/llms-full.txt">/llms-full.txt</UiLink>, and each page as raw markdown at{" "}
+        <code>/docs/&lt;slug&gt;.md</code>.
       </Text>
 
       {/* Every page linked from here, which is also how the prerenderer finds
@@ -48,11 +43,11 @@ function DocsIndex() {
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {pages.map((doc) => (
           <DocLink key={doc.slug} slug={doc.slug} className="block">
-            <Card className="h-full transition-colors hover:bg-[var(--gray-a2)]">
-              <div className="flex flex-col gap-1">
+            <Card className="h-full">
+              <VStack alignment="leading" spacing={4}>
                 <Text weight="medium">{doc.title}</Text>
                 <Text color="gray">{doc.description}</Text>
-              </div>
+              </VStack>
             </Card>
           </DocLink>
         ))}

@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
+import { Alert, Badge, Button, Card, HStack, Link as UiLink, Separator, Typography, VStack } from "ljkui";
 import { useState } from "react";
 import { useAppRegistration } from "./appInfo";
 import { useAuthBaseURL, useAuthClient, useCallbackURL } from "./context";
@@ -109,12 +109,12 @@ export function SignIn({
     const Panel = PANELS[method];
     return (
       <Shell>
-        <div className="flex flex-col gap-1">
-          <Button variant="ghost" className="-ml-1 self-start" onClick={() => setMethod(null)}>
+        <VStack alignment="leading" spacing={8}>
+          <Button variant="ghost" className="-ml-1" onClick={() => setMethod(null)}>
             ← All sign-in options
           </Button>
-          <Heading className="mt-2">{provider.label}</Heading>
-        </div>
+          <Heading>{provider.label}</Heading>
+        </VStack>
         {needsSetup(method) && <SetupHint id={method} />}
         <Panel prefill={prefill} />
       </Shell>
@@ -125,11 +125,11 @@ export function SignIn({
 
   return (
     <Shell>
-      <div className="flex flex-col gap-1">
+      <VStack alignment="leading" spacing={4}>
         {logo && <div className="mb-2">{logo}</div>}
         <Heading>{title ?? `Welcome to ${appName}`}</Heading>
         <Text color="gray">{subtitle ?? `${offered.length} ways in. Pick one.`}</Text>
-      </div>
+      </VStack>
 
       {notice}
 
@@ -137,6 +137,8 @@ export function SignIn({
 
       <RememberedAccounts onNeedsPanel={open} />
 
+      {/* Stretch container: the social buttons are full-width, so this stays a
+          flex column rather than a content-hugging VStack. */}
       <div className="flex flex-col gap-2">
         {shownFeatured.map((id) => (
           <SocialButton key={id} id={id} disabled={needsSetup(id)} />
@@ -161,7 +163,7 @@ export function SignIn({
       </div>
 
       {footer && (
-        <Text color="gray" className="text-center">
+        <Text color="gray" align="center">
           {footer}
         </Text>
       )}
@@ -196,14 +198,14 @@ function UnregisteredOrigin({ origin }: { origin: string | null }) {
   const baseURL = useAuthBaseURL();
   const command = `aussieauth apps register --slug <your-app> --origin ${origin ?? "<your-origin>"}`;
   return (
-    <div className="flex flex-col gap-2 rounded-[var(--radius-3)] border border-[var(--amber-a6)] bg-[var(--amber-a2)] p-3">
-      <Text weight="medium">This origin isn&rsquo;t registered</Text>
-      <Text color="gray">
+    <Alert.Root color="amber">
+      <Alert.Title>This origin isn&rsquo;t registered</Alert.Title>
+      <Alert.Description>
         {origin ?? "This app"} can&rsquo;t reach {baseURL || "the deployment"} until it registers.
         Every button below will be blocked by the browser before the request is sent.
-      </Text>
+      </Alert.Description>
       <Code className="whitespace-pre-wrap break-all">{command}</Code>
-    </div>
+    </Alert.Root>
   );
 }
 
@@ -267,9 +269,7 @@ function SetupHint({ id }: { id: string }) {
       {guide[id] && (
         <>
           {" "}
-          <a href={guide[id]} className="underline">
-            Walk me through it →
-          </a>
+          <UiLink href={guide[id]}>Walk me through it →</UiLink>
         </>
       )}
     </Text>
@@ -278,10 +278,10 @@ function SetupHint({ id }: { id: string }) {
 
 function OrDivider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3">
+    <HStack spacing={12}>
       <Separator className="flex-1" />
       <Text color="gray">{label}</Text>
       <Separator className="flex-1" />
-    </div>
+    </HStack>
   );
 }

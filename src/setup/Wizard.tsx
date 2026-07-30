@@ -1,5 +1,5 @@
-import { Badge, Button, Card, Spinner, Tooltip, Typography } from "@aussieljk/frosted";
-import { Icons } from "@aussieljk/frosted/icons";
+import { Badge, Button, Card, HStack, Spinner, Tooltip, Typography } from "ljkui";
+import { Icons } from "ljkui/icons";
 import { type ReactNode, useState } from "react";
 import { useSetupStatus } from "@aussieljk/auth";
 
@@ -25,8 +25,8 @@ export function Wizard({
 }) {
   return (
     <div className="max-w-3xl">
-      <Heading className="text-3xl">{title}</Heading>
-      <Text color="gray" className="mt-2 block">
+      <Heading size="7">{title}</Heading>
+      <Text color="gray" className="mt-2" render={<p />}>
         {intro}
       </Text>
       <ol className="mt-8 flex flex-col gap-4">{children}</ol>
@@ -38,15 +38,15 @@ export function Step({ n, title, children }: { n: number; title: string; childre
   return (
     <li>
       <Card>
-        <div className="flex gap-4">
-          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--gray-a6)] text-[13px] tabular-nums">
+        <HStack alignment="top" spacing={16}>
+          <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center">
             {n}
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <Heading className="text-lg">{title}</Heading>
+            <Heading size="4">{title}</Heading>
             {children}
           </div>
-        </div>
+        </HStack>
       </Card>
     </li>
   );
@@ -55,7 +55,7 @@ export function Step({ n, title, children }: { n: number; title: string; childre
 /** Body copy inside a step. Steps are dense enough without a wrapper per line. */
 export function Note({ children }: { children: ReactNode }) {
   return (
-    <Text color="gray" className="block">
+    <Text color="gray" render={<p />}>
       {children}
     </Text>
   );
@@ -75,7 +75,7 @@ export function Copyable({
     <div className="flex flex-col gap-1.5">
       <Text weight="medium">{label}</Text>
       <div className="flex items-stretch gap-2">
-        <code className="min-w-0 flex-1 overflow-x-auto whitespace-pre rounded-md border border-[var(--gray-a4)] bg-[var(--gray-2)] px-3 py-2 text-[12.5px] leading-relaxed">
+        <code className="min-w-0 flex-1 overflow-x-auto whitespace-pre px-3 py-2">
           {value}
         </code>
         <CopyButton value={value} label={label} />

@@ -1,3 +1,4 @@
+import { Alert } from "ljkui";
 import { Component, ReactNode } from "react";
 
 export class ErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -13,10 +14,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: s
   render() {
     if (this.state.error !== null) {
       return (
-        <div className="container mx-auto flex flex-col gap-4 border border-red-500/50 bg-red-500/20 p-8">
-          <h1 className="text-xl font-bold">Caught an error while rendering:</h1>
-          <p className="font-mono text-sm">{this.state.error}</p>
-        </div>
+        <Alert.Root color="red">
+          <Alert.Title>Caught an error while rendering:</Alert.Title>
+          <Alert.Description>{this.state.error}</Alert.Description>
+        </Alert.Root>
       );
     }
 

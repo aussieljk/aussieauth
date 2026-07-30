@@ -1,5 +1,5 @@
-import { Badge, Button, Card, Input, Typography } from "@aussieljk/frosted";
-import { Icons } from "@aussieljk/frosted/icons";
+import { Badge, Button, Card, Input, Link as UiLink, Typography } from "ljkui";
+import { Icons } from "ljkui/icons";
 import { type ReactNode, useCallback, useState } from "react";
 import {
   authClient,
@@ -105,7 +105,7 @@ function Row({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-2 border-t border-[var(--gray-a3)] pt-2.5 first:border-0 first:pt-0">
+    <div className="flex flex-col gap-2 pt-2.5 first:pt-0">
       <div className="flex min-h-7 items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
           <Text>{label}</Text>
@@ -549,9 +549,7 @@ function TwoFactor({
         <div className="flex flex-col gap-2">
           <Text color="gray">
             Add the secret to your authenticator —{" "}
-            <a href={enrolment.totpURI} className="underline">
-              open it directly
-            </a>{" "}
+            <UiLink href={enrolment.totpURI}>open it directly</UiLink>{" "}
             or type it in — then confirm a code to switch it on.
           </Text>
           <Code className="break-all">{totpSecret(enrolment.totpURI)}</Code>
@@ -617,9 +615,9 @@ function Wallets({ locked }: { locked: boolean }) {
     >
       {wallets.map((wallet) => (
         <div key={wallet.address} className="flex items-center justify-between gap-3">
-          <Text color="gray" className="truncate font-mono">
+          <Code color="gray" className="truncate">
             {wallet.address.slice(0, 6)}…{wallet.address.slice(-6)}
-          </Text>
+          </Code>
           <Destructive
             label={`Unlink wallet ${wallet.address.slice(0, 6)}…`}
             icon={Icons.Close}

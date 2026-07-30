@@ -24,8 +24,10 @@
     "public/docs"
   ],
   "rules": {
-    // Bans every `className` — run `oxlint --fix` to strip them.
-    "local/no-classname": "warn",
+    // Flags every `className` — off by default now that layout-only Tailwind
+    // classNames are allowed. Enable ad hoc (`--rules local/no-classname:warn`)
+    // to audit for stray non-layout classNames.
+    "local/no-classname": "off",
 
     // The two that catch real bugs in this codebase: a missing dep in the
     // remembered-account probe, or a floating auth promise nobody awaits.

@@ -57,7 +57,7 @@
     "release": "bun run build && bun publish --access public"
   },
   "dependencies": {
-    "@aussieljk/frosted": "^0.0.1-2",
+    "ljkui": "^0.0.1-8",
     "bs58": "^6.0.0",
     "zod": "^4.4.3"
   },

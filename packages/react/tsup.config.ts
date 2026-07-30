@@ -20,7 +20,7 @@ export default defineConfig({
   dts: true,
   clean: true,
   treeshake: true,
-  // Keep CSS imports (`./styles.css`, `@aussieljk/frosted/styles.css`) as
+  // Keep CSS imports (`./styles.css`, `ljkui/styles.css`) as
   // external `import` statements in the output; the consumer's bundler resolves
   // them. `./styles.css` lands next to dist/index.js — the tailwind step writes it.
   external: [/\.css$/, "react-native", "expo-router"],

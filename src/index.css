@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@aussieljk/frosted/styles.css";
+@import "ljkui/styles.css";
 
 /* The app is dark-only. Painting the page background before Frosted's `Theme`
    mounts keeps the first frame from flashing white. This is dark `--neutral-1`,

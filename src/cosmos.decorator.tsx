@@ -1,8 +1,8 @@
-import { Theme } from "@aussieljk/frosted";
+import { Theme } from "ljkui";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import type { ReactNode } from "react";
 // Resolves `Icons.Trash` and friends the way `main.tsx` does for the app.
-import "@aussieljk/frosted/icons/lucide";
+import "ljkui/icons/lucide";
 
 /**
  * Everything the app mounts above a screen. Fixtures never reach a real

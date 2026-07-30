@@ -1,9 +1,9 @@
-import { Theme } from "@aussieljk/frosted";
+import { Theme } from "ljkui";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
-import "@aussieljk/frosted/styles.css";
+import "ljkui/styles.css";
 // Registers the library `Icons.Trash` and friends resolve through. Without an
 // adapter every canonical icon renders as nothing.
-import "@aussieljk/frosted/icons/lucide";
+import "ljkui/icons/lucide";
 import "../index.css";
 import { ErrorBoundary } from "../ErrorBoundary";
 
