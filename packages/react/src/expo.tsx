@@ -1,4 +1,5 @@
 import { expoClient } from "@better-auth/expo/client";
+import type { BetterAuthClientPlugin } from "better-auth/client";
 import { apiKeyClient } from "@better-auth/api-key/client";
 import { passkeyClient } from "@better-auth/passkey/client";
 import { ConvexBetterAuthProvider } from "@convex-dev/better-auth/react";
@@ -129,6 +130,10 @@ const buildExpoClient = (
       statusClient(),
       apiKeyClient(),
       twoFactorClient(),
+      // `@better-auth/expo@1.6.25`'s `getActions` return type doesn't
+      // structurally match `BetterAuthClientPlugin` — an upstream typing quirk
+      // that only the dts build (not `tsc -p`) trips on. The plugin is correct
+      // at runtime; the cast keeps the published types buildable.
       expoClient({
         scheme: options.scheme,
         storage: options.storage,
@@ -136,11 +141,13 @@ const buildExpoClient = (
         cookiePrefix: options.cookiePrefix,
         disableCache: options.disableCache,
         webBrowserOptions: options.webBrowserOptions,
-      }),
+      }) as unknown as BetterAuthClientPlugin,
       crossDomainClient(),
       convexClient(),
+      // NB: the trailing cast on `createAuthClient(...)` below is what keeps the
+      // published return type stable despite the plugin cast above.
     ],
-  });
+  }) as unknown as ReturnType<typeof createAuthClient>;
 
 export type AussieAuthExpoClient = ReturnType<typeof buildExpoClient>;
 
