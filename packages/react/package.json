@@ -8,6 +8,9 @@
     "url": "git+https://github.com/aussieljk/aussieauth.git",
     "directory": "packages/react"
   },
+  "bin": {
+    "aussieauth": "./dist/cli.js"
+  },
   "files": [
     "dist",
     "README.md"
@@ -33,10 +36,15 @@
       "types": "./dist/solana.d.ts",
       "import": "./dist/solana.js"
     },
+    "./convex": {
+      "types": "./dist/convex.d.ts",
+      "import": "./dist/convex.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js"
+    },
     "./styles.css": "./dist/styles.css"
-  },
-  "bin": {
-    "aussieauth": "./dist/cli.js"
   },
   "scripts": {
     "build": "bun run build:js && bun run build:css",
@@ -63,6 +71,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "better-auth": "1.6.23",
+    "convex": "^1.42.3",
+    "msw": "^2.15.0",
     "tailwindcss": "^4.2.2",
     "tsup": "^8.5.0",
     "typescript": "^5.9.3"
@@ -73,15 +83,23 @@
     "@better-auth/passkey": "1.6.23",
     "@convex-dev/better-auth": "^0.12.5",
     "better-auth": "1.6.23",
-    "react": "^19.0.0",
+    "convex": "^1.42.3",
+    "expo-router": "*",
     "expo-secure-store": "*",
     "expo-web-browser": "*",
-    "expo-router": "*",
-    "react-native": "*",
-    "react-dom": "^19.0.0"
+    "msw": "^2.15.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-native": "*"
   },
   "peerDependenciesMeta": {
     "@better-auth/expo": {
+      "optional": true
+    },
+    "convex": {
+      "optional": true
+    },
+    "msw": {
       "optional": true
     },
     "expo-secure-store": {

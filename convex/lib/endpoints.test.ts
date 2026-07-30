@@ -199,10 +199,15 @@ describe("the demo account", () => {
     const { setCookie } = await post(auth, "/sign-in/demo");
     const cookie = setCookie.split(";")[0] ?? "";
 
-    const setPassword = await post(auth, "/change-password", {
-      newPassword: "hunter2hunter2",
-      currentPassword: "whatever",
-    }, { cookie });
+    const setPassword = await post(
+      auth,
+      "/change-password",
+      {
+        newPassword: "hunter2hunter2",
+        currentPassword: "whatever",
+      },
+      { cookie },
+    );
 
     expect(setPassword.status).toBe(403);
     expect(String(setPassword.body.message)).toMatch(/shared and read-only/);

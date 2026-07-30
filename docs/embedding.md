@@ -1,6 +1,6 @@
 ---
 title: Using it from another app
-description: Register an app against an AussieAuth deployment, trust its origins, and drop the sign-in card into it without a redirect.
+description: Scaffold AussieAuth into a web or native app in one command, register its origins, and drop the sign-in card in without a redirect.
 order: 5
 ---
 
@@ -8,15 +8,86 @@ order: 5
 
 Nothing in the AussieAuth repo changes. The new app registers itself.
 
-## Register the app
-
-Set the provisioning secret in **that** app's Convex, then have it POST its own
-config once — origins first, everything else optional:
+## One command
 
 ```sh
-# in the new app
-bunx convex env set AUSSIEAUTH_SECRET "<the value from this deployment>"
+bun add @aussieljk/auth
+bunx aussieauth init
 ```
+
+`init` works out what kind of app it's in — Vite, Next, TanStack Start, Expo —
+and writes the provider and a sign-in route for it. It reads
+`CONVEX_DEPLOYMENT` out of the project's own `.env.local` to derive the
+deployment URL, and registers the dev origin in the same pass, so `localhost`
+works before you've read anything about origins.
+
+That last step needs the deployment's provisioning secret:
+
+```sh
+bunx convex env set AUSSIEAUTH_SECRET "<the value from the AussieAuth deployment>"
+export AUSSIEAUTH_SECRET="<the same value>"   # init reads it from the environment
+```
+
+Without it `init` still writes the files and prints the `apps register` command
+to run once you have the secret.
+
+### The URL nobody can guess
+
+A Convex deployment answers on two hostnames, and only one of them serves auth:
+
+- `https://your-deployment.convex.cloud` — the query/mutation API
+- `https://your-deployment.convex.site` — the HTTP router, which is where AussieAuth lives
+
+Pointing the client at `.convex.cloud` produces `TypeError: Failed to fetch`
+with no status and no body, which is indistinguishable from the deployment
+being down. `init` derives the right one rather than asking, and the CLI
+corrects a `.convex.cloud` URL wherever it's given one.
+
+## The provider
+
+```tsx
+import { AussieAuthProvider } from "@aussieljk/auth/convex";
+import "@aussieljk/auth/styles.css";
+
+export function Providers({ children }) {
+  return <AussieAuthProvider>{children}</AussieAuthProvider>;
+}
+```
+
+It builds the AussieAuth client and the Convex client, wires them together, and
+puts the client where the card can find it. Both URLs come from the environment
+(`VITE_CONVEX_URL` / `NEXT_PUBLIC_CONVEX_URL`, and `VITE_AUSSIEAUTH_URL` /
+`NEXT_PUBLIC_AUSSIEAUTH_URL` — or derived from the Convex URL when unset). Pass
+`authUrl`, `convexUrl`, `authClient` or `convexClient` when you want control
+over any of them.
+
+It lives on `@aussieljk/auth/convex` rather than the root entry deliberately:
+the card talks to the auth server over plain HTTP and imports no Convex, so it
+works in an app that has none. `@aussieljk/auth/expo` is the same provider for
+native.
+
+```tsx
+import { AussieAuthSignIn } from "@aussieljk/auth";
+
+<AussieAuthSignIn appName="My App" />;
+```
+
+The app never redirects to AussieAuth — it talks to the deployment from its own
+origin, so the only consent screen is the provider's.
+
+## Registering by hand
+
+`init` does this for you. The command it runs is:
+
+```sh
+bunx aussieauth apps register \
+  --auth-url https://your-deployment.convex.site \
+  --slug portfolio --name "Portfolio" \
+  --origin https://portfolio.com --origin http://localhost:5173 \
+  --methods google,passkey        # omit for all fifteen
+```
+
+Or over HTTP, which is what a server-to-server registration on boot looks like:
 
 ```ts
 await fetch(`${AUSSIEAUTH_URL}/apps/register`, {
@@ -29,7 +100,7 @@ await fetch(`${AUSSIEAUTH_URL}/apps/register`, {
     slug: "portfolio", // stable id; survives a domain move
     name: "Portfolio",
     origins: ["https://portfolio.com", "http://localhost:5173"],
-    methods: ["google", "passkey"], // omit for all fifteen
+    methods: ["google", "passkey"],
   }),
 });
 ```
@@ -40,37 +111,76 @@ list, and sessions created from them are stamped with the slug.
 Registration is idempotent, so calling it on boot and letting it re-run is the
 intended usage — that's what makes a wiped table repair itself.
 
-`POST /apps/unregister` with `{slug}` takes it all back.
+## Reading your own registration
 
-## Add the client
+`GET /apps/me` answers from the calling origin alone:
 
-Copy `src/auth/` and `src/lib/auth-client.ts` into that app and point it at the
-deployment:
-
-```tsx
-// src/lib/auth-client.ts — the one line that changes per app
-export const authClient = createAuthClient({
-  baseURL: import.meta.env.VITE_CONVEX_SITE_URL, // https://<deployment>.convex.site
-  plugins: [/* … */],
-});
+```json
+{
+  "origin": "https://portfolio.com",
+  "trusted": true,
+  "registered": true,
+  "slug": "portfolio",
+  "name": "Portfolio",
+  "methods": ["google", "passkey"]
+}
 ```
 
-```tsx
-import { SignIn } from "./auth/SignIn";
+The card fetches this on mount and draws only the methods that will work, so a
+method your app didn't register is a button that was never there rather than a
+403 you find by clicking. Pass `respectRegistration={false}` to draw a fixed set
+regardless.
 
-<SignIn />;
+`trusted` and `registered` answer different questions and the difference
+matters: an origin can be trusted through `TRUSTED_ORIGINS` with no app row at
+all — that's how a deployment's own sign-in page works. Only `trusted: false`
+means the request will be blocked.
+
+The endpoint is readable from **any** origin, registered or not, and that's the
+point. A request the browser blocks has no response body to explain itself, so
+this is the only way a client can tell "the deployment doesn't know me" from
+"the deployment isn't there". It's safe to leave unauthenticated: it tells an
+origin about itself and nothing else, and the origin list is already public at
+`/.well-known/webauthn`.
+
+From a terminal:
+
+```sh
+bunx aussieauth apps show --auth-url https://your-deployment.convex.site --origin https://portfolio.com
 ```
 
-The app never redirects to AussieAuth — it talks to the deployment from its own
-origin, so the only consent screen is the provider's.
+## Errors that name the fix
 
-`<SignIn />` takes `methods` to narrow the list, `featured` to choose which
-buttons sit on the front of the card, and `primary` for the form underneath them.
+Every failure the card shows is run through a translation first, so the three
+that account for most failed integrations come back with a command in them
+rather than a diagnosis:
 
-The client plugin shims in `auth-client.ts` import _types_ from `convex/lib/`, so
-copy that folder too, or keep both apps pointed at one checkout. Nothing under
-`src/auth/` imports Convex — the card talks to the auth server over HTTP like any
-other client, so it works in a non-Convex app as well.
+| What happens                 | What you see                                                            |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| Origin not registered        | The origin, and `aussieauth apps register --origin …`                   |
+| Method not in the allow-list | The methods you did register, and the command that adds the missing one |
+| Provider credentials unset   | The exact variables, and the `convex env set` that sets them            |
+| Wrong deployment hostname    | `.convex.cloud` named, with the `.convex.site` URL to use instead       |
+
+A blocked request has nothing to inspect, so the card asks `/apps/me` — which
+can't itself be blocked — before deciding which of those it is.
+`explainAussieAuthError` and `diagnoseAussieAuthError` are exported if you're
+rendering your own UI.
+
+## Revoking
+
+```sh
+bunx aussieauth apps unregister --slug portfolio
+```
+
+Prints what it would remove and stops. Add `--confirm` and it asks you to type
+the slug back before doing it. Over HTTP, `POST /apps/unregister` answers with
+a `wouldRemove` preview unless the body carries `confirm: true`.
+
+Existing sessions survive; every new sign-in from those origins stops
+immediately. The app's row is kept with a `revokedAt` rather than deleted, so
+re-registering restores its previous method list instead of starting from a
+blank one.
 
 ## What origins are for
 
@@ -101,8 +211,10 @@ rest, `/apps/register` answers with the slot usage:
 }
 ```
 
-If your app's origin shows up in `dropped`, passkeys won't work from it —
-unregister something or consolidate onto fewer sites.
+The CLI prints a warning naming any origin in `dropped`, and `/admin` shows the
+budget as five slots with names in them. If your app's origin lands in
+`dropped`, passkeys won't work from it and nothing else will tell you — revoke
+an app you no longer use, or consolidate onto fewer sites.
 
 ## Method allow-lists
 
@@ -112,6 +224,24 @@ screen.
 
 It fails **open** for origins no app has claimed, which is what keeps a
 deployment's own sign-in page working with an empty table.
+
+## Testing without a deployment
+
+```tsx
+import { AussieAuthSignIn } from "@aussieljk/auth";
+import { MockApi, workingDeployment } from "@aussieljk/auth/testing";
+
+<MockApi handlers={workingDeployment}>
+  <AussieAuthSignIn appName="My App" />
+</MockApi>;
+```
+
+MSW handlers for every endpoint the card touches, plus the wrapper that boots
+them — so the card renders in your tests, your Storybook, or a sandbox with no
+backend at all. `appWithMethods(["google", "passkey"])` and
+`mountHandlers.appUnregistered` cover the allow-list and the unregistered-origin
+states. `msw` is an optional peer dependency; nothing else in the package
+imports it.
 
 ## Questions
 
@@ -128,4 +258,13 @@ Within five seconds. The registry is cached per isolate for that long; the
 isolate that handled the registration invalidates its copy immediately.
 
 **Can I use this without Convex on the frontend?**
-Yes. `src/auth/` imports no Convex. Only the backend is Convex-specific.
+Yes. The root entry imports no Convex — that's why the provider lives on
+`@aussieljk/auth/convex`. Use `createAussieAuthClient` and
+`<AussieAuthClientProvider>` instead. Only the backend is Convex-specific.
+
+**Why did the console warn about a contract generation?**
+The published client infers its types from copies of the server plugins, so it's
+correct only while the deployment runs the same generation of them. The
+deployment reports its generation on `/aussieauth/status` and the package
+compares it with the one compiled in, warning once in development. Update
+whichever side is behind.

@@ -1,9 +1,15 @@
 import { httpRouter } from "convex/server";
 import { ConvexError } from "convex/values";
 import { internal } from "./_generated/api";
-import { authComponent, createAuth, relatedOrigins, relatedOriginUsage } from "./auth";
+import {
+  authComponent,
+  createAuth,
+  relatedOrigins,
+  relatedOriginUsage,
+  trustedOrigins,
+} from "./auth";
 import { env, httpAction } from "./_generated/server";
-import { invalidateApps, RELATED_ORIGIN_LABEL_LIMIT } from "./lib/apps";
+import { invalidateApps, isTrustedOrigin, RELATED_ORIGIN_LABEL_LIMIT } from "./lib/apps";
 import { parseRegistration, secretMatches } from "./lib/registration";
 
 const http = httpRouter();
@@ -176,7 +182,94 @@ http.route({
   }),
 });
 
-/** Revoke an app. Same secret, same reasoning as `/apps/register`. */
+/**
+ * What this deployment knows about the calling origin: which app claimed it,
+ * and which methods that app may use.
+ *
+ * The gap this closes: an app registers a method list, the server enforces it,
+ * and until now the app couldn't read it back — so the card drew buttons for
+ * methods guaranteed to 403 and you found out one click at a time. Reading it
+ * turns a 403-on-click into a button that was never drawn.
+ *
+ * It also answers the question behind the invisible CORS failure. A request
+ * blocked before it left the browser has no response to inspect; this one is
+ * readable from *any* origin, so "the deployment is up and it doesn't know
+ * you" becomes something a client can actually distinguish and say.
+ *
+ * Unauthenticated on purpose, and safe: it tells an origin about itself and
+ * nothing else — no listing, no lookup by slug — and the origin list is
+ * already public at `/.well-known/webauthn`.
+ *
+ * Not a Better Auth endpoint, deliberately. Those ride the CORS allow-list,
+ * which is exactly the list an unregistered origin isn't on, so the one caller
+ * that most needs this answer would be the one blocked from reading it.
+ */
+const ME_CORS = {
+  // `*` rather than the echoed origin because there are no credentials on this
+  // route and nothing origin-specific to protect — the answer is derived from
+  // the Origin header, not from a cookie.
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "content-type",
+  "Access-Control-Max-Age": "86400",
+} as const;
+
+http.route({
+  path: "/apps/me",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const origin = request.headers.get("origin") ?? request.headers.get("expo-origin");
+    if (!origin) {
+      // Server-to-server, or curl. There's no origin to answer about, and
+      // guessing one would be worse than saying so.
+      return Response.json(
+        { registered: false, origin: null, reason: "No Origin header on the request" },
+        { headers: ME_CORS },
+      );
+    }
+
+    const [app, origins] = await Promise.all([
+      ctx.runQuery(internal.apps.forOrigin, { origin }),
+      trustedOrigins(ctx),
+    ]);
+
+    return Response.json(
+      {
+        origin,
+        /**
+         * Whether the request will be allowed at all. Not the same question as
+         * `registered`: this deployment's own site is trusted through
+         * `SITE_URL` and owns no row in `apps`, so an app-shaped answer alone
+         * would report the sign-in page as locked out of its own server.
+         */
+        trusted: isTrustedOrigin(origins, origin),
+        /** Whether a registered app claimed it, which is what gates `methods`. */
+        registered: Boolean(app),
+        slug: app?.slug ?? null,
+        name: app?.name ?? null,
+        /** null means every method is allowed, matching the registry. */
+        methods: app?.methods ?? null,
+      },
+      { headers: ME_CORS },
+    );
+  }),
+});
+
+http.route({
+  path: "/apps/me",
+  method: "OPTIONS",
+  handler: httpAction(async () => new Response(null, { status: 204, headers: ME_CORS })),
+});
+
+/**
+ * Revoke an app. Same secret, same reasoning as `/apps/register`.
+ *
+ * Answers with what *would* be removed unless the body says `confirm: true`,
+ * so the destructive form is the one you have to ask for. Registering is
+ * idempotent and safe to repeat; this is neither, and the two otherwise sit
+ * behind the same secret with the same shape of request — one word of
+ * difference between "add my app" and "cut my app off".
+ */
 http.route({
   path: "/apps/unregister",
   method: "POST",
@@ -194,14 +287,37 @@ http.route({
     }
 
     const body: unknown = await request.json().catch(() => null);
-    const slug = (body as { slug?: unknown } | null)?.slug;
+    const { slug, confirm } = (body ?? {}) as { slug?: unknown; confirm?: unknown };
     if (typeof slug !== "string" || !slug) {
       return Response.json({ error: "slug is required" }, { status: 400 });
     }
 
+    const preview = await ctx.runQuery(internal.apps.revocationPreview, { slug });
+    if (!preview) {
+      // Already gone, or never here. Not an error — the caller wanted this app
+      // to have no access, and it doesn't.
+      return Response.json({ slug, removed: false, origins: [] });
+    }
+
+    if (confirm !== true) {
+      return Response.json({
+        slug,
+        removed: false,
+        dryRun: true,
+        wouldRemove: preview,
+        hint: "Re-send with { confirm: true } to revoke. Existing sessions survive; new sign-ins from these origins stop immediately.",
+      });
+    }
+
     const result = await ctx.runMutation(internal.apps.unregister, { slug });
     invalidateApps();
-    return Response.json(result);
+    return Response.json({
+      ...result,
+      // Named in the answer because re-registering restores it, and the
+      // easiest way to be sure of that is to see it written down here.
+      methods: preview.methods,
+      hint: `Re-register "${slug}" to restore these origins and its method list.`,
+    });
   }),
 });
 

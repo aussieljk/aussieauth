@@ -100,7 +100,7 @@ Native apps register **scheme origins** rather than URLs:
 {
   "slug": "myapp",
   "name": "My App",
-  "origins": ["myapp://", "exp://"]
+  "origins": ["myapp://", "exp://"],
 }
 ```
 

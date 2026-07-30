@@ -157,8 +157,7 @@ export const authClient: AussieAuthClient = new Proxy({} as AussieAuthClient, {
 /** Base URL of the configured server — read by the setup-status probe. */
 export let baseURL = "";
 
-const originCallback = () =>
-  typeof window !== "undefined" ? `${window.location.origin}/` : "/";
+const originCallback = () => (typeof window !== "undefined" ? `${window.location.origin}/` : "/");
 
 let resolveCallback: () => string = originCallback;
 

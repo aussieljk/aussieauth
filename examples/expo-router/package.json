@@ -1,7 +1,7 @@
 {
   "name": "aussieauth-expo-router-example",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

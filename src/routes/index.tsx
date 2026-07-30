@@ -105,8 +105,10 @@ function Landing() {
 
         {/* The product's half: its own raised surface, split off by a
             hairline, and it stays put (below the sticky header) while the
-            pitch scrolls. */}
-        <div className="min-w-0 border-t border-[var(--gray-alpha-200)] bg-[var(--gray-surface)] lg:sticky lg:top-[65px] lg:min-h-[calc(100vh-65px)] lg:border-l lg:border-t-0">
+            pitch scrolls. It scrolls internally, because a card taller than
+            the viewport is otherwise pinned with its foot off-screen and no
+            way to reach it. */}
+        <div className="min-w-0 border-t border-[var(--gray-alpha-200)] bg-[var(--gray-surface)] lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)] lg:overflow-y-auto lg:border-l lg:border-t-0">
           <LiveCard />
         </div>
       </div>
@@ -188,8 +190,8 @@ function RegisterSection() {
         An app registers itself
       </Heading>
       <Text>
-        One POST, on boot. Its origins become trusted, land in the passkey related-origins list, and
-        stamp every session it creates.
+        One command. Its origins become trusted, land in the passkey related-origins list, and stamp
+        every session it creates — and the card then draws only the methods it registered.
       </Text>
       <Snippet>
         <RegisterSnippet />

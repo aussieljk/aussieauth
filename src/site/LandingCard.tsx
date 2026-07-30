@@ -11,42 +11,37 @@ import { AuthProvider } from "@/auth/AuthProvider";
  * chunk still doesn't carry the auth client.
  *
  * Deliberately still the sign-in card when a session already exists: the card
- * is the product being demonstrated, so it stays on screen and a banner above
+ * is the product being demonstrated, so it stays on screen and a notice inside
  * it points at the account page instead.
  */
 export default function LandingCard() {
   return (
     <AuthProvider>
-      <div className="relative">
-        <SignedInBanner />
-        <SignIn
-          appName="AussieAuth"
-          title="Try it right here"
-          subtitle="The real card, signed into this deployment."
-          footer="Every method below is live — this is the same component your apps embed."
-        />
-      </div>
+      <SignIn
+        appName="AussieAuth"
+        title="Try it right here"
+        subtitle="The real card, signed into this deployment."
+        notice={<SignedInNotice />}
+        footer="Every method below is live — this is the same component your apps embed."
+      />
     </AuthProvider>
   );
 }
 
-function SignedInBanner() {
+/** Sits inside the card, under the heading — see `SignIn`'s `notice`. */
+function SignedInNotice() {
   const { isAuthenticated } = useConvexAuth();
   if (!isAuthenticated) return null;
 
   return (
-    // Floats over the top of the panel rather than sitting in the flow, so the
-    // card underneath stays exactly where it is when the session appears.
-    <div className="absolute inset-x-0 top-0 z-10 p-4">
-      <Alert.Root color="green">
-        <Alert.Description>
-          G&rsquo;day — you&rsquo;re already signed in.{" "}
-          <Link to="/account" className="underline">
-            Your account is over here →
-          </Link>{" "}
-          Or sign in again below with a different method.
-        </Alert.Description>
-      </Alert.Root>
-    </div>
+    <Alert.Root color="green">
+      <Alert.Title>G&rsquo;day — you&rsquo;re already signed in</Alert.Title>
+      <Alert.Description>
+        <Link to="/account" className="underline">
+          Your account is over here →
+        </Link>{" "}
+        Or sign in again below with a different method.
+      </Alert.Description>
+    </Alert.Root>
   );
 }

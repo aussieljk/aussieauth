@@ -34,7 +34,7 @@ while developing.
 
 That fallback is local-only. It applies when `SITE_URL` points at localhost; off
 a real domain, a missing provider key is an error rather than a log line, because
-a magic link *is* the credential and "sent" that quietly means "logged" is the
+a magic link _is_ the credential and "sent" that quietly means "logged" is the
 worst of both.
 
 ## Environment variables are typed

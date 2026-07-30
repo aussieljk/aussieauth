@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { capToRelatedOriginLimit, matchApp, type App } from "./apps";
+import { capToRelatedOriginLimit, isTrustedOrigin, matchApp, type App } from "./apps";
 
 /**
  * The WebAuthn related-origins limit counts distinct sites, not origins. Going
@@ -113,5 +113,39 @@ describe("matchApp", () => {
     expect(matchApp(registry, "https://stranger.test")).toBeNull();
     expect(matchApp(registry, "otherapp://")).toBeNull();
     expect(matchApp(new Map(), "exp://192.168.1.5:8081/--/")).toBeNull();
+  });
+});
+
+/**
+ * "Will this request be allowed?" — which is a different question from "did an
+ * app claim this origin?", and `/apps/me` answers both because conflating them
+ * would tell the deployment's own sign-in page it was locked out of its own
+ * server. This site is trusted through `SITE_URL` and owns no row in `apps`.
+ */
+
+describe("isTrustedOrigin", () => {
+  const trusted = [
+    "https://aussieauth.com",
+    "https://appleid.apple.com",
+    "http://localhost:5173",
+    "exp://",
+  ];
+
+  it("matches a web origin exactly", () => {
+    expect(isTrustedOrigin(trusted, "https://aussieauth.com")).toBe(true);
+    expect(isTrustedOrigin(trusted, "http://localhost:5173")).toBe(true);
+  });
+
+  it("matches a scheme origin by prefix, as Better Auth's own list does", () => {
+    expect(isTrustedOrigin(trusted, "exp://192.168.1.5:8081/--/")).toBe(true);
+  });
+
+  it("does not prefix-match web origins", () => {
+    expect(isTrustedOrigin(trusted, "https://aussieauth.com.evil.test")).toBe(false);
+  });
+
+  it("rejects an origin nobody listed", () => {
+    expect(isTrustedOrigin(trusted, "https://stranger.test")).toBe(false);
+    expect(isTrustedOrigin([], "https://aussieauth.com")).toBe(false);
   });
 });

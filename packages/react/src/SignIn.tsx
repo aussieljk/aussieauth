@@ -1,6 +1,8 @@
 import { Badge, Button, Card, Separator, Typography } from "@aussieljk/frosted";
 import { useState } from "react";
-import { useAuthClient, useCallbackURL } from "./context";
+import { useAppRegistration } from "./appInfo";
+import { useAuthBaseURL, useAuthClient, useCallbackURL } from "./context";
+import { PROVIDER_ENV_VARS } from "./errors";
 import { PANELS } from "./methods";
 import { EmailPasswordPanel } from "./panels";
 import { byId, ctaFor, PROVIDERS, type Provider } from "./providers";
@@ -9,7 +11,7 @@ import { BigButton, Feedback, RedirectOverlay } from "./ui";
 import { useRunner } from "./useRunner";
 import { useSetupStatus } from "./useSetupStatus";
 
-const { Heading, Text } = Typography;
+const { Code, Heading, Text } = Typography;
 
 export type SignInProps = {
   /** The app this card signs into — drives the default heading. */
@@ -29,11 +31,28 @@ export type SignInProps = {
   /** A line at the foot of the card. Omit for none. */
   footer?: React.ReactNode;
   /**
+   * A message at the top of the card body, under the heading — an alert, a
+   * note about the session already open. In the card rather than floated over
+   * it, so it can never land on top of the heading.
+   */
+  notice?: React.ReactNode;
+  /**
    * Badge methods whose credentials aren't set on the server as "needs setup".
    * Only useful on the AussieAuth deployment's own admin site; off by default,
    * so an embedding app never probes the status endpoint.
    */
   setupHints?: boolean;
+  /**
+   * Ask the deployment which methods this app actually registered, and draw
+   * only those.
+   *
+   * On by default, because the alternative is what it replaces: buttons that
+   * are guaranteed to come back 403, found one click at a time. One cached GET
+   * to `/apps/me` per deployment. Turn it off for a card that should render a
+   * fixed set regardless of what the server says — a screenshot, a fixture, a
+   * design review.
+   */
+  respectRegistration?: boolean;
 };
 
 const DEFAULT_FEATURED = ["google", "github", "apple"];
@@ -53,15 +72,32 @@ export function SignIn({
   subtitle,
   logo,
   footer,
+  notice,
   setupHints = false,
+  respectRegistration = true,
 }: SignInProps = {}) {
   const [method, setMethod] = useState<string | null>(null);
   const [prefill, setPrefill] = useState("");
   const { needsSetup } = useSetupStatus(setupHints);
+  const { app, allows, blocked } = useAppRegistration(respectRegistration);
 
-  const offered = methods ? PROVIDERS.filter((p) => methods.includes(p.id)) : PROVIDERS;
+  // Two filters, and they answer different questions. `methods` is what this
+  // card was asked to show; `allows` is what the server will actually accept.
+  // Anything failing the second is a button whose only possible outcome is a
+  // 403, so it isn't drawn at all.
+  const offered = (methods ? PROVIDERS.filter((p) => methods.includes(p.id)) : PROVIDERS).filter(
+    (p) => allows(p.id),
+  );
 
-  const rest: Provider[] = offered.filter((p) => p.id !== primary && !featured.includes(p.id));
+  const shownFeatured = featured.filter(allows);
+  // Falling back keeps the card usable when the app didn't register the method
+  // it asked to feature — an empty body would be the one outcome worse than
+  // the wrong form.
+  const resolvedPrimary = allows(primary) ? primary : (offered[0]?.id ?? primary);
+
+  const rest: Provider[] = offered.filter(
+    (p) => p.id !== resolvedPrimary && !shownFeatured.includes(p.id),
+  );
 
   const open = (id: string, withPrefill = "") => {
     setPrefill(withPrefill);
@@ -85,7 +121,7 @@ export function SignIn({
     );
   }
 
-  const PrimaryPanel = PANELS[primary] ?? EmailPasswordPanel;
+  const PrimaryPanel = PANELS[resolvedPrimary] ?? EmailPasswordPanel;
 
   return (
     <Shell>
@@ -95,15 +131,19 @@ export function SignIn({
         <Text color="gray">{subtitle ?? `${offered.length} ways in. Pick one.`}</Text>
       </div>
 
+      {notice}
+
+      {blocked && <UnregisteredOrigin origin={app?.origin ?? null} />}
+
       <RememberedAccounts onNeedsPanel={open} />
 
       <div className="flex flex-col gap-2">
-        {featured.map((id) => (
+        {shownFeatured.map((id) => (
           <SocialButton key={id} id={id} disabled={needsSetup(id)} />
         ))}
       </div>
 
-      <OrDivider label={`or continue with ${byId(primary).label.toLowerCase()}`} />
+      <OrDivider label={`or continue with ${byId(resolvedPrimary).label.toLowerCase()}`} />
 
       <PrimaryPanel />
 
@@ -131,10 +171,38 @@ export function SignIn({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center p-6">
-      <Card className="w-[420px]">
+    // `m-auto` rather than `items-center`: auto margins collapse to zero when
+    // there isn't room, so a card taller than the viewport sits at the top and
+    // scrolls instead of overflowing off the top edge where nothing can reach
+    // it.
+    <div className="flex min-h-screen p-6">
+      <Card className="m-auto w-[420px]">
         <div className="flex flex-col gap-5">{children}</div>
       </Card>
+    </div>
+  );
+}
+
+/**
+ * The card saying, before you click anything, that nothing on it can work.
+ *
+ * An unregistered origin fails identically for every method — the browser
+ * blocks the request before it leaves — and the failure has no response body
+ * to explain itself. The deployment already knows (`/apps/me` answers from any
+ * origin, registered or not), so there is no reason to make someone click a
+ * button to find out.
+ */
+function UnregisteredOrigin({ origin }: { origin: string | null }) {
+  const baseURL = useAuthBaseURL();
+  const command = `aussieauth apps register --slug <your-app> --origin ${origin ?? "<your-origin>"}`;
+  return (
+    <div className="flex flex-col gap-2 rounded-[var(--radius-3)] border border-[var(--amber-a6)] bg-[var(--amber-a2)] p-3">
+      <Text weight="medium">This origin isn&rsquo;t registered</Text>
+      <Text color="gray">
+        {origin ?? "This app"} can&rsquo;t reach {baseURL || "the deployment"} until it registers.
+        Every button below will be blocked by the browser before the request is sent.
+      </Text>
+      <Code className="whitespace-pre-wrap break-all">{command}</Code>
     </div>
   );
 }
@@ -142,7 +210,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function SocialButton({ id, disabled }: { id: string; disabled: boolean }) {
   const authClient = useAuthClient();
   const callbackURL = useCallbackURL();
-  const { pending, error, run } = useRunner();
+  const { pending, error, run } = useRunner({ method: id });
   // Covers the card the moment it's clicked; only pulled back if the sign-in
   // call fails, since a success redirects the whole page to the provider.
   const [redirecting, setRedirecting] = useState(false);
@@ -192,15 +260,10 @@ function SetupHint({ id }: { id: string }) {
     google: "/setup/google",
     apple: "/setup/apple",
   };
-  const vars: Record<string, string> = {
-    google: "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET",
-    github: "GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET",
-    apple: "APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY",
-  };
   return (
     <Text color="amber">
-      Set {vars[id] ?? "the provider credentials"} with <code>npx convex env set</code> to enable
-      this.
+      Set {PROVIDER_ENV_VARS[id] ?? "the provider credentials"} with{" "}
+      <code>bunx convex env set</code> to enable this.
       {guide[id] && (
         <>
           {" "}

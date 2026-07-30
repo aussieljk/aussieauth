@@ -1,5 +1,6 @@
 import type { BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint } from "better-auth/api";
+import { CONTRACT_GENERATION } from "./contract";
 
 /**
  * Which methods have their credentials set on this deployment. The sign-in UI
@@ -15,12 +16,30 @@ import { createAuthEndpoint } from "better-auth/api";
  */
 export type SetupStatus = Record<string, boolean>;
 
+/**
+ * The credential flags plus `contractGeneration`.
+ *
+ * One extra field on an endpoint the card already calls, rather than a second
+ * round trip: see `lib/contract.ts` for what the number is for. It rides along
+ * here because the alternative — a client that only learns it's out of step
+ * when a call fails — is the failure this is meant to replace.
+ *
+ * Additive on purpose. A client built before this existed reads the flags and
+ * ignores the number, and `needsSetup` only ever tests `=== false`, so a
+ * number can't be mistaken for a method that needs setting up.
+ */
+export type StatusResponse = {
+  contractGeneration: number;
+  /** The credential flags. Booleans, unlike the field above. */
+  [method: string]: boolean | number;
+};
+
 export const status = (probe: () => SetupStatus) =>
   ({
     id: "status",
     endpoints: {
       aussieAuthStatus: createAuthEndpoint("/aussieauth/status", { method: "GET" }, async (ctx) =>
-        ctx.json(probe()),
+        ctx.json({ ...probe(), contractGeneration: CONTRACT_GENERATION } satisfies StatusResponse),
       ),
     },
   }) satisfies BetterAuthPlugin;

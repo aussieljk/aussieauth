@@ -1,4 +1,6 @@
 import { callbackURL } from "./client";
+import { readEnv } from "./env";
+import { explainAussieAuthError } from "./errors";
 import { byId, ctaFor, PROVIDERS } from "./providers";
 import { PENDING_ACCOUNT_NUMBER } from "./storage";
 import type { AussieAuthExpoClient } from "./expo";
@@ -45,22 +47,24 @@ const errorMessage = (result: unknown) => {
   return explainNativeError(error.message || "Something went wrong");
 };
 
-const explainNativeError = (message: string) => {
-  const lower = message.toLowerCase();
-  if (lower.includes("scheme not found")) {
-    return "AussieAuth could not find an Expo scheme. Set expo.scheme in app.json or pass scheme to createAussieAuthExpoClient.";
-  }
-  if (lower.includes("failed to fetch") || lower.includes("network request failed")) {
-    return "AussieAuth could not reach the auth server. Check EXPO_PUBLIC_AUSSIEAUTH_URL and the device's network access.";
-  }
-  if (lower.includes("cors") || lower.includes("origin") || lower.includes("trusted")) {
-    return "This app origin is not registered with AussieAuth. Run `aussieauth apps register --scheme <scheme>` and include `--dev-exp` for Expo Go.";
-  }
-  if (lower.includes("convex") && lower.includes("auth")) {
-    return "Convex is not receiving an AussieAuth token. Wrap the app in AussieAuthProvider or ConvexBetterAuthProvider with the AussieAuth client.";
-  }
-  return message;
-};
+/**
+ * The same translation the web card runs, from `errors.ts`. It used to be a
+ * third copy of the table — one here, one in `expo.tsx`, and none on the web —
+ * which is the arrangement where two of them drift and the one that matters
+ * most doesn't exist.
+ *
+ * The scheme is a placeholder rather than the app's real one: a native client
+ * is constructed with it, but this runs at module scope where there's no
+ * client to ask. The command it produces is still the right command, and
+ * `--scheme` is the flag a native app needs — its Expo Go origin carries a LAN
+ * address that changes with the network, so `--origin` would be wrong by
+ * tomorrow.
+ */
+const explainNativeError = (message: string) =>
+  explainAussieAuthError(message, {
+    baseURL: readEnv("EXPO_PUBLIC_AUSSIEAUTH_URL", "EXPO_PUBLIC_AUSSIEAUTH_SITE_URL"),
+    scheme: "<your-scheme>",
+  });
 
 export function AussieAuthNativeSignIn({
   authClient,
@@ -87,25 +91,24 @@ export function AussieAuthNativeSignIn({
     >
       <View style={{ gap: 5 }}>
         {method && (
-          <NativeButton label="All sign-in options" variant="ghost" onPress={() => setMethod(null)} />
+          <NativeButton
+            label="All sign-in options"
+            variant="ghost"
+            onPress={() => setMethod(null)}
+          />
         )}
         <Text style={{ color: colors.label, fontSize: 30, fontWeight: "700" }}>
-          {method ? byId(method).label : title ?? `Welcome to ${appName}`}
+          {method ? byId(method).label : (title ?? `Welcome to ${appName}`)}
         </Text>
         <Text style={{ color: colors.secondary, fontSize: 16 }}>
-          {method ? byId(method).hint : subtitle ?? `${offered.length} ways in. Pick one.`}
+          {method ? byId(method).hint : (subtitle ?? `${offered.length} ways in. Pick one.`)}
         </Text>
       </View>
 
       {!method && (
         <View style={{ gap: 10 }}>
           {featured.map((id) => (
-            <OneClickButton
-              key={id}
-              authClient={authClient}
-              id={id}
-              onSignedIn={onSignedIn}
-            />
+            <OneClickButton key={id} authClient={authClient} id={id} onSignedIn={onSignedIn} />
           ))}
         </View>
       )}
@@ -146,8 +149,10 @@ function Panel({
     return <EmailPasswordPanel authClient={authClient} onSignedIn={onSignedIn} />;
   }
   if (id === "magic-link") return <MagicLinkPanel authClient={authClient} />;
-  if (id === "email-otp") return <OtpPanel authClient={authClient} kind="email" onSignedIn={onSignedIn} />;
-  if (id === "sms-otp") return <OtpPanel authClient={authClient} kind="sms" onSignedIn={onSignedIn} />;
+  if (id === "email-otp")
+    return <OtpPanel authClient={authClient} kind="email" onSignedIn={onSignedIn} />;
+  if (id === "sms-otp")
+    return <OtpPanel authClient={authClient} kind="sms" onSignedIn={onSignedIn} />;
   if (id === "account-number") {
     return <AccountNumberPanel authClient={authClient} onSignedIn={onSignedIn} />;
   }
@@ -295,17 +300,18 @@ function OtpPanel({
             label="Send code"
             pending={runner.pending}
             onPress={() =>
-              void runner.run(
-                () =>
+              void runner
+                .run(() =>
                   email
                     ? client.emailOtp.sendVerificationOtp({
                         email: identity,
                         type: "sign-in",
                       })
                     : client.phoneNumber.sendOtp({ phoneNumber: identity }),
-              ).then((ok) => {
-                if (ok) setSent(true);
-              })
+                )
+                .then((ok) => {
+                  if (ok) setSent(true);
+                })
             }
           />
         </>
@@ -323,7 +329,11 @@ function OtpPanel({
               )
             }
           />
-          <NativeButton label="Use a different address" variant="ghost" onPress={() => setSent(false)} />
+          <NativeButton
+            label="Use a different address"
+            variant="ghost"
+            onPress={() => setSent(false)}
+          />
         </>
       )}
       <Feedback state={runner} />
@@ -343,11 +353,18 @@ function AccountNumberPanel({
   const client = loose(authClient);
   return (
     <View style={{ gap: 10 }}>
-      <NativeField label="Account number" value={number} onChangeText={setNumber} keyboardType="number-pad" />
+      <NativeField
+        label="Account number"
+        value={number}
+        onChangeText={setNumber}
+        keyboardType="number-pad"
+      />
       <NativeButton
         label="Sign in"
         pending={runner.pending}
-        onPress={() => void runner.run(() => client.signIn.accountNumber({ accountNumber: number }))}
+        onPress={() =>
+          void runner.run(() => client.signIn.accountNumber({ accountNumber: number }))
+        }
       />
       <NativeButton
         label="Generate an account"
@@ -450,7 +467,9 @@ function NativeButton({
 
 function Feedback({ state }: { state: RunnerState }) {
   if (!state.error && !state.notice) return null;
-  return <Notice tone={state.error ? "error" : "info"} message={state.error ?? state.notice ?? ""} />;
+  return (
+    <Notice tone={state.error ? "error" : "info"} message={state.error ?? state.notice ?? ""} />
+  );
 }
 
 function Notice({ message, tone = "info" }: { message: string; tone?: "info" | "error" }) {

@@ -20,6 +20,7 @@ export function Chrome({ children, bleed = false }: { children: ReactNode; bleed
           </Link>
           <div className="flex flex-1 items-center gap-5 text-[14px]">
             <NavLink to="/docs">Docs</NavLink>
+            <NavLink to="/playground">Playground</NavLink>
             <NavLink to="/setup/google">Google setup</NavLink>
             <NavLink to="/setup/apple">Apple setup</NavLink>
           </div>

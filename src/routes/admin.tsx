@@ -58,30 +58,7 @@ function Admin() {
 
   return (
     <Shell>
-      <Card>
-        <div className="flex flex-col gap-2">
-          <div className="flex items-baseline justify-between gap-3">
-            <Heading>Passkey origins</Heading>
-            <Badge color={passkeyOrigins.dropped.length ? "red" : "green"}>
-              {passkeyOrigins.active.length ? new Set(passkeyOrigins.active.map(site)).size : 0}/
-              {passkeyOrigins.limit} sites used
-            </Badge>
-          </div>
-          <Text color="gray">
-            WebAuthn honours related origins on at most {passkeyOrigins.limit} distinct sites.
-          </Text>
-          {passkeyOrigins.active.map((origin) => (
-            <Text key={origin} className="font-mono text-[13px]">
-              {origin}
-            </Text>
-          ))}
-          {passkeyOrigins.dropped.map((origin) => (
-            <Text key={origin} color="red" className="font-mono text-[13px]">
-              {origin} — past the limit; passkeys won&rsquo;t work here
-            </Text>
-          ))}
-        </div>
-      </Card>
+      <PasskeyBudget {...passkeyOrigins} />
 
       {apps.length === 0 && (
         <Card>
@@ -131,6 +108,105 @@ const site = (origin: string) => {
     return origin;
   }
 };
+
+/**
+ * The five-site WebAuthn budget, as five slots with names in them.
+ *
+ * A count ("3/5 sites used") is the number you'd read once and never think
+ * about again; the failure this exists to prevent is the *sixth* site getting
+ * passkeys that silently don't work, and you can only see that coming if you
+ * can see which five are holding the slots and how many are left. Empty slots
+ * are drawn rather than omitted for the same reason — "two left" is the thing
+ * worth knowing before you register another app, not after.
+ *
+ * The limit counts distinct sites, not origins, so several origins on one site
+ * share a slot: `myapp.com` and `staging.myapp.com` cost one between them.
+ */
+function PasskeyBudget({
+  limit,
+  active,
+  dropped,
+}: {
+  limit: number;
+  active: string[];
+  dropped: string[];
+}) {
+  // One slot per distinct site, in the order they claimed it, with every
+  // origin that shares it.
+  const slots = new Map<string, string[]>();
+  for (const origin of active) {
+    const key = site(origin);
+    slots.set(key, [...(slots.get(key) ?? []), origin]);
+  }
+  const free = Math.max(0, limit - slots.size);
+
+  return (
+    <Card>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <Heading>Passkey sites</Heading>
+          <Badge color={dropped.length ? "red" : free === 0 ? "amber" : "green"}>
+            {slots.size}/{limit} used
+          </Badge>
+        </div>
+        <Text color="gray">
+          A browser honours related origins on at most {limit} distinct sites and ignores the rest
+          without an error anywhere — so an app past the limit gets passkeys that simply don&rsquo;t
+          work.
+        </Text>
+
+        <div className="flex flex-col gap-1.5">
+          {[...slots].map(([name, origins], i) => (
+            <div
+              key={name}
+              className="flex items-baseline gap-3 rounded-[var(--radius-2)] bg-[var(--gray-a2)] px-3 py-2"
+            >
+              <Text color="gray" className="w-4 shrink-0 tabular-nums">
+                {i + 1}
+              </Text>
+              <div className="flex min-w-0 flex-col">
+                <Text weight="medium">{name}</Text>
+                {origins.map((origin) => (
+                  <Text key={origin} color="gray" className="font-mono text-[12px]">
+                    {origin}
+                  </Text>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {Array.from({ length: free }, (_, i) => (
+            <div
+              key={`free-${i}`}
+              className="flex items-baseline gap-3 rounded-[var(--radius-2)] border border-dashed border-[var(--gray-a5)] px-3 py-2"
+            >
+              <Text color="gray" className="w-4 shrink-0 tabular-nums">
+                {slots.size + i + 1}
+              </Text>
+              <Text color="gray">free</Text>
+            </div>
+          ))}
+        </div>
+
+        {dropped.length > 0 && (
+          <div className="flex flex-col gap-1 rounded-[var(--radius-2)] bg-[var(--red-a3)] px-3 py-2">
+            <Text color="red" weight="medium">
+              Past the limit — passkeys don&rsquo;t work on these
+            </Text>
+            {dropped.map((origin) => (
+              <Text key={origin} color="red" className="font-mono text-[12px]">
+                {origin}
+              </Text>
+            ))}
+            <Text color="gray">
+              Revoke an app you no longer use, or move these onto a site already holding a slot.
+            </Text>
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 function Shell({ children }: { children: ReactNode }) {
   return (

@@ -20,12 +20,7 @@ import authConfig from "./auth.config";
 import authSchema from "./betterAuth/schema";
 import { accountNumber } from "./lib/accountNumber";
 import { appleClientSecret } from "./lib/apple";
-import {
-  appMethods,
-  RELATED_ORIGIN_LABEL_LIMIT,
-  registeredOrigins,
-  resolveApp,
-} from "./lib/apps";
+import { appMethods, RELATED_ORIGIN_LABEL_LIMIT, registeredOrigins, resolveApp } from "./lib/apps";
 import { DEFAULT_SITE_URL, parseOrigins, passkeyOrigins } from "./lib/site";
 import { demo } from "./lib/demo";
 import { linking } from "./lib/linking";
@@ -78,6 +73,21 @@ export const relatedOriginUsage = async (ctx: GenericCtx<DataModel>) =>
     envOrigins: envOrigins(),
     appOrigins: await registeredOrigins(ctx),
   });
+
+/**
+ * Every origin allowed to call this deployment: the env bootstrap set plus
+ * whatever has registered.
+ *
+ * Exported because two places need the same answer and a second opinion would
+ * be worse than none — `createAuthOptions.trustedOrigins` below is what Better
+ * Auth enforces, and `/apps/me` is what tells an app whether it's on the list.
+ * An app told "you're fine" by a list the request wasn't checked against is
+ * exactly the confusion that endpoint exists to remove.
+ */
+export const trustedOrigins = async (ctx: GenericCtx<DataModel>) => [
+  ...staticOrigins,
+  ...(await registeredOrigins(ctx)),
+];
 
 export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
   const { kept, dropped } = await relatedOriginUsage(ctx);
@@ -186,7 +196,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     // themselves at runtime — the env list is only the bootstrap set. Better
     // Auth accepts an async resolver here, which is what makes a database-
     // backed allow-list possible at all.
-    trustedOrigins: async () => [...staticOrigins, ...(await registeredOrigins(ctx))],
+    trustedOrigins: async () => trustedOrigins(ctx),
 
     database: authComponent.adapter(ctx),
 

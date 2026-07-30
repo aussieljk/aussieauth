@@ -1,5 +1,7 @@
 import { Typography } from "@aussieljk/frosted";
 import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useRef } from "react";
+import { DeploymentField, useDeploymentRewrite } from "@/docs/Deployment";
 import { DocLink } from "@/docs/DocLink";
 import { DOCS, docBySlug } from "@/docs/registry";
 import { Chrome } from "@/site/Chrome";
@@ -31,6 +33,11 @@ function DocPage() {
   const { _splat } = Route.useParams();
   const slug = _splat ?? "";
   const doc = docBySlug(slug);
+  // Held on the article rather than the page, so the rewrite can't reach the
+  // nav or the sidebar — and re-runs on navigation, because the ref points at
+  // a new element once the next page's content is in it.
+  const article = useRef<HTMLElement>(null);
+  useDeploymentRewrite(article);
   if (!doc) return null;
 
   const index = DOCS.findIndex((d) => d.slug === slug);
@@ -42,7 +49,10 @@ function DocPage() {
       <div className="flex gap-10">
         <Sidebar current={slug} />
         <div className="min-w-0 flex-1">
-          <article className="prose max-w-3xl">
+          <div className="max-w-3xl">
+            <DeploymentField />
+          </div>
+          <article ref={article} className="prose max-w-3xl">
             <doc.Content />
           </article>
 

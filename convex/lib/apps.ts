@@ -160,6 +160,23 @@ export const resolveApp = async (
   }
 };
 
+/**
+ * Whether `origin` is on the trusted list at all.
+ *
+ * Distinct from "an app claimed it", and the distinction matters: this
+ * deployment's own site is trusted through `SITE_URL`/`TRUSTED_ORIGINS` and
+ * owns no row in `apps`, so treating an unclaimed origin as blocked would tell
+ * the sign-in page on aussieauth.com that it can't talk to aussieauth.com.
+ *
+ * The rule matches what Better Auth applies to its own list: exact for web
+ * origins, prefix for scheme origins — a native app's origin carries a LAN
+ * address that changes with the network.
+ */
+export const isTrustedOrigin = (origins: string[], origin: string) =>
+  origins.some(
+    (claimed) => claimed === origin || (isSchemeOrigin(claimed) && origin.startsWith(claimed)),
+  );
+
 /** Good enough for counting distinct sites: last two dot-separated parts. */
 const etldPlusOne = (origin: string) => {
   try {

@@ -1,12 +1,6 @@
-```ts
-await fetch(`${AUSSIEAUTH_URL}/apps/register`, {
-  method: "POST",
-  headers: { authorization: `Bearer ${SECRET}` },
-  body: JSON.stringify({
-    slug: "portfolio",
-    name: "Portfolio",
-    origins: ["https://portfolio.com"],
-    methods: ["google", "passkey"],
-  }),
-});
+```sh
+bun add @aussieljk/auth
+bunx aussieauth init
+# detects the framework, derives the .convex.site URL
+# from .env.local, and registers localhost in the same pass
 ```

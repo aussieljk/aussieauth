@@ -31,6 +31,28 @@ test("a two-factor account gets the challenge step, then signs in", async () => 
   await expect.element(screen.getByText(/six-digit code/)).toBeVisible();
 });
 
+test("the card draws only the methods the app registered", async () => {
+  const screen = await renderFixture(fixtures["Method allow-list"]);
+  // The card draws everything until the registry answers, so the count in the
+  // subtitle is what says the narrowing has actually happened — asserting the
+  // absences before it would pass on a slow answer and fail on a fast one.
+  await expect.element(screen.getByText("2 ways in. Pick one.")).toBeVisible();
+
+  // Registered: a featured social button and the inline form.
+  await expect.element(screen.getByRole("button", { name: /Google/ })).toBeVisible();
+  await expect.element(screen.getByLabelText("Email")).toBeVisible();
+  // Not registered — and so never drawn, rather than drawn and 403 on click.
+  expect(screen.getByRole("button", { name: /GitHub/ }).query()).toBeNull();
+  expect(screen.getByRole("button", { name: "Passkey" }).query()).toBeNull();
+  expect(screen.getByRole("button", { name: "Solana Wallet" }).query()).toBeNull();
+});
+
+test("an unregistered origin is named on the card, with the command that fixes it", async () => {
+  const screen = await renderFixture(fixtures["Unregistered origin"]);
+  await expect.element(screen.getByText(/isn.t registered/)).toBeVisible();
+  await expect.element(screen.getByText(/aussieauth apps register/)).toBeVisible();
+});
+
 test("a remembered credential account opens its panel prefilled", async () => {
   const screen = await renderFixture(fixtures["Remembered account"]);
   await screen.getByRole("button", { name: /lucas@example\.com/ }).click();

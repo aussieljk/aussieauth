@@ -2,6 +2,12 @@
 export * from "./client";
 // The provider and hooks components read their client through.
 export * from "./context";
+// Failures translated into a sentence with a command in it.
+export * from "./errors";
+// What the deployment says this origin is allowed to do.
+export * from "./appInfo";
+// Reading a build-time variable without assuming which bundler is building.
+export * from "./env";
 // Session persistence + the account chooser's non-React helpers (localSignOut).
 export * from "./storage";
 export * from "./remembered";

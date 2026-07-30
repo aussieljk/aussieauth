@@ -34,7 +34,7 @@ function OneClick({
   action: () => Promise<unknown>;
   redirect?: boolean;
 }) {
-  const { pending, error, run } = useRunner();
+  const { pending, error, run } = useRunner({ method: id });
   const [redirecting, setRedirecting] = useState(false);
   const provider = byId(id);
   return (
@@ -199,7 +199,7 @@ function TwoFactorStep({ onBack }: { onBack: () => void }) {
 /** Email + password, with a create-account mode. */
 export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
   const authClient = useAuthClient();
-  const { pending, error, notice, run } = useRunner();
+  const { pending, error, notice, run } = useRunner({ method: "email-password" });
   const [creating, setCreating] = useState(false);
   const [totp, setTotp] = useState(false);
   const [email, setEmail] = useState(prefill);
@@ -260,7 +260,7 @@ export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
 
 export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
   const authClient = useAuthClient();
-  const { pending, error, run } = useRunner();
+  const { pending, error, run } = useRunner({ method: "username-password" });
   const [creating, setCreating] = useState(false);
   const [totp, setTotp] = useState(false);
   const [username, setUsername] = useState(prefill);
@@ -321,7 +321,7 @@ export function UsernamePasswordPanel({ prefill = "" }: PanelProps) {
 
 export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
   const authClient = useAuthClient();
-  const { pending, error, run } = useRunner();
+  const { pending, error, run } = useRunner({ method: "phone-password" });
   const [totp, setTotp] = useState(false);
   const [phone, setPhone] = useState(prefill);
   const [password, setPassword] = useState("");
@@ -369,7 +369,7 @@ export function PhonePasswordPanel({ prefill = "" }: PanelProps) {
 export function MagicLinkPanel({ prefill = "" }: PanelProps) {
   const authClient = useAuthClient();
   const callbackURL = useCallbackURL();
-  const { pending, error, notice, run } = useRunner();
+  const { pending, error, notice, run } = useRunner({ method: "magic-link" });
   const [email, setEmail] = useState(prefill);
 
   return (
@@ -407,6 +407,7 @@ export function MagicLinkPanel({ prefill = "" }: PanelProps) {
  * they call and what they ask for, so they share this shell.
  */
 function OtpPanel({
+  method,
   label,
   placeholder,
   autoComplete,
@@ -415,6 +416,7 @@ function OtpPanel({
   send,
   verify,
 }: {
+  method: string;
   label: string;
   placeholder: string;
   autoComplete: string;
@@ -423,7 +425,7 @@ function OtpPanel({
   send: (identity: string) => Promise<unknown>;
   verify: (identity: string, code: string) => Promise<unknown>;
 }) {
-  const { pending, error, notice, run } = useRunner();
+  const { pending, error, notice, run } = useRunner({ method });
   const [identity, setIdentity] = useState(prefill ?? "");
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
@@ -472,6 +474,7 @@ export function EmailOtpPanel({ prefill }: PanelProps) {
   const authClient = useAuthClient();
   return (
     <OtpPanel
+      method="email-otp"
       label="Email"
       type="email"
       autoComplete="username"
@@ -487,6 +490,7 @@ export function SmsOtpPanel({ prefill }: PanelProps) {
   const authClient = useAuthClient();
   return (
     <OtpPanel
+      method="ios-otp"
       label="Phone number"
       type="tel"
       autoComplete="tel"
@@ -500,7 +504,7 @@ export function SmsOtpPanel({ prefill }: PanelProps) {
 
 export function AccountNumberPanel() {
   const authClient = useAuthClient();
-  const { pending, error, run } = useRunner();
+  const { pending, error, run } = useRunner({ method: "account-number" });
   const [number, setNumber] = useState("");
 
   return (

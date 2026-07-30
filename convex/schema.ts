@@ -22,6 +22,16 @@ export default defineSchema({
      */
     methods: v.optional(v.array(v.string())),
     updatedAt: v.number(),
+    /**
+     * When the app was revoked, if it has been. Set rather than deleting the
+     * row, so re-registering restores the method list the app had rather than
+     * starting from a blank one — a revoke you didn't mean is otherwise only
+     * undoable by remembering exactly what was in it.
+     *
+     * A revoked app owns no origins (those rows are deleted), so it is trusted
+     * by nothing and matches nothing until it registers again.
+     */
+    revokedAt: v.optional(v.number()),
   }).index("slug", ["slug"]),
 
   /**

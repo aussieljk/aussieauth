@@ -24,6 +24,8 @@ import {
   solanaClient,
   statusClient,
 } from "./client";
+import { readEnv } from "./env";
+import { diagnoseAussieAuthError, explainAussieAuthError } from "./errors";
 
 type ExpoClientOptions = Parameters<typeof expoClient>[0];
 type SessionResult = ReturnType<ReturnType<typeof createAuthClient>["useSession"]>;
@@ -33,28 +35,43 @@ const missing = (name: string) =>
     `${name} is required for AussieAuth Expo setup. Pass it explicitly or set the matching EXPO_PUBLIC_* environment variable.`,
   );
 
-export function explainAussieAuthExpoError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  const lower = message.toLowerCase();
-  if (lower.includes("scheme not found")) {
-    return "AussieAuth could not find an Expo scheme. Set expo.scheme in app.json or pass scheme to createAussieAuthExpoClient.";
-  }
-  if (lower.includes("failed to fetch") || lower.includes("network request failed")) {
-    return "AussieAuth could not reach the auth server. Check EXPO_PUBLIC_AUSSIEAUTH_URL and the device's network access.";
-  }
-  if (lower.includes("cors") || lower.includes("origin") || lower.includes("trusted")) {
-    return "This app origin is not registered with AussieAuth. Run `aussieauth apps register --scheme <scheme>` and include `--dev-exp` for Expo Go.";
-  }
-  if (lower.includes("convex") && lower.includes("auth")) {
-    return "Convex is not receiving an AussieAuth token. Wrap the app in AussieAuthProvider or ConvexBetterAuthProvider with the AussieAuth client.";
-  }
-  return message;
+/**
+ * The Expo-flavoured error explanation.
+ *
+ * This function is where the translation started, and it's now a thin call
+ * into the shared one — the web client, which is how most people meet
+ * AussieAuth, had no equivalent and this was the thing worth copying. See
+ * `errors.ts`. Passing the scheme is what makes the register command come back
+ * as `--scheme myapp --dev-exp` rather than a web origin that would be wrong
+ * the moment you changed networks.
+ */
+export function explainAussieAuthExpoError(
+  error: unknown,
+  context: { baseURL?: string; scheme?: string; method?: string } = {},
+) {
+  return explainAussieAuthError(error, {
+    ...context,
+    baseURL:
+      context.baseURL ?? readEnv("EXPO_PUBLIC_AUSSIEAUTH_URL", "EXPO_PUBLIC_AUSSIEAUTH_SITE_URL"),
+  });
 }
 
-const readEnv = (name: string) => {
-  const env = globalThis as { process?: { env?: Record<string, string | undefined> } };
-  return env.process?.env?.[name] ?? "";
-};
+/**
+ * The same, having first asked the deployment whether it knows this app —
+ * which is the only way to tell an unregistered scheme from a device that's
+ * offline. Await it where you can; {@link explainAussieAuthExpoError} is the
+ * answer available without a round trip.
+ */
+export function diagnoseAussieAuthExpoError(
+  error: unknown,
+  context: { baseURL?: string; scheme?: string; method?: string } = {},
+) {
+  return diagnoseAussieAuthError(error, {
+    ...context,
+    baseURL:
+      context.baseURL ?? readEnv("EXPO_PUBLIC_AUSSIEAUTH_URL", "EXPO_PUBLIC_AUSSIEAUTH_SITE_URL"),
+  });
+}
 
 const normalizeScheme = (scheme: string | undefined) => {
   if (!scheme) return undefined;
@@ -182,7 +199,7 @@ export type AussieAuthProviderProps = Omit<AussieAuthExpoClientOptions, "baseURL
  */
 export function AussieAuthProvider({
   children,
-  authUrl = readEnv("EXPO_PUBLIC_AUSSIEAUTH_URL") || readEnv("EXPO_PUBLIC_AUSSIEAUTH_SITE_URL"),
+  authUrl = readEnv("EXPO_PUBLIC_AUSSIEAUTH_URL", "EXPO_PUBLIC_AUSSIEAUTH_SITE_URL"),
   convexUrl = readEnv("EXPO_PUBLIC_CONVEX_URL"),
   authClient,
   convexClient: providedConvex,

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
@@ -31,6 +32,11 @@ const AccountRoute = AccountRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignInRoute = SignInRouteImport.update({
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/playground': typeof PlaygroundRoute
   '/sign-in': typeof SignInRoute
   '/docs/$': typeof DocsSplatRoute
   '/setup/apple': typeof SetupAppleRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/playground': typeof PlaygroundRoute
   '/sign-in': typeof SignInRoute
   '/docs/$': typeof DocsSplatRoute
   '/setup/apple': typeof SetupAppleRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
+  '/playground': typeof PlaygroundRoute
   '/sign-in': typeof SignInRoute
   '/docs/$': typeof DocsSplatRoute
   '/setup/apple': typeof SetupAppleRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/playground'
     | '/sign-in'
     | '/docs/$'
     | '/setup/apple'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/playground'
     | '/sign-in'
     | '/docs/$'
     | '/setup/apple'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/account'
     | '/admin'
+    | '/playground'
     | '/sign-in'
     | '/docs/$'
     | '/setup/apple'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
+  PlaygroundRoute: typeof PlaygroundRoute
   SignInRoute: typeof SignInRoute
   DocsSplatRoute: typeof DocsSplatRoute
   SetupAppleRoute: typeof SetupAppleRoute
@@ -155,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-in': {
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
+  PlaygroundRoute: PlaygroundRoute,
   SignInRoute: SignInRoute,
   DocsSplatRoute: DocsSplatRoute,
   SetupAppleRoute: SetupAppleRoute,
