@@ -1,6 +1,6 @@
 import { Spinner, Typography, VStack } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { Chrome } from "@/site/Chrome";
 
@@ -58,6 +58,20 @@ function Landing() {
               Self-hosted on Convex and Better Auth. Your app talks to it from its own origin — no
               consent screen of its own, ever.
             </Text>
+            <VStack alignment="leading" spacing={12} className="w-full">
+              <Proof title="One consent, not two">
+                Signing in with Google shows Google's screen and nothing else — there's no
+                AussieAuth page in the middle to approve.
+              </Proof>
+              <Proof title="Built for agents and anonymity">
+                Long-lived agent keys and Mullvad-style account numbers are first-class, not
+                afterthoughts — sign in with no email, or no human, at all.
+              </Proof>
+              <Proof title="You own the database">
+                No tenant, no per-user pricing. Fork it, point it at your Convex deployment, and the
+                sessions live in a table you control.
+              </Proof>
+            </VStack>
           </VStack>
         </div>
 
@@ -68,6 +82,20 @@ function Landing() {
         </div>
       </div>
     </Chrome>
+  );
+}
+
+/**
+ * One proof point under the pitch: a bolded claim and a line that backs it.
+ * Three of these carry the differentiators the hero line can't spell out —
+ * single consent, agent/anonymous auth, and self-hosting.
+ */
+function Proof({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <VStack alignment="leading" spacing={2}>
+      <Text weight="medium">{title}</Text>
+      <Text color="gray">{children}</Text>
+    </VStack>
   );
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@aussieljk/auth",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "AussieAuth's drop-in React sign-in card and auth client.",
   "homepage": "https://aussieauth.com",
   "repository": {
@@ -13,7 +13,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "type": "module",
   "sideEffects": [

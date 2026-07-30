@@ -45,14 +45,28 @@ Each is registered only when its credentials are present, so a deployment offers
 exactly the methods it's configured for. The sign-in card badges the rest as
 "needs setup" rather than letting them fail on click.
 
-## Where to go next
+## Three ways to use it
 
-- [Quickstart](/docs/quickstart) — running locally in five commands
-- [Setting up Google](/docs/setup/google) and [Apple](/docs/setup/apple) — the
-  two that need a third-party console
-- [Using it from another app](/docs/embedding) — the part that matters if you
-  have more than one project
-- [Architecture](/docs/architecture) — what's in each directory and why
+There are three golden paths, and which one you're on decides what to read next:
+
+1. **Fork it — run your own auth server.** Clone the repo, point it at your own
+   Convex deployment, and you have every method above under a domain you own.
+   This is the main path if you want one auth backend for all your projects.
+   → [Fork it](/docs/forking), then [Quickstart](/docs/quickstart).
+
+2. **Add it to an existing app.** You already have a deployment (your fork, or
+   this one) and want a real app to sign in against it — one command scaffolds
+   the provider and a sign-in route, no redirect.
+   → [Using it from another app](/docs/embedding).
+
+3. **Drop in a single method.** You just want, say, passkeys or agent keys in an
+   app that already has the card. Enable the one method and register it.
+   → [Method notes](/docs/methods).
+
+Everything else is reference: [Setting up Google](/docs/setup/google) and
+[Apple](/docs/setup/apple) (the two that need a third-party console),
+[Native apps](/docs/native), [Deploying](/docs/deploying), and
+[Architecture](/docs/architecture).
 
 ## Questions
 
