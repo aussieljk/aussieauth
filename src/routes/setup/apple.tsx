@@ -31,9 +31,7 @@ function AppleSetup() {
             Apple is the fiddly one: the client id isn&rsquo;t what you&rsquo;d guess, the client
             secret isn&rsquo;t a secret, and the return URL has to be on a domain Apple has
             verified. Each step below says which value goes where. The same walkthrough in prose is
-            at{" "}
-            <DocLink slug="setup/apple">docs/setup/apple</DocLink>
-            .
+            at <DocLink slug="setup/apple">docs/setup/apple</DocLink>.
           </>
         }
       >

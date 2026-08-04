@@ -1,0 +1,117 @@
+---
+title: "Way 1 — lazy"
+description: Three commands, no backend to run. aussieauth.com mints the sessions, your Convex deployment verifies them, and your app gets fifteen sign-in methods with no consent screen of its own.
+order: 2
+---
+
+# Way 1 — lazy
+
+**aussieauth.com mints the sessions.** Your project keeps its own Convex
+deployment for its own data; that deployment verifies the token and nothing
+more. There is no auth code in your repo, no auth tables in your schema, no
+`BETTER_AUTH_SECRET`, and no provider credentials to collect.
+
+Three commands, from a project that already has Convex:
+
+```sh
+bun add @aussieljk/auth
+bunx aussieauth init
+bunx convex dev
+```
+
+That's it. Sign-in works at `http://localhost:5173/sign-in`, with every method
+the hosted deployment has credentials for.
+
+## What each command did
+
+**`bun add @aussieljk/auth`** — the card, the client and the `aussieauth` CLI.
+
+**`bunx aussieauth init`** — worked out the framework (Vite, Next, TanStack
+Start or Expo), then wrote four things:
+
+| Written                  | Why                                                             |
+| ------------------------ | --------------------------------------------------------------- |
+| `src/auth/Providers.tsx` | The AussieAuth client and the Convex client, wired together     |
+| a sign-in route          | `<AussieAuthSignIn />`, at the place your framework puts routes |
+| `convex/auth.config.ts`  | Verifies AussieAuth's signature, so functions see an identity   |
+| `.env.local`             | `…_AUSSIEAUTH_URL`, pointing at the hosted deployment           |
+
+It also registered your dev origin, so `localhost` is trusted before you've read
+a word about origins. That step needs `AUSSIEAUTH_SECRET` in your environment;
+without it `init` prints the one command to run later and everything else still
+happens.
+
+**`bunx convex dev`** — pushed `convex/auth.config.ts`. Skipping this is the one
+way to end up somewhere confusing: sign-in succeeds in the browser and every
+query still sees `null`, because the deployment doesn't yet know who signs the
+tokens.
+
+## The only backend file
+
+```ts
+// convex/auth.config.ts
+export default {
+  providers: [
+    {
+      type: "customJwt",
+      issuer: "https://giddy-dinosaur-765.convex.site",
+      applicationID: "convex",
+      algorithm: "RS256",
+      jwks: "https://giddy-dinosaur-765.convex.site/api/auth/convex/jwks",
+    },
+  ],
+};
+```
+
+Your deployment fetches a public key from that JWKS and checks a signature with
+it. That is the whole integration — which is why "lazy" costs you one file and
+why leaving it is cheap.
+
+From then on, in any query or mutation:
+
+```ts
+const identity = await ctx.auth.getUserIdentity();
+```
+
+## Still no second consent screen
+
+Being hosted doesn't reintroduce the redirect. Your app talks to
+`giddy-dinosaur-765.convex.site` from its own origin over plain HTTP — it never
+navigates the user to an AussieAuth page — so signing in with Google shows
+Google's consent screen and nothing else. That's the same property the
+[self-hosted](/docs/self-hosted) path has, and the reason both exist.
+
+## What you're giving up
+
+| Lazy                                      | [Self-hosted](/docs/self-hosted)          |
+| ----------------------------------------- | ----------------------------------------- |
+| Three commands                            | Fork, deploy, set credentials             |
+| No auth tables, no secrets                | Your database, your secrets               |
+| Methods the hosted deployment has set up  | Every method, once you set its credential |
+| Google's consent screen says _AussieAuth_ | It says whatever your OAuth client says   |
+| Users live in someone else's deployment   | Users live in yours                       |
+| Its uptime is your uptime                 | Yours is yours                            |
+
+The last two are the real ones. If either matters, start lazy anyway and switch
+later — it's a one-line change to the issuer, and
+[`aussieauth init --self-hosted`](/docs/self-hosted) makes it for you.
+
+## Questions
+
+**Do I need a Convex deployment at all?**
+For the sign-in card, no — it talks to AussieAuth over HTTP and imports no
+Convex. You need one the moment you want your _own_ functions to know who the
+user is, which is what `convex/auth.config.ts` is for.
+
+**Which methods are on?**
+Whatever the hosted deployment has credentials for. The card asks `/apps/me` on
+mount and draws only those, so a method that isn't set up is a button that was
+never there rather than a 403 you find by clicking.
+
+**Can I restrict which methods my app offers?**
+Yes — that's the per-app allow-list, set when the app registers. See
+[Using it from another app](/docs/embedding).
+
+**Is my app's data in the hosted deployment?**
+No. Only the identity is. Your Convex deployment holds everything else and never
+sends it anywhere.

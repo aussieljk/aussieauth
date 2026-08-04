@@ -1,4 +1,14 @@
-import { Alert, Badge, Button, Card, HStack, Link as UiLink, Separator, Typography, VStack } from "ljkui";
+import {
+  Alert,
+  Badge,
+  Button,
+  Card,
+  HStack,
+  Link as UiLink,
+  Separator,
+  Typography,
+  VStack,
+} from "ljkui";
 import { useState } from "react";
 import { useAppRegistration } from "./appInfo";
 import { useAuthBaseURL, useAuthClient, useCallbackURL } from "./context";

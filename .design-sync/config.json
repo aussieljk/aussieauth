@@ -3,9 +3,7 @@
   "shape": "package",
   "pkg": "@aussieljk/auth",
   "buildCmd": "bun run build",
-  "extraEntries": [
-    "../../.design-sync/ds-provider.tsx"
-  ],
+  "extraEntries": ["../../.design-sync/ds-provider.tsx"],
   "provider": {
     "component": "PreviewProvider"
   },

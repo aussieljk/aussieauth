@@ -8,18 +8,31 @@ order: 5
 
 Nothing in the AussieAuth repo changes. The new app registers itself.
 
+This page is the reference behind both ways in — the mechanics of registration,
+origins and method allow-lists are identical whether the session comes from
+aussieauth.com ([lazy](/docs/lazy)) or from a fork of your own
+([self-hosted](/docs/self-hosted)). If you just want it working, read one of
+those instead; they're three commands each.
+
 ## One command
 
 ```sh
 bun add @aussieljk/auth
-bunx aussieauth init
+bunx aussieauth init                 # hosted — aussieauth.com mints the session
+bunx aussieauth init --self-hosted   # your own deployment mints it
 ```
 
 `init` works out what kind of app it's in — Vite, Next, TanStack Start, Expo —
-and writes the provider and a sign-in route for it. It reads
-`CONVEX_DEPLOYMENT` out of the project's own `.env.local` to derive the
-deployment URL, and registers the dev origin in the same pass, so `localhost`
-works before you've read anything about origins.
+and writes the provider, a sign-in route and `convex/auth.config.ts` for it.
+Which deployment that config trusts is the whole of the mode flag: hosted names
+aussieauth.com as the issuer, self-hosted reads `CONVEX_DEPLOYMENT` out of the
+project's own `.env.local` and names that. Either way it registers the dev
+origin in the same pass, so `localhost` works before you've read anything about
+origins.
+
+`--url https://your-deployment.convex.site` names an AussieAuth of your own and
+implies `--self-hosted`, which is what you want when the fork is a separate
+deployment from the app.
 
 That last step needs the deployment's provisioning secret:
 

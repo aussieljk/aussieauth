@@ -1,15 +1,26 @@
 ---
-title: Fork it — run your own auth server
-description: Clone AussieAuth, point it at your own Convex deployment, and run a private auth backend with all fifteen methods under a domain you own.
-order: 2.5
+title: "Way 2 — self-hosted"
+description: Run the auth server yourself. Fork AussieAuth into your own Convex deployment and own the database your sessions live in, with every provider credential yours to set.
+order: 3
 ---
 
-# Fork it — run your own auth server
+# Way 2 — self-hosted
 
-This is the main path. AussieAuth isn't a service you sign up for — it's a repo
-you run. Forking gives you one auth backend, on your own Convex deployment, that
-every one of your apps can sign in against, with no third party in the middle and
-no per-user pricing.
+**Your deployment mints the sessions.** You fork the repo into a Convex
+deployment of your own, and from then on there is no third party in the chain at
+all: your database, your provider credentials, your domain, your uptime.
+
+This is the path when the [lazy one](/docs/lazy) stops fitting — when you want a
+sign-in method AussieAuth doesn't offer, an OAuth consent screen that says your
+company's name instead of mine, users in a database you can query, or simply no
+dependency on someone else's deployment.
+
+## Moving here from hosted is one file
+
+Nothing about your app changes: same card, same provider, same
+`ctx.auth.getUserIdentity()`. What changes is the issuer in
+`convex/auth.config.ts`, and `aussieauth init --self-hosted` rewrites it for you.
+That's deliberate — the lazy path is meant to be a starting point, not a trap.
 
 ## What you end up with
 
@@ -35,7 +46,7 @@ bun install
 bunx convex dev
 ```
 
-This creates a fresh project under *your* Convex account and writes its URL to
+This creates a fresh project under _your_ Convex account and writes its URL to
 `.env.local`. Nothing is shared with the upstream deployment.
 
 **3. Set the one required secret.**
@@ -60,13 +71,35 @@ username, passkeys, Solana, anonymous, account numbers, demo, and agent keys.
 Magic links and OTP codes work too — the link or code is written to the Convex
 logs until you set `RESEND_API_KEY`.
 
+## Pointing an app at it
+
+In the app — a different project from the fork — the same three commands as the
+lazy path, with one flag:
+
+```sh
+bun add @aussieljk/auth
+bunx aussieauth init --self-hosted
+bunx convex dev
+```
+
+`--self-hosted` reads the app's own `CONVEX_DEPLOYMENT` and treats that
+deployment as the issuer, which is right when the app _is_ the fork. When the
+fork is a separate deployment — the usual arrangement, one auth backend behind
+several apps — name it instead, and `init` will register the app against it:
+
+```sh
+bunx aussieauth init --url https://your-deployment.convex.site
+```
+
+`--url` implies self-hosted; it's how you say "my AussieAuth, over there".
+
 ## Making it yours
 
 - **Name and branding.** The package publishes as `@aussieljk/auth`; rename it in
   `packages/react/package.json` if you'll publish your own. The site's copy lives
   in `src/site/` and `docs/`.
 - **Third-party methods.** Google and Apple each have a guided walkthrough in the
-  app at `/setup/google` and `/setup/apple` that fills in *your* deployment's
+  app at `/setup/google` and `/setup/apple` that fills in _your_ deployment's
   real callback URLs. See [Google](/docs/setup/google) and [Apple](/docs/setup/apple).
 - **Only want the backend?** Delete `src/routes/` and deploy just the Convex
   functions. Your apps talk to it over HTTP — see

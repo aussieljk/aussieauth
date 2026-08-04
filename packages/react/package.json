@@ -11,7 +11,6 @@
   "bin": {
     "aussieauth": "./dist/cli.js"
   },
-  "types": "./dist/index.d.ts",
   "files": [
     "dist",
     "README.md",
@@ -21,6 +20,7 @@
   "sideEffects": [
     "*.css"
   ],
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -59,8 +59,8 @@
     "release": "bun run build && bun publish --access public"
   },
   "dependencies": {
-    "ljkui": "^0.0.1-8",
     "bs58": "^6.0.0",
+    "ljkui": "^0.0.1-8",
     "zod": "^4.4.3"
   },
   "devDependencies": {

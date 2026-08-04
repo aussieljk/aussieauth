@@ -12,14 +12,30 @@ Requires React 19.
 
 ## Usage
 
+Two ways in. The only difference is whose deployment mints the session.
+
+**Lazy** — aussieauth.com mints it, your Convex deployment verifies it. No auth
+code in your repo, no auth tables, no secrets:
+
 ```sh
+bun add @aussieljk/auth
 bunx aussieauth init
+bunx convex dev
 ```
 
-Detects the framework (Vite, Next, TanStack Start, Expo), writes the provider
-and a sign-in route, derives the deployment URL from the project's own
-`.env.local`, and registers the dev origin — so `localhost` works before you've
-read anything about origins.
+**Self-hosted** — your own fork of AussieAuth mints it:
+
+```sh
+bunx aussieauth init --self-hosted     # this project's own deployment
+bunx aussieauth init --url https://…   # an AussieAuth of yours, elsewhere
+```
+
+Either way `init` detects the framework (Vite, Next, TanStack Start, Expo),
+writes the provider, a sign-in route and `convex/auth.config.ts`, and registers
+the dev origin — so `localhost` works before you've read anything about origins.
+`bunx convex dev` is the one step it can't do for you: without the push the
+config exists locally only, and every function keeps seeing `null` while sign-in
+appears to work.
 
 ### With Convex
 
@@ -215,7 +231,8 @@ for most broken integrations arrive with a command in them:
 ## CLI
 
 ```sh
-aussieauth init                      # scaffold into this app
+aussieauth init                      # scaffold into this app (hosted)
+aussieauth init --self-hosted        # …minting from this project's deployment
 aussieauth apps register --slug my-app --origin https://my-app.com
 aussieauth apps unregister --slug my-app   # dry run; --confirm to mean it
 aussieauth apps show --origin https://my-app.com

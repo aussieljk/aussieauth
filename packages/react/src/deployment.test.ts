@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { deploymentUrl, detectFramework, parseEnvFile, siteUrlFromConvexUrl } from "./deployment";
+import {
+  authConfigFile,
+  authUrlForMode,
+  deploymentUrl,
+  detectFramework,
+  HOSTED_AUTH_URL,
+  parseEnvFile,
+  siteUrlFromConvexUrl,
+} from "./deployment";
 
 /**
  * The URL derivation is the whole point of `aussieauth init`: the step that
@@ -115,5 +123,45 @@ describe("detectFramework", () => {
 
   it("says so rather than guessing", () => {
     expect(detectFramework({ react: "*" }, none)).toBe("unknown");
+  });
+});
+
+/**
+ * The two modes differ in exactly one place — who the issuer is — and every
+ * way of getting that wrong is silent. A hosted app that derives the issuer
+ * from its own deployment verifies tokens against a JWKS that never signed
+ * them, so sign-in succeeds on the frontend and `getUserIdentity()` returns
+ * null forever, with nothing in any log naming either deployment.
+ */
+describe("authUrlForMode", () => {
+  const ownProject = { CONVEX_DEPLOYMENT: "dev:my-app-123" };
+
+  it("sends a hosted app to aussieauth.com, not to its own deployment", () => {
+    expect(authUrlForMode("hosted", ownProject)).toBe(HOSTED_AUTH_URL);
+  });
+
+  it("sends a self-hosted app to its own deployment", () => {
+    expect(authUrlForMode("self-hosted", ownProject)).toBe("https://my-app-123.convex.site");
+  });
+
+  it("lets an explicit URL win over either, and corrects its hostname", () => {
+    expect(authUrlForMode("hosted", ownProject, "https://other-456.convex.cloud")).toBe(
+      "https://other-456.convex.site",
+    );
+  });
+});
+
+describe("authConfigFile", () => {
+  it("names the issuer in hosted mode, because the verifier didn't sign it", () => {
+    const file = authConfigFile("hosted", HOSTED_AUTH_URL);
+    expect(file).toContain(`issuer: "${HOSTED_AUTH_URL}"`);
+    expect(file).toContain(`jwks: "${HOSTED_AUTH_URL}/api/auth/convex/jwks"`);
+    expect(file).toContain(`applicationID: "convex"`);
+  });
+
+  it("resolves the issuer at runtime in self-hosted mode, so the file has no URL in it", () => {
+    const file = authConfigFile("self-hosted", "https://my-app-123.convex.site");
+    expect(file).toContain("getAuthConfigProvider()");
+    expect(file).not.toContain("my-app-123");
   });
 });

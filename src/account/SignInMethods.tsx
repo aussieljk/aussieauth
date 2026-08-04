@@ -549,8 +549,8 @@ function TwoFactor({
         <div className="flex flex-col gap-2">
           <Text color="gray">
             Add the secret to your authenticator —{" "}
-            <UiLink href={enrolment.totpURI}>open it directly</UiLink>{" "}
-            or type it in — then confirm a code to switch it on.
+            <UiLink href={enrolment.totpURI}>open it directly</UiLink> or type it in — then confirm
+            a code to switch it on.
           </Text>
           <Code className="break-all">{totpSecret(enrolment.totpURI)}</Code>
           <Text color="gray">

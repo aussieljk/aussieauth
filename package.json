@@ -31,7 +31,6 @@
   },
   "dependencies": {
     "@aussieljk/auth": "workspace:*",
-    "ljkui": "^0.0.1-8",
     "@better-auth/api-key": "1.6.25",
     "@better-auth/expo": "1.6.25",
     "@better-auth/passkey": "1.6.25",
@@ -43,6 +42,7 @@
     "bs58": "^6.0.0",
     "convex": "^1.42.3",
     "jose": "^6.2.5",
+    "ljkui": "^0.0.1-8",
     "lucide-react": "^1.28.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",

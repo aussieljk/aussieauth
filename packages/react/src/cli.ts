@@ -4,11 +4,15 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import {
+  authConfigFile,
+  authUrlForMode,
   DEV_ORIGIN,
   ENV_PREFIX,
   deploymentUrl,
   detectFramework,
   type Framework,
+  HOSTED_AUTH_URL,
+  type Mode,
   parseEnvFile,
   siteUrlFromConvexUrl,
 } from "./deployment";
@@ -45,6 +49,14 @@ const ALL_METHODS = [
 
 const usage = `AussieAuth CLI
 
+Two ways to use it. The only difference is whose deployment mints the session.
+
+  hosted        aussieauth.com mints it; your Convex deployment verifies it and
+  (default)     runs no auth code. Three commands, no credentials, no tables.
+
+  self-hosted   your Convex deployment is an AussieAuth deployment, because you
+                forked the repo into it. Every provider credential is yours.
+
 Commands:
   aussieauth init                    Scaffold auth into the app in this directory
   aussieauth init expo               Force the Expo scaffold
@@ -53,11 +65,14 @@ Commands:
   aussieauth apps show               What a deployment says about an origin
 
 init
-  --url <https://….convex.site>      The deployment. Derived from .env.local when omitted.
+  --self-hosted                      Mint sessions from this project's own
+                                     deployment instead of ${HOSTED_AUTH_URL.replace("https://", "")}.
+  --url <https://….convex.site>      An AussieAuth deployment of your own. Wins over both.
   --origin <https://localhost:5173>  The dev origin to register. Derived from the framework.
   --slug <name>                      App slug. Defaults to the package name.
   --scheme <myapp>                   Expo only: the deep-link scheme.
   --no-register                      Write the files, skip registering.
+  --no-convex                        Skip convex/auth.config.ts.
 
 apps register
   --auth-url <url>                   Or AUSSIEAUTH_URL / EXPO_PUBLIC_AUSSIEAUTH_URL.
@@ -212,7 +227,22 @@ const appendEnv = async (cwd: string, entries: Record<string, string>) => {
   return missing.map(([key]) => key);
 };
 
-async function initExpo(flags: Args, env: Record<string, string>) {
+/**
+ * The file that makes `ctx.auth.getUserIdentity()` return someone in the app's
+ * own functions.
+ *
+ * Written only when the project has a `convex/` directory: `init` is for the
+ * frontend as much as the backend, and a `convex/` folder appearing in a
+ * project that has no Convex is a confusing thing to find.
+ */
+const writeAuthConfig = async (cwd: string, mode: Mode, authUrl: string) => {
+  const dir = path.join(cwd, "convex");
+  if (!existsSync(dir)) return "";
+  const file = path.join("convex", "auth.config.ts");
+  return (await ensure(path.join(cwd, file), authConfigFile(mode, authUrl))) ? file : "";
+};
+
+async function initExpo(flags: Args, env: Record<string, string>, mode: Mode) {
   const cwd = process.cwd();
   const scheme = flag(flags, "scheme", "myapp");
   const appJson = path.join(cwd, "app.json");
@@ -270,15 +300,19 @@ export default function SignIn() {
     if (await ensure(path.join(cwd, file), content)) written.push(file);
   }
 
-  const url = flag(flags, "url") || deploymentUrl(env);
+  const url = authUrlForMode(mode, env, flag(flags, "url"));
+  if (!flags["no-convex"]) {
+    const config = await writeAuthConfig(cwd, mode, url);
+    if (config) written.push(config);
+  }
   const added = await appendEnv(cwd, { EXPO_PUBLIC_AUSSIEAUTH_URL: url });
 
-  report("expo", written, added, url);
+  report("expo", mode, written, added, url);
   console.log("  Install native deps: npx expo install expo-secure-store expo-web-browser");
   return { url, origins: [`${scheme.replace(/:\/?\/?$/, "")}://`, "exp://"], scheme };
 }
 
-async function initWeb(framework: Framework, flags: Args, env: Record<string, string>) {
+async function initWeb(framework: Framework, flags: Args, env: Record<string, string>, mode: Mode) {
   const cwd = process.cwd();
   const pkg = await readJson(path.join(cwd, "package.json")).catch(() => ({}));
   const slug = flag(flags, "slug") || String(pkg.name ?? "my-app").replace(/^@[^/]+\//, "");
@@ -289,7 +323,11 @@ async function initWeb(framework: Framework, flags: Args, env: Record<string, st
     if (await ensure(path.join(cwd, file), content)) written.push(file);
   }
 
-  const url = flag(flags, "url") || deploymentUrl(env);
+  const url = authUrlForMode(mode, env, flag(flags, "url"));
+  if (!flags["no-convex"]) {
+    const config = await writeAuthConfig(cwd, mode, url);
+    if (config) written.push(config);
+  }
   const prefix = ENV_PREFIX[framework];
   const added = await appendEnv(cwd, {
     [`${prefix}AUSSIEAUTH_URL`]: url,
@@ -297,12 +335,18 @@ async function initWeb(framework: Framework, flags: Args, env: Record<string, st
     [`${prefix}CONVEX_URL`]: env.CONVEX_URL ?? env[`${prefix}CONVEX_URL`] ?? "",
   });
 
-  report(framework, written, added, url);
+  report(framework, mode, written, added, url);
   return { url, origins: [flag(flags, "origin") || DEV_ORIGIN[framework]], slug, name: appName };
 }
 
-const report = (framework: string, written: string[], env: string[], url: string) => {
-  console.log(`AussieAuth · ${framework}`);
+const report = (framework: string, mode: Mode, written: string[], env: string[], url: string) => {
+  console.log(`AussieAuth · ${framework} · ${mode}`);
+  console.log(
+    mode === "hosted"
+      ? `  sessions minted by ${url}\n` +
+          `  verified by this project's own deployment — no auth code, no auth tables here`
+      : `  sessions minted and verified by this project's own deployment (${url})`,
+  );
   if (written.length) for (const file of written) console.log(`  created  ${file}`);
   else console.log("  nothing to create — the files were already there");
   if (env.length) console.log(`  .env.local  ${env.join(", ")}`);
@@ -317,16 +361,23 @@ const report = (framework: string, written: string[], env: string[], url: string
 /**
  * `init`, all the way to a sign-in that works.
  *
- * The step that used to be missing is the last one: registering the dev origin
- * in the same pass, so `localhost` works before anyone has read a word about
- * origins. Without it the scaffold produces a card that renders and then fails
- * on click, which is the worst of the two possible outcomes.
+ * Two things make it no-touch rather than a scaffold you then wire up. The
+ * first is that it registers the dev origin in the same pass, so `localhost`
+ * works before anyone has read a word about origins — without it the scaffold
+ * produces a card that renders and then fails on click, which is the worst of
+ * the two possible outcomes. The second is `convex/auth.config.ts`: identity in
+ * the app's own functions is the thing people assume they get and don't, and in
+ * hosted mode it is the *only* backend file the app needs.
  */
 async function init(positional: string[], flags: Args) {
   const cwd = process.cwd();
   const env = await readProjectEnv(cwd);
   const pkg = await readJson(path.join(cwd, "package.json")).catch(() => ({}));
   const deps: Record<string, string> = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  // Hosted unless asked otherwise. `--url` names an AussieAuth of your own,
+  // which is self-hosting by any other name.
+  const mode: Mode = flags["self-hosted"] || flag(flags, "url") ? "self-hosted" : "hosted";
 
   const forced = positional[1] as Framework | undefined;
   const framework = forced ?? detectFramework(deps, (file) => existsSync(path.join(cwd, file)));
@@ -339,20 +390,23 @@ async function init(positional: string[], flags: Args) {
   }
 
   const result =
-    framework === "expo" ? await initExpo(flags, env) : await initWeb(framework, flags, env);
+    framework === "expo"
+      ? await initExpo(flags, env, mode)
+      : await initWeb(framework, flags, env, mode);
 
-  if (flags["no-register"]) return;
+  if (flags["no-register"]) return finish(mode);
 
   const secret = flag(flags, "secret") || process.env.AUSSIEAUTH_SECRET || "";
   const origins = result.origins.filter(Boolean);
   if (!secret || !result.url || !origins.length) {
     console.log(
       `\n  Register this app when you have the deployment's secret:\n` +
+        `    export AUSSIEAUTH_SECRET=…\n` +
         `    aussieauth apps register --auth-url ${result.url || "<url>"} ` +
         `--slug ${"slug" in result ? result.slug : "<slug>"} ` +
         origins.map((o) => `--origin ${o}`).join(" "),
     );
-    return;
+    return finish(mode);
   }
 
   console.log("");
@@ -364,7 +418,28 @@ async function init(positional: string[], flags: Args) {
     origins,
     methods: ALL_METHODS,
   });
+  finish(mode);
 }
+
+/**
+ * The one command left to run.
+ *
+ * `init` writes `convex/auth.config.ts` into the project but cannot push it —
+ * that's the deployment's own CLI — and a config that exists locally and not on
+ * the deployment fails in the one way that looks like a bug in the card:
+ * sign-in succeeds, and every function still sees `null`.
+ */
+const finish = (mode: Mode) => {
+  console.log(`\n  Push it:  bunx convex dev\n`);
+  if (mode === "hosted") {
+    console.log(
+      `  That's the whole setup. Nothing in this project runs auth code — it\n` +
+        `  verifies a signature against ${HOSTED_AUTH_URL}'s public key.\n` +
+        `  Add a method, a provider credential or a branded domain by self-hosting\n` +
+        `  later: aussieauth.com/docs/self-hosted.`,
+    );
+  }
+};
 
 // ---------------------------------------------------------------------------
 // apps

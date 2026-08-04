@@ -1,10 +1,10 @@
-import { Spinner, Typography, VStack } from "ljkui";
+import { Card, Spinner, Typography, VStack } from "ljkui";
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, type ReactNode, Suspense, useEffect, useState } from "react";
 import { ErrorBoundary } from "@/ErrorBoundary";
 import { Chrome } from "@/site/Chrome";
 
-const { Heading, Text } = Typography;
+const { Code, Heading, Text } = Typography;
 
 // The live card pulls in the whole auth client, so it loads as its own chunk —
 // and only in the browser, because it reads localStorage on mount.
@@ -17,7 +17,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "A self-hosted auth server on Convex and Better Auth. Fifteen sign-in methods, and no consent screen of its own — your users only ever approve the identity provider.",
+          "An auth server on Convex and Better Auth, hosted or forked. Fifteen sign-in methods, and no consent screen of its own — your users only ever approve the identity provider.",
       },
     ],
     scripts: [
@@ -31,7 +31,7 @@ export const Route = createFileRoute("/")({
           operatingSystem: "Any",
           url: "https://aussieauth.com",
           description:
-            "A self-hosted authentication server on Convex and Better Auth with fifteen sign-in methods and no consent screen of its own.",
+            "An authentication server on Convex and Better Auth with fifteen sign-in methods and no consent screen of its own.",
           offers: { "@type": "Offer", price: "0", priceCurrency: "AUD" },
         }),
       },
@@ -55,8 +55,8 @@ function Landing() {
               One auth server. Fifteen ways in.
             </Heading>
             <Text size="4" color="gray">
-              Self-hosted on Convex and Better Auth. Your app talks to it from its own origin — no
-              consent screen of its own, ever.
+              On Convex and Better Auth. Use this deployment or fork your own — either way your app
+              talks to it from its own origin, with no consent screen of its own, ever.
             </Text>
             <VStack alignment="leading" spacing={12} className="w-full">
               <Proof title="One consent, not two">
@@ -67,11 +67,12 @@ function Landing() {
                 Long-lived agent keys and Mullvad-style account numbers are first-class, not
                 afterthoughts — sign in with no email, or no human, at all.
               </Proof>
-              <Proof title="You own the database">
-                No tenant, no per-user pricing. Fork it, point it at your Convex deployment, and the
-                sessions live in a table you control.
+              <Proof title="Lazy or self-hosted, your call">
+                Point an app at this deployment in three commands, or fork the repo and own the
+                database. The difference is one line of config, so the first isn't a trap.
               </Proof>
             </VStack>
+            <TwoWays />
           </VStack>
         </div>
 
@@ -86,9 +87,65 @@ function Landing() {
 }
 
 /**
+ * The two paths, named the same way everywhere else — the docs pages, the
+ * CLI's own output, and the `--self-hosted` flag. Someone who
+ * lands here and reads nothing else should still leave knowing there are two,
+ * which one is the default, and what the second one buys.
+ */
+function TwoWays() {
+  return (
+    // Stacked, not side by side: the pitch column is `max-w-md`, and two
+    // columns inside it leave neither command enough room to sit on one line.
+    <div className="grid w-full gap-3">
+      <Way
+        title="Way 1 — lazy"
+        href="/docs/lazy"
+        blurb="We mint the session, your deployment verifies it. No auth code in your repo."
+        command={"bun add @aussieljk/auth\nbunx aussieauth init\nbunx convex dev"}
+      />
+      <Way
+        title="Way 2 — self-hosted"
+        href="/docs/self-hosted"
+        blurb="You mint it, from a fork of this repo. Your database, your credentials, your domain."
+        command={"bun add @aussieljk/auth\nbunx aussieauth init --self-hosted\nbunx convex dev"}
+      />
+    </div>
+  );
+}
+
+function Way({
+  title,
+  href,
+  blurb,
+  command,
+}: {
+  title: string;
+  href: string;
+  blurb: string;
+  command: string;
+}) {
+  return (
+    <Card render={<a href={href} />} className="h-full">
+      <VStack alignment="leading" spacing={6}>
+        <Text weight="medium">{title}</Text>
+        <Text color="gray" size="2">
+          {blurb}
+        </Text>
+        {/* The self-hosted command is wider than the card at every breakpoint
+            the grid uses, so it scrolls inside itself rather than pushing the
+            page sideways. */}
+        <Code className="w-full max-w-full overflow-x-auto whitespace-pre" size="1" color="gray">
+          {command}
+        </Code>
+      </VStack>
+    </Card>
+  );
+}
+
+/**
  * One proof point under the pitch: a bolded claim and a line that backs it.
  * Three of these carry the differentiators the hero line can't spell out —
- * single consent, agent/anonymous auth, and self-hosting.
+ * single consent, agent/anonymous auth, and the choice of the two ways in.
  */
 function Proof({ title, children }: { title: string; children: ReactNode }) {
   return (

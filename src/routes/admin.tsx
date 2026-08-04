@@ -44,8 +44,7 @@ function Admin() {
       <Shell>
         <Text color="gray">
           Nothing here. Sign in as the deployment&rsquo;s <Code>ADMIN_EMAIL</Code> to see the app
-          registry —{" "}
-          <UiLink render={<Link to="/sign-in" />}>sign in</UiLink>.
+          registry — <UiLink render={<Link to="/sign-in" />}>sign in</UiLink>.
         </Text>
       </Shell>
     );

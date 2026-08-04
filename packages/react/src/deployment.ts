@@ -69,6 +69,105 @@ export const deploymentUrl = (env: Record<string, string | undefined>): string =
   return name ? `https://${name}.convex.site` : "";
 };
 
+/**
+ * The two ways to use AussieAuth, and the only thing that separates them:
+ * whose deployment mints the session.
+ *
+ * **hosted** — aussieauth.com mints it. The app's own Convex deployment holds
+ * the app's data and verifies the token; it runs no auth code, has no auth
+ * tables and needs no provider credentials. This is the default, and the whole
+ * setup is three commands.
+ *
+ * **self-hosted** — the app's own Convex deployment *is* an AussieAuth
+ * deployment, because you forked the repo into it. It mints its own tokens, so
+ * the issuer and the app are the same origin and every provider credential is
+ * yours to set.
+ *
+ * Both produce the same `ctx.auth.getUserIdentity()` in the app's functions,
+ * and the same card on the frontend. Nothing but the issuer changes, which is
+ * what makes moving from one to the other a one-line edit.
+ */
+export type Mode = "hosted" | "self-hosted";
+
+/**
+ * aussieauth.com's deployment.
+ *
+ * The `.convex.site` host rather than `aussieauth.com`, because that's the
+ * origin that signs the tokens and serves the JWKS — `aussieauth.com` is a
+ * static site in front of it that proxies four paths, and a JWT issuer has to
+ * be the thing that actually issued.
+ */
+export const HOSTED_AUTH_URL = "https://giddy-dinosaur-765.convex.site";
+
+/**
+ * Where the app should send its sign-ins.
+ *
+ * In hosted mode that's a constant — nothing about the app's own project can
+ * name someone else's deployment. In self-hosted mode it's the app's own
+ * deployment, worked out by `deploymentUrl`. An explicit `--url` wins over
+ * either, because the one case neither covers is a second AussieAuth of your
+ * own.
+ */
+export const authUrlForMode = (
+  mode: Mode,
+  env: Record<string, string | undefined>,
+  explicit = "",
+): string => {
+  if (explicit) return siteUrlFromConvexUrl(explicit);
+  return mode === "hosted" ? HOSTED_AUTH_URL : deploymentUrl(env);
+};
+
+/**
+ * `convex/auth.config.ts` for the app's own deployment — the file that makes
+ * `ctx.auth.getUserIdentity()` return someone.
+ *
+ * Self-hosted resolves the issuer from its own `CONVEX_SITE_URL` at runtime, so
+ * the file is the same in every deployment and carries no URL. Hosted has to
+ * name the issuer, because the deployment verifying the token is not the one
+ * that signed it — and that difference is the entire difference between the
+ * two modes, in four lines.
+ */
+export const authConfigFile = (mode: Mode, authUrl: string) =>
+  mode === "self-hosted"
+    ? `import { getAuthConfigProvider } from "@convex-dev/better-auth/auth-config";
+import type { AuthConfig } from "convex/server";
+
+/**
+ * This deployment signs its own tokens, so the issuer is itself — resolved
+ * from CONVEX_SITE_URL at runtime rather than written down here.
+ */
+export default {
+  providers: [getAuthConfigProvider()],
+} satisfies AuthConfig;
+`
+    : `import type { AuthConfig } from "convex/server";
+
+/**
+ * Sessions are minted by AussieAuth and verified here.
+ *
+ * This deployment runs no auth code and stores no auth tables: it holds a
+ * public key fetched from the issuer's JWKS and checks a signature with it.
+ * That's what makes \`ctx.auth.getUserIdentity()\` work in every query and
+ * mutation without an auth dependency in this project.
+ *
+ * To self-host later, replace this file with \`getAuthConfigProvider()\` from
+ * \`@convex-dev/better-auth/auth-config\` and point the app at your own
+ * deployment. Nothing else changes — same tokens, same identity, same card.
+ */
+export default {
+  providers: [
+    {
+      type: "customJwt",
+      issuer: "${authUrl}",
+      // Better Auth's Convex plugin stamps every token with this audience.
+      applicationID: "convex",
+      algorithm: "RS256",
+      jwks: "${authUrl}/api/auth/convex/jwks",
+    },
+  ],
+} satisfies AuthConfig;
+`;
+
 export type Framework = "expo" | "next" | "tanstack-start" | "vite" | "unknown";
 
 /**

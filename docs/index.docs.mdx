@@ -1,14 +1,18 @@
 ---
 title: What AussieAuth is
-description: A self-hosted auth server on Convex and Better Auth, with fifteen sign-in methods and no consent screen of its own.
+description: An auth server on Convex and Better Auth with fifteen sign-in methods and no consent screen of its own — use the hosted deployment in three commands, or fork it and run your own.
 order: 1
 ---
 
 # What AussieAuth is
 
-AussieAuth is a self-hosted authentication server built on [Convex](https://convex.dev)
-and [Better Auth](https://better-auth.com). It offers fifteen sign-in methods and,
+AussieAuth is an authentication server built on [Convex](https://convex.dev) and
+[Better Auth](https://better-auth.com). It offers fifteen sign-in methods and,
 unlike a hosted auth provider, it has no consent screen of its own.
+
+You can use the deployment behind aussieauth.com and be signing users in three
+commands from now, or fork the repo and run the whole thing yourself. Those are
+the [two ways](#two-ways-to-use-it), and they differ in one line of config.
 
 ## Why there's no second consent screen
 
@@ -45,34 +49,65 @@ Each is registered only when its credentials are present, so a deployment offers
 exactly the methods it's configured for. The sign-in card badges the rest as
 "needs setup" rather than letting them fail on click.
 
-## Three ways to use it
+## Two ways to use it
 
-There are three golden paths, and which one you're on decides what to read next:
+There are exactly two, and the only thing that separates them is **whose
+deployment mints the session**. Everything downstream of that — the card, the
+provider, `ctx.auth.getUserIdentity()` — is identical, which is what makes
+moving between them a one-line change rather than a migration.
 
-1. **Fork it — run your own auth server.** Clone the repo, point it at your own
-   Convex deployment, and you have every method above under a domain you own.
-   This is the main path if you want one auth backend for all your projects.
-   → [Fork it](/docs/forking), then [Quickstart](/docs/quickstart).
+### [Way 1 — lazy](/docs/lazy)
 
-2. **Add it to an existing app.** You already have a deployment (your fork, or
-   this one) and want a real app to sign in against it — one command scaffolds
-   the provider and a sign-in route, no redirect.
-   → [Using it from another app](/docs/embedding).
+aussieauth.com mints the session; your Convex deployment verifies it. No auth
+code in your repo, no auth tables in your schema, no secrets to collect.
 
-3. **Drop in a single method.** You just want, say, passkeys or agent keys in an
-   app that already has the card. Enable the one method and register it.
-   → [Method notes](/docs/methods).
+```sh
+bun add @aussieljk/auth
+bunx aussieauth init
+bunx convex dev
+```
 
-Everything else is reference: [Setting up Google](/docs/setup/google) and
-[Apple](/docs/setup/apple) (the two that need a third-party console),
-[Native apps](/docs/native), [Deploying](/docs/deploying), and
-[Architecture](/docs/architecture).
+Start here. → [Way 1 — lazy](/docs/lazy)
+
+### [Way 2 — self-hosted](/docs/self-hosted)
+
+Your deployment mints it, because you forked the repo into one of your own. Your
+database, your provider credentials, your domain.
+
+```sh
+gh repo fork aussieljk/aussieauth --clone
+# …then, in your app:
+bunx aussieauth init --self-hosted
+```
+
+Go here when you want a method the hosted deployment doesn't offer, an OAuth
+consent screen with your own name on it, or users in a database you can query.
+→ [Way 2 — self-hosted](/docs/self-hosted)
+
+|                       | Lazy                        | Self-hosted                   |
+| --------------------- | --------------------------- | ----------------------------- |
+| Setup                 | Three commands              | Fork, deploy, set credentials |
+| In your repo          | One config file             | The whole auth server         |
+| Users live in         | aussieauth.com's deployment | Yours                         |
+| Second consent screen | None                        | None                          |
+| Switching later       | One line                    | —                             |
+
+Everything else is reference: [Using it from another app](/docs/embedding) (app
+registration and origins, which both ways use),
+[Setting up Google](/docs/setup/google) and [Apple](/docs/setup/apple) (the two
+that need a third-party console, and only for self-hosting),
+[Native apps](/docs/native), [Deploying](/docs/deploying),
+[Method notes](/docs/methods) and [Architecture](/docs/architecture).
 
 ## Questions
 
 **Is AussieAuth a hosted service?**
-No. It's a Convex deployment you run yourself. There's no AussieAuth account, no
-tenant, and no per-user pricing — you own the database the sessions live in.
+It can be either, and that's the [two ways](#two-ways-to-use-it) above.
+aussieauth.com is a real deployment you can point an app at in three commands
+([lazy](/docs/lazy)); it is also a repo you can run yourself
+([self-hosted](/docs/self-hosted)), which is the one where you own the database
+the sessions live in. There's no AussieAuth account, no tenant and no per-user
+pricing on either.
 
 **Do users see an AussieAuth branded screen?**
 Never, unless you send them to one. Apps embed the sign-in card at their own

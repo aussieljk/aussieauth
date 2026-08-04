@@ -31,9 +31,7 @@ function GoogleSetup() {
             Five minutes in the Google Cloud Console. The values below are already filled in for
             this deployment — copy them across rather than typing them, since a single character off
             produces <code>redirect_uri_mismatch</code> and nothing more helpful. The same
-            walkthrough in prose is at{" "}
-            <DocLink slug="setup/google">docs/setup/google</DocLink>
-            .
+            walkthrough in prose is at <DocLink slug="setup/google">docs/setup/google</DocLink>.
           </>
         }
       >

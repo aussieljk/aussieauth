@@ -1,13 +1,43 @@
 # AussieAuth
 
-A self-hosted auth server on Convex + Better Auth, with fifteen sign-in methods
-and no consent screen of its own.
+An auth server on Convex + Better Auth, with fifteen sign-in methods and no
+consent screen of its own.
 
-The point: an app that uses AussieAuth talks to this Convex deployment straight
+The point: an app that uses AussieAuth talks to a Convex deployment straight
 from its own origin. There's no redirect to an AussieAuth-hosted page, so
 signing in with Google shows Google's consent screen and nothing else.
 
-## Setup
+## Two ways to use it
+
+The only difference is whose deployment mints the session. Everything after
+that — the card, the provider, `ctx.auth.getUserIdentity()` — is identical, so
+moving between them is one line of config.
+
+**Way 1 — lazy.** aussieauth.com mints it; your deployment verifies it. No auth
+code in your repo, no auth tables, no secrets. In a project that already has
+Convex:
+
+```sh
+bun add @aussieljk/auth
+bunx aussieauth init
+bunx convex dev
+```
+
+→ [docs/lazy](./docs/lazy.docs.mdx)
+
+**Way 2 — self-hosted.** You mint it, because you forked this repo into a
+deployment of your own. Your database, your credentials, your domain. Set the
+fork up as below, then in the app:
+
+```sh
+bun add @aussieljk/auth
+bunx aussieauth init --self-hosted
+bunx convex dev
+```
+
+→ [docs/self-hosted](./docs/self-hosted.docs.mdx)
+
+## Setup (self-hosting this repo)
 
 ```sh
 bun install
@@ -36,8 +66,10 @@ callback URLs and check the credentials once they're set.
 truth — the site pages, `/llms.txt`, `/llms-full.txt` and the raw markdown at
 `/docs/<slug>.md` are all generated from those files, so they can't drift.
 
-|                                                  |                                                                |
-| ------------------------------------------------ | -------------------------------------------------------------- |
+|                                                        |                                                                |
+| ------------------------------------------------------ | -------------------------------------------------------------- |
+| [Way 1 — lazy](./docs/lazy.docs.mdx)                   | Three commands, no backend to run                              |
+| [Way 2 — self-hosted](./docs/self-hosted.docs.mdx)     | Fork it, own the database                                      |
 | [Quickstart](./docs/quickstart.docs.mdx)               | Environment variables, third-party credentials, tests          |
 | [Setting up Google](./docs/setup/google.docs.mdx)      | OAuth client, redirect URI                                     |
 | [Setting up Apple](./docs/setup/apple.docs.mdx)        | Services ID, signing key, domain verification                  |

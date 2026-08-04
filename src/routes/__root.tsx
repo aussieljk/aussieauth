@@ -8,8 +8,7 @@ import "../index.css";
 import { ErrorBoundary } from "../ErrorBoundary";
 
 const SITE = "https://aussieauth.com";
-const DESCRIPTION =
-  "A self-hosted auth server with fifteen sign-in methods and no consent screen of its own.";
+const DESCRIPTION = "An auth server with fifteen sign-in methods and no consent screen of its own.";
 
 /**
  * Every auth call in the app goes to this origin. Naming it here lets the

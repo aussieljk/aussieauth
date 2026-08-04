@@ -62,11 +62,7 @@ function DocPage() {
           </Text>
 
           <nav className="mt-6 flex justify-between gap-4 pt-6">
-            {previous ? (
-              <DocLink slug={previous.slug}>← {previous.title}</DocLink>
-            ) : (
-              <span />
-            )}
+            {previous ? <DocLink slug={previous.slug}>← {previous.title}</DocLink> : <span />}
             {next && <DocLink slug={next.slug}>{next.title} →</DocLink>}
           </nav>
         </div>

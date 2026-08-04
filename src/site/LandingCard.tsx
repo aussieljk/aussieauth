@@ -37,8 +37,8 @@ function SignedInNotice() {
     <Alert.Root color="green">
       <Alert.Title>G&rsquo;day — you&rsquo;re already signed in</Alert.Title>
       <Alert.Description>
-        <UiLink render={<Link to="/account" />}>Your account is over here →</UiLink>{" "}
-        Or sign in again below with a different method.
+        <UiLink render={<Link to="/account" />}>Your account is over here →</UiLink> Or sign in
+        again below with a different method.
       </Alert.Description>
     </Alert.Root>
   );

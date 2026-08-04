@@ -32,8 +32,7 @@ function DocsIndex() {
       </article>
 
       <Text color="gray" className="mt-8" render={<p />}>
-        Also available as{" "}
-        <UiLink href="/llms.txt">/llms.txt</UiLink> and{" "}
+        Also available as <UiLink href="/llms.txt">/llms.txt</UiLink> and{" "}
         <UiLink href="/llms-full.txt">/llms-full.txt</UiLink>, and each page as raw markdown at{" "}
         <code>/docs/&lt;slug&gt;.md</code>.
       </Text>
