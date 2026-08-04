@@ -7,6 +7,11 @@ import type { ReactNode } from "react";
 import "./index.css";
 // Resolves `Icons.Trash` and friends the way `main.tsx` does for the app.
 import "ljkui/icons/lucide";
+// Configures the package's `authClient` live binding, exactly as the app's
+// entry does. Components import `authClient` from `@aussieljk/auth` directly,
+// so without this every card fixture throws "AussieAuth has no client yet" on
+// mount — a side-effect import, evaluated before anything renders.
+import "./lib/auth";
 
 /**
  * Everything the app mounts above a screen, wrapped around every fixture and

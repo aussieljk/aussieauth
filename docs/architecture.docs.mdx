@@ -75,9 +75,29 @@ colocated `*.test.tsx` that imports the fixture.
 runs it inside the preview frame's realm — the only place a fixture's CSS and
 React context can land — and the component tests import it directly.
 
+It also imports `src/lib/auth`, which is what configures the package's
+`authClient` live binding. Components import that binding directly, so without
+the side-effect import every card fixture throws "AussieAuth has no client yet"
+before it draws anything.
+
 ```sh
 bun run uaight      # a deployable static explorer, to dist-uaight/
 ```
+
+## Fixtures that mock the network want inline isolation
+
+`MockApi` intercepts with MSW's service worker, and a service worker can only
+register in a document loaded from a real http(s) URL. uaight's preview frame is
+`about:blank`, so in the default **Frame** isolation `worker.start()` rejects
+and the fixture can't mock anything — switch the toolbar's isolation to
+**Inline** and it renders in the top document, which has a URL.
+
+That's the four `SignInCard` fixtures carrying `handlers`. `MockApi` throws with
+this explanation rather than rendering nothing, because the earlier behaviour
+was a blank frame whose only evidence was a console line.
+
+The component tests are unaffected: vitest browser mode serves them from a real
+URL.
 
 ## Linting and formatting
 

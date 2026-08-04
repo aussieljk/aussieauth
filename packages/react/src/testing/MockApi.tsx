@@ -43,21 +43,45 @@ export function MockApi({
   // first frame and its requests fail the way they would against a deployment
   // that isn't there.
   const [ready, setReady] = useState(!handlers);
+  const [failed, setFailed] = useState<Error | null>(null);
+
   useEffect(() => {
     if (!handlers) return;
     let live = true;
     booting ??= worker.start({ onUnhandledRequest: "bypass", quiet: true });
-    void booting.then(() => {
-      if (live) {
-        worker.resetHandlers(...handlers);
-        setReady(true);
-      }
-    });
+    void booting.then(
+      () => {
+        if (live) {
+          worker.resetHandlers(...handlers);
+          setReady(true);
+        }
+      },
+      (error: unknown) => {
+        // A worker that never starts used to leave `ready` false forever, so
+        // the fixture rendered `null` — a blank frame with the reason only in
+        // the console, and nothing saying which of the two it was.
+        if (live) setFailed(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
     return () => {
       live = false;
       worker.resetHandlers();
     };
   }, [handlers]);
+
+  // Thrown during render rather than reported inline, so whatever error UI is
+  // already around the fixture shows it — a workbench's boundary, a test's
+  // failure — instead of a bespoke box only this component knows how to draw.
+  if (failed) {
+    throw new Error(
+      `MockApi couldn't start MSW's service worker, so none of this fixture's ` +
+        `endpoints are mocked: ${failed.message}\n\n` +
+        `A service worker can only register in a document loaded from a real ` +
+        `http(s) URL. If this is a component explorer rendering into an ` +
+        `about:blank frame, switch its isolation to inline — the top document ` +
+        `has a URL and the worker starts there.`,
+    );
+  }
 
   return ready ? children : null;
 }
