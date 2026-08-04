@@ -92,11 +92,17 @@ registers in a document loaded from a real http(s) URL. uaight through
 so `worker.start()` rejected and the four `SignInCard` fixtures carrying
 `handlers` rendered nothing at all.
 
-Fixed upstream: uaight now serves the frame's document at `/@uaight/preview` in
-dev and as `preview.html` in a static build, so **this repo needs uaight past
-canary.1**. `MockApi` throws with the reason rather than rendering nothing,
-because the earlier behaviour was a blank frame whose only evidence was a
-console line.
+Fixed upstream in **canary.2**, which serves the frame's document at
+`/@uaight/preview` in dev and as `preview.html` in a static build. `MockApi`
+throws with the reason rather than rendering nothing, because the earlier
+behaviour was a blank frame whose only evidence was a console line.
+
+`bun run uaight` needs canary.2 for a second reason: the static build used to
+run this project's TanStack Start plugins, and Start's manifest plugin counts
+entries — it saw the explorer's document and the renderer chunk and died on
+`multiple entries detected`. uaight now leaves a meta-framework's plugins out of
+that build and prints which ones, since the explorer is a different application
+from the site.
 
 The component tests were never affected: vitest browser mode serves them from a
 real URL.
