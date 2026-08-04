@@ -3,9 +3,12 @@ import type { ComponentType } from "react";
 /**
  * The docs, read off disk at build time.
  *
- * `docs/*.md` is the source of truth for the site, for `/llms.txt` and for the
- * raw markdown served at `/docs/<slug>.md` — one set of files behind all three,
- * so a page can't say one thing to a reader and another to a crawler.
+ * `docs/*.docs.mdx` is the source of truth for the site, for `/llms.txt`, for
+ * the raw markdown served at `/docs/<slug>.md` — and for uaight, which globs
+ * `**\/*.docs.mdx` and lists every page in the explorer beside the fixtures.
+ * One set of files behind all four, so a page can't say one thing to a reader,
+ * another to a crawler and a third to whoever is editing the components it
+ * documents.
  */
 
 export type DocFrontmatter = {
@@ -23,14 +26,14 @@ export type Doc = DocFrontmatter & {
 
 type DocModule = { default: ComponentType; frontmatter: DocFrontmatter };
 
-const modules = import.meta.glob<DocModule>("../../docs/**/*.md", {
+const modules = import.meta.glob<DocModule>("../../docs/**/*.docs.mdx", {
   eager: true,
 });
 
 const slugOf = (filePath: string) =>
   filePath
     .replace("../../docs/", "")
-    .replace(/\.md$/, "")
+    .replace(/\.docs\.mdx$/, "")
     .replace(/(^|\/)index$/, "");
 
 export const DOCS: Doc[] = Object.entries(modules)

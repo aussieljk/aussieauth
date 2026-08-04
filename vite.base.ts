@@ -11,10 +11,10 @@ import type { UserConfig } from "vite";
 /**
  * Everything that isn't TanStack Start.
  *
- * Three tools build this app — vite, vitest and react-cosmos — and only the
- * first wants Start's route generation and SSR entry. Keeping the shared half
- * here means the aliases can't drift between them, which is the failure that
- * shows up as a module resolving in the app and not in a fixture.
+ * Two tools build this app — vite and vitest — and only the first wants Start's
+ * route generation and SSR entry. Keeping the shared half here means the
+ * aliases can't drift between them, which is the failure that shows up as a
+ * module resolving in the app and not in a fixture.
  */
 export const base = {
   plugins: [
@@ -24,10 +24,17 @@ export const base = {
       // syntax highlighter reach the browser — the pages are already HTML by
       // the time anyone asks for them.
       ...mdx({
-        // CommonMark, not MDX. The docs are prose written by hand, and under
-        // MDX every stray `<` starts a component — `https://<deployment>.…`
-        // would be a build error rather than a URL.
-        format: "md",
+        // MDX for `.docs.mdx`, CommonMark for anything still `.md`. The docs
+        // are prose written by hand, and under MDX every stray `<` starts a
+        // component — but every `<` in these pages is inside a code fence,
+        // where MDX doesn't look, and being real MDX is what lets a page
+        // render a live fixture rather than a screenshot of one.
+        format: "detect",
+        // Lets a consumer supply a `wrapper` through context. Only uaight does
+        // — the preview frame wraps a docs page in the site's `prose` styles,
+        // which the site itself puts on the surrounding `<article>`. Without a
+        // provider in the tree there is no wrapper, so the site is unchanged.
+        providerImportSource: "@mdx-js/react",
         remarkPlugins: [
           remarkGfm,
           remarkFrontmatter,

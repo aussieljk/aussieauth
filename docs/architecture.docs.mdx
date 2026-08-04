@@ -57,27 +57,27 @@ body validation, the path→method map, and the WebAuthn site-limit arithmetic.
 **component** renders the sign-in card and account page in a real browser against
 mocked endpoints.
 
-The component tests render React Cosmos fixtures — the same `*.fixture.tsx` files
-the workbench shows — through the same `src/cosmos.decorator.tsx`, so a state you
-can look at is a state that's covered:
+The component tests render the same `*.fixture.tsx` files the explorer shows,
+through the same `src/uaight.preview.tsx`, so a state you can look at is a state
+that's covered.
 
-```sh
-bun run cosmos      # the workbench, at localhost:7007
-```
+The explorer is [uaight](https://github.com/aussieljk/uaight), a Vite plugin
+rather than a second tool: it mounts at `/uaight` on the app's own dev server, so
+`bun dev` is the whole toolchain and there is no second process, no second port
+and no second Vite config to drift out of sync. A fixture resolves modules
+exactly as the app does because it *is* the app's server doing the resolving.
 
 A fixture is a component in a named state; `src/testing/MockApi.tsx` gives it the
 endpoints and localStorage it needs. Anything worth asserting about goes in a
 colocated `*.test.tsx` that imports the fixture.
 
-Cosmos runs against `vite.cosmos.config.ts` rather than `vite.config.ts` — it
-would otherwise pick up the TanStack Start plugin, whose SSR entry and route
-generation mean nothing to a fixture. Both configs share `vite.base.ts`, so the
-path aliases can't drift between the app and the workbench.
+`src/uaight.preview.tsx` is where the providers and the stylesheet live. uaight
+runs it inside the preview frame's realm — the only place a fixture's CSS and
+React context can land — and the component tests import it directly.
 
-The root `index.html` is committed but isn't the app's document — TanStack Start
-builds that from `src/routes/__root.tsx`. It's the renderer shim react-cosmos
-insists on, and `bun run cosmos` fails outright if it's missing, which is the
-only reason it's in the repo.
+```sh
+bun run uaight      # a deployable static explorer, to dist-uaight/
+```
 
 ## Linting and formatting
 

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/docs/")({
 });
 
 function DocsIndex() {
-  // `docs/index.md` is the overview; the rest are the pages it links on to.
+  // `docs/index.docs.mdx` is the overview; the rest are the pages it links on to.
   const overview = docBySlug("");
   const pages = DOCS.filter((d) => d.slug !== "");
 

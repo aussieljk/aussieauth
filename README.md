@@ -38,25 +38,26 @@ truth — the site pages, `/llms.txt`, `/llms-full.txt` and the raw markdown at
 
 |                                                  |                                                                |
 | ------------------------------------------------ | -------------------------------------------------------------- |
-| [Quickstart](./docs/quickstart.md)               | Environment variables, third-party credentials, tests          |
-| [Setting up Google](./docs/setup/google.md)      | OAuth client, redirect URI                                     |
-| [Setting up Apple](./docs/setup/apple.md)        | Services ID, signing key, domain verification                  |
-| [Using it from another app](./docs/embedding.md) | Registering an app, trusting its origins, dropping in the card |
-| [Native apps](./docs/native.md)                  | Expo, scheme origins, prefix matching                          |
-| [Deploying](./docs/deploying.md)                 | Vercel, and the four paths that must be proxied                |
-| [Architecture](./docs/architecture.md)           | What's in each directory, and why                              |
-| [Method notes](./docs/methods.md)                | What's non-obvious about each of the fifteen                   |
+| [Quickstart](./docs/quickstart.docs.mdx)               | Environment variables, third-party credentials, tests          |
+| [Setting up Google](./docs/setup/google.docs.mdx)      | OAuth client, redirect URI                                     |
+| [Setting up Apple](./docs/setup/apple.docs.mdx)        | Services ID, signing key, domain verification                  |
+| [Using it from another app](./docs/embedding.docs.mdx) | Registering an app, trusting its origins, dropping in the card |
+| [Native apps](./docs/native.docs.mdx)                  | Expo, scheme origins, prefix matching                          |
+| [Deploying](./docs/deploying.docs.mdx)                 | Vercel, and the four paths that must be proxied                |
+| [Architecture](./docs/architecture.docs.mdx)           | What's in each directory, and why                              |
+| [Method notes](./docs/methods.docs.mdx)                | What's non-obvious about each of the fifteen                   |
 
 ## Commands
 
 ```sh
 bun dev                  # the site, at https://aussieauth.localhost
+                         # …and the component explorer, at /uaight
 bun run dev:backend      # convex dev
 bun run test             # unit + component  (not `bun test` — that's Bun's own runner)
 bun run test:e2e         # whole flows against the running site — start `bun dev` first
 bun run lint             # tsc --noEmit && oxlint --type-aware
 bun run format           # oxfmt
-bun run cosmos           # the fixture workbench, at localhost:7007
+bun run uaight           # a deployable static explorer, to dist-uaight/
 bun run build            # prerenders every page to dist/client
 bun run auth:schema      # regenerate convex/betterAuth/schema.ts after a plugin change
 bun run docs:llms        # regenerate llms.txt, llms-full.txt and the raw markdown

@@ -1,5 +1,5 @@
 /**
- * Builds the machine-readable half of the docs from docs/**\/*.md.
+ * Builds the machine-readable half of the docs from docs/**\/*.docs.mdx.
  *
  * Runs as `prebuild`, so the site and the files an LLM reads are generated from
  * one source and can't disagree:
@@ -33,7 +33,7 @@ const markdownFiles = (dir: string): string[] =>
   readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = join(dir, entry.name);
     if (entry.isDirectory()) return markdownFiles(full);
-    return entry.name.endsWith(".md") ? [full] : [];
+    return entry.name.endsWith(".docs.mdx") ? [full] : [];
   });
 
 /**
@@ -53,7 +53,7 @@ const parse = (file: string): Doc => {
 
   return {
     slug: relative(docsDir, file)
-      .replace(/\.md$/, "")
+      .replace(/\.docs\.mdx$/, "")
       .replace(/(^|\/)index$/, ""),
     title: field("title"),
     description: field("description"),
@@ -92,7 +92,7 @@ const llmsFull = `# AussieAuth — full documentation
 
 > ${SUMMARY}
 
-Generated from docs/*.md. Canonical HTML: ${SITE}/docs
+Generated from docs/*.docs.mdx. Canonical HTML: ${SITE}/docs
 
 ${docs.map((d) => `---\n\nSource: ${urlFor(d.slug)}\n\n${d.body}`).join("\n\n")}
 `;

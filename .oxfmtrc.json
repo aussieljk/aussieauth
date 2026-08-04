@@ -2,7 +2,7 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "ignorePatterns": [
     "dist",
-    "cosmos-export",
+    "dist-uaight",
     "bun.lock",
     ".agents",
     ".claude",

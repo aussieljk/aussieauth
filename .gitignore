@@ -27,7 +27,7 @@ dist-ssr
 # Apple signing keys — never commit these
 *.p8
 
-cosmos-export
+dist-uaight
 
 # Generated from docs/*.md by `bun run docs:llms` (runs as prebuild).
 public/llms.txt

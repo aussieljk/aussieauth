@@ -22,7 +22,7 @@ const markdown = async (dir: string): Promise<string[]> => {
     entries.map(async (entry) => {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) return markdown(full);
-      return entry.name.endsWith(".md") ? [full] : [];
+      return entry.name.endsWith(".docs.mdx") ? [full] : [];
     }),
   );
   return found.flat();

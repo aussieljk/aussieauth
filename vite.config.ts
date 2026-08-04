@@ -2,6 +2,7 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vite";
+import { uaight } from "uaight/vite";
 import { base } from "./vite.base";
 
 // Vitest drives this same config file, and the Start plugin has nothing to do
@@ -14,6 +15,34 @@ const underVitest = Boolean(process.env.VITEST);
 export default defineConfig({
   ...base,
   plugins: [
+    // The component explorer, served at `/uaight` by the app's own dev server.
+    // There is no second process and no second port: `bun dev` is the whole
+    // toolchain, and a fixture resolves modules exactly as the app does
+    // because it *is* the app's Vite server doing the resolving.
+    uaight({
+      // The repo root, not `src`. `docs/` sits beside it and every page in
+      // there is a `*.docs.mdx` — the same files the site renders — so the
+      // explorer lists the prose next to the components it describes.
+      // `packages/react` comes along for the ride, which is right: that's the
+      // published card, and it should be explorable from the app that embeds
+      // it.
+      fixturesDir: ".",
+      exclude: [
+        "**/node_modules/**",
+        "**/dist/**",
+        "dist-uaight/**",
+        // React Native. Nothing in it renders in a browser frame.
+        "examples/**",
+        // Server code, and the generated schema it produces.
+        "convex/**",
+      ],
+      // Providers and the stylesheet, mounted inside the preview frame.
+      previewEntry: "src/uaight.preview.tsx",
+      // Every doc page is an MDX fixture — see `docs/`.
+      docs: true,
+      // Nothing here is Storybook, and leaving CSF on costs a glob per scan.
+      storybook: false,
+    }),
     ...(underVitest
       ? []
       : [
@@ -73,7 +102,7 @@ export default defineConfig({
       },
       {
         // The components, driven in a real browser through the same fixtures
-        // `bun run cosmos` renders. `.tsx` is the whole selector: anything that
+        // `/uaight` renders. `.tsx` is the whole selector: anything that
         // needs a DOM is JSX, anything that doesn't is `.ts` and runs above.
         extends: true,
         test: {
