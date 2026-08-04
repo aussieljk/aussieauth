@@ -84,20 +84,22 @@ before it draws anything.
 bun run uaight      # a deployable static explorer, to dist-uaight/
 ```
 
-## Fixtures that mock the network want inline isolation
+## Fixtures that mock the network need a served frame
 
-`MockApi` intercepts with MSW's service worker, and a service worker can only
-register in a document loaded from a real http(s) URL. uaight's preview frame is
-`about:blank`, so in the default **Frame** isolation `worker.start()` rejects
-and the fixture can't mock anything — switch the toolbar's isolation to
-**Inline** and it renders in the top document, which has a URL.
+`MockApi` intercepts with MSW's service worker, and a service worker only
+registers in a document loaded from a real http(s) URL. uaight through
+`0.0.1-canary.1` wrote its preview frame into `about:blank`, which has no URL,
+so `worker.start()` rejected and the four `SignInCard` fixtures carrying
+`handlers` rendered nothing at all.
 
-That's the four `SignInCard` fixtures carrying `handlers`. `MockApi` throws with
-this explanation rather than rendering nothing, because the earlier behaviour
-was a blank frame whose only evidence was a console line.
+Fixed upstream: uaight now serves the frame's document at `/@uaight/preview` in
+dev and as `preview.html` in a static build, so **this repo needs uaight past
+canary.1**. `MockApi` throws with the reason rather than rendering nothing,
+because the earlier behaviour was a blank frame whose only evidence was a
+console line.
 
-The component tests are unaffected: vitest browser mode serves them from a real
-URL.
+The component tests were never affected: vitest browser mode serves them from a
+real URL.
 
 ## Linting and formatting
 

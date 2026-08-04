@@ -76,10 +76,11 @@ export function MockApi({
     throw new Error(
       `MockApi couldn't start MSW's service worker, so none of this fixture's ` +
         `endpoints are mocked: ${failed.message}\n\n` +
-        `A service worker can only register in a document loaded from a real ` +
-        `http(s) URL. If this is a component explorer rendering into an ` +
-        `about:blank frame, switch its isolation to inline — the top document ` +
-        `has a URL and the worker starts there.`,
+        `A service worker only registers in a document loaded from a real ` +
+        `http(s) URL, and only when the worker script is served from one — so ` +
+        `the two causes are a renderer using an about:blank frame, and a ` +
+        `missing /mockServiceWorker.js. Run \`msw init <public dir>\` for the ` +
+        `second.`,
     );
   }
 
