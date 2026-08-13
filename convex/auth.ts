@@ -25,6 +25,7 @@ import { DEFAULT_SITE_URL, parseOrigins, passkeyOrigins } from "./lib/site";
 import { demo } from "./lib/demo";
 import { linking } from "./lib/linking";
 import { resolveLoginMethod } from "./lib/methods";
+import { isDevOrigin } from "./lib/registration";
 import { sendEmail, sendSms } from "./lib/notify";
 import { solana } from "./lib/solana";
 import { status } from "./lib/status";
@@ -83,10 +84,23 @@ export const relatedOriginUsage = async (ctx: GenericCtx<DataModel>) =>
  * Auth enforces, and `/apps/me` is what tells an app whether it's on the list.
  * An app told "you're fine" by a list the request wasn't checked against is
  * exactly the confusion that endpoint exists to remove.
+ *
+ * `requestOrigin` is the second half of setup-free onboarding. A development
+ * origin — localhost, a `.local` name, a LAN address, on any port — is trusted
+ * because it asked, without ever having registered. That removes the step that
+ * cannot be automated: nobody can predict which port a dev server will pick,
+ * and the alternative is a card that renders and then fails on click. It is
+ * not a hole. Sending a request from `http://localhost:5173` already means
+ * running code on that machine, so the origin proves nothing a secret would.
+ * Public origins are unchanged and still have to register.
  */
-export const trustedOrigins = async (ctx: GenericCtx<DataModel>) => [
+export const trustedOrigins = async (
+  ctx: GenericCtx<DataModel>,
+  requestOrigin?: string | null,
+) => [
   ...staticOrigins,
   ...(await registeredOrigins(ctx)),
+  ...(requestOrigin && isDevOrigin(requestOrigin) ? [requestOrigin] : []),
 ];
 
 export const relatedOrigins = async (ctx: GenericCtx<DataModel>) => {
@@ -196,7 +210,12 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
     // themselves at runtime — the env list is only the bootstrap set. Better
     // Auth accepts an async resolver here, which is what makes a database-
     // backed allow-list possible at all.
-    trustedOrigins: async () => trustedOrigins(ctx),
+    // The request is passed through so a development origin can be trusted on
+    // sight. Better Auth hands the resolver the Request for both its own
+    // origin check and the CORS allow-list, which is what makes one lever
+    // cover every place the list is consulted.
+    trustedOrigins: async (request?: Request) =>
+      trustedOrigins(ctx, request?.headers?.get("origin")),
 
     database: authComponent.adapter(ctx),
 

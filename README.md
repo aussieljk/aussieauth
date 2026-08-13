@@ -19,7 +19,7 @@ Convex:
 
 ```sh
 bun add @aussieljk/auth
-bunx aussieauth init
+bunx aussieauth
 bunx convex dev
 ```
 

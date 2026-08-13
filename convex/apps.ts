@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 import { matchApp } from "./lib/apps";
+import { isDevOrigin, isSecretlessOrigin } from "./lib/registration";
 
 /**
  * Reads and writes for the app registry. The auth layer consumes these through
@@ -58,30 +59,84 @@ export const register = internalMutation({
     name: v.string(),
     origins: v.array(v.string()),
     methods: v.optional(v.array(v.string())),
+    /**
+     * Set when the call arrived without the provisioning secret, which
+     * `/apps/register` allows for a dev-origin-only registration. It buys one
+     * extra rule, below: such a call may not touch an app that holds a public
+     * origin.
+     */
+    unauthenticated: v.optional(v.boolean()),
   },
-  handler: async (ctx, { slug, name, origins, methods }) => {
+  handler: async (ctx, { slug, name, origins, methods, unauthenticated }) => {
     const existing = await ctx.db
       .query("apps")
       .withIndex("slug", (q) => q.eq("slug", slug))
       .unique();
 
+    // Without this, anyone could claim the slug of a live app and have its
+    // public origins replaced by their own localhost — which is a denial of
+    // service on that app's sign-in, dressed up as setup. Origins are replaced
+    // rather than merged, so the check has to cover what is already there
+    // rather than only what is arriving.
+    if (unauthenticated && existing) {
+      const claimed = await ctx.db
+        .query("appOrigins")
+        .withIndex("appId", (q) => q.eq("appId", existing._id))
+        .collect();
+      const publicOrigins = claimed.map((o) => o.origin).filter((o) => !isSecretlessOrigin(o));
+      if (publicOrigins.length) {
+        throw new ConvexError(
+          `"${slug}" already has public origins (${publicOrigins.join(", ")}). ` +
+            `Re-register it with the deployment's secret.`,
+        );
+      }
+    }
+
     // Check every origin before writing anything. One app quietly taking over
     // another's origin would hand it that app's sign-ins, so a conflict has to
     // fail the whole call rather than partially apply.
+    //
+    // With one exception, and it is not a small one: two projects on
+    // `http://localhost:5173` is the normal state of a machine with two Vite
+    // apps on it, and failing the second one's setup over that would put every
+    // new project behind a collision with whatever was set up last. A dev
+    // origin is trusted on sight anyway (see `trustedOrigins`), so the second
+    // app signs in perfectly well without owning the row. So it is skipped and
+    // named, rather than fought over.
+    const skipped: string[] = [];
+    const claimable: string[] = [];
     for (const origin of origins) {
       const claimed = await ctx.db
         .query("appOrigins")
         .withIndex("origin", (q) => q.eq("origin", origin))
         .first();
-      if (claimed && claimed.appId !== existing?._id) {
-        const owner = await ctx.db.get(claimed.appId);
-        // ConvexError rather than Error: a plain throw reaches the caller as a
-        // stack trace, and this is a message the other app's developer is
-        // meant to read and act on.
-        throw new ConvexError(
-          `Origin ${origin} already belongs to "${owner?.slug ?? "another app"}"`,
-        );
+      if (!claimed || claimed.appId === existing?._id) {
+        claimable.push(origin);
+        continue;
       }
+      if (isDevOrigin(origin)) {
+        skipped.push(origin);
+        continue;
+      }
+      const owner = await ctx.db.get(claimed.appId);
+      // ConvexError rather than Error: a plain throw reaches the caller as a
+      // stack trace, and this is a message the other app's developer is
+      // meant to read and act on.
+      throw new ConvexError(
+        `Origin ${origin} already belongs to "${owner?.slug ?? "another app"}"`,
+      );
+    }
+
+    // Every origin was someone else's localhost. Nothing to record, and
+    // nothing wrong either — the app works on all of them.
+    if (!claimable.length) {
+      return {
+        slug,
+        origins: 0,
+        methods: existing?.methods ?? null,
+        restored: false,
+        skipped,
+      };
     }
 
     // An app that was revoked and is registering again keeps the method list
@@ -113,16 +168,18 @@ export const register = internalMutation({
       .withIndex("appId", (q) => q.eq("appId", appId))
       .collect();
     for (const row of previous) await ctx.db.delete(row._id);
-    for (const origin of origins) {
+    for (const origin of claimable) {
       await ctx.db.insert("appOrigins", { origin, appId });
     }
 
     return {
       slug,
-      origins: origins.length,
+      origins: claimable.length,
       methods: restored ?? null,
       /** True when this call brought a previously revoked app back. */
       restored: Boolean(existing?.revokedAt),
+      /** Dev origins another app already owns. Trusted anyway, just not ours. */
+      skipped,
     };
   },
 });

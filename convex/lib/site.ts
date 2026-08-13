@@ -14,6 +14,7 @@
  */
 
 import { capToRelatedOriginLimit } from "./apps";
+import { isDevOrigin } from "./registration";
 
 /** Where the browser is when nothing says otherwise: the Vite dev server. */
 export const DEFAULT_SITE_URL = "http://localhost:5173";
@@ -61,6 +62,13 @@ export const isLocalSite = (siteUrl: string | undefined | null): boolean => {
  * Web origins only: `/.well-known/webauthn` is read by a browser, which can do
  * nothing with a native scheme, and every entry costs against the five-label
  * cap — so letting `exp://` through would push a real origin off the end.
+ *
+ * Development origins go last, and that ordering is load-bearing. Every new
+ * project on this machine registers a `<name>.localhost` of its own, and each
+ * one is a distinct label as far as the cap is concerned — so in first-come
+ * order a handful of scratch projects would quietly cost a live app its
+ * passkeys. Sorted this way, a dev origin can only ever take a slot no real
+ * origin wanted.
  */
 export const passkeyOrigins = ({
   siteUrl,
@@ -74,5 +82,8 @@ export const passkeyOrigins = ({
   const web = [siteUrl, ...envOrigins, ...appOrigins]
     .filter((origin) => /^https?:\/\//.test(origin))
     .filter((origin, i, all) => all.indexOf(origin) === i);
-  return capToRelatedOriginLimit(web);
+  // Stable within each group, so the order two production origins were
+  // registered in still decides which of them wins a contested slot.
+  const ordered = [...web.filter((o) => !isDevOrigin(o)), ...web.filter(isDevOrigin)];
+  return capToRelatedOriginLimit(ordered);
 };

@@ -34,15 +34,16 @@ origins.
 implies `--self-hosted`, which is what you want when the fork is a separate
 deployment from the app.
 
-That last step needs the deployment's provisioning secret:
+That last step needs no credentials, because a development origin needs none.
+`AUSSIEAUTH_SECRET` is required to register a **public** origin and nothing
+else:
 
 ```sh
 bunx convex env set AUSSIEAUTH_SECRET "<the value from the AussieAuth deployment>"
-export AUSSIEAUTH_SECRET="<the same value>"   # init reads it from the environment
+export AUSSIEAUTH_SECRET="<the same value>"   # only for public origins
 ```
 
-Without it `init` still writes the files and prints the `apps register` command
-to run once you have the secret.
+See [why development origins need no secret](/docs/lazy#why-development-origins-need-no-secret).
 
 ### The URL nobody can guess
 
@@ -99,6 +100,9 @@ bunx aussieauth apps register \
   --origin https://portfolio.com --origin http://localhost:5173 \
   --methods google,passkey        # omit for all fifteen
 ```
+
+`--secret` is needed only because `https://portfolio.com` is in that list. Drop
+it and the command needs no credentials at all.
 
 Or over HTTP, which is what a server-to-server registration on boot looks like:
 

@@ -15,6 +15,7 @@ import type * as http from "../http.js";
 import type * as lib_accountNumber from "../lib/accountNumber.js";
 import type * as lib_apple from "../lib/apple.js";
 import type * as lib_apps from "../lib/apps.js";
+import type * as lib_contract from "../lib/contract.js";
 import type * as lib_demo from "../lib/demo.js";
 import type * as lib_linking from "../lib/linking.js";
 import type * as lib_methods from "../lib/methods.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "lib/accountNumber": typeof lib_accountNumber;
   "lib/apple": typeof lib_apple;
   "lib/apps": typeof lib_apps;
+  "lib/contract": typeof lib_contract;
   "lib/demo": typeof lib_demo;
   "lib/linking": typeof lib_linking;
   "lib/methods": typeof lib_methods;

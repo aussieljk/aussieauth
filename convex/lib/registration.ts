@@ -47,6 +47,58 @@ export const isOrigin = (value: string) => {
 export const isSchemeOrigin = (value: string) =>
   /^[a-z][a-z0-9+.-]*:\/\/$/.test(value) && !/^https?:\/\/$/.test(value);
 
+/**
+ * Hostnames that can only ever mean "someone's own machine or local network":
+ * the loopback names, the two reserved local TLDs, and the three private IPv4
+ * ranges an Expo dev server picks its LAN address from.
+ *
+ * `.local` and `.localhost` are both reserved by RFC, so neither can be bought
+ * and pointed at an attacker. The private ranges are not routable from the
+ * internet, so reaching one already means being on the same network as the
+ * developer.
+ */
+const DEV_HOST =
+  /^(?:localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|\[::1\]|10(?:\.\d{1,3}){3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|[a-z0-9-]+\.local(?:host)?)$/i;
+
+/**
+ * Whether an origin is a development one, on any port.
+ *
+ * This is the whole basis of secretless setup. A dev origin is not a security
+ * boundary in the first place: anything that can send a request from
+ * `http://localhost:3000` is already running code on the developer's machine,
+ * so a shared secret guarding it buys nothing and costs the one thing that
+ * matters here — an AI setting the project up cannot ask a human for a secret.
+ * Public origins still need one.
+ */
+export const isDevOrigin = (value: string) => {
+  try {
+    const url = new URL(value);
+    if (url.origin !== value || !/^https?:$/.test(url.protocol)) return false;
+    return DEV_HOST.test(url.hostname);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * An origin that can be claimed without the provisioning secret: a development
+ * one, or a native app's deep-link scheme.
+ *
+ * Schemes are in for the same reason dev origins are, and with the same
+ * trade. A native app cannot be set up without registering `myapp://` and
+ * `exp://`, and requiring a secret for it puts the Expo path back behind a
+ * human. What it costs is that an unused scheme can be squatted — the app that
+ * wanted it then gets a clear 409 instead of silence, and the secret is the way
+ * through. What it does not cost is anyone's live app: `apps.register` refuses
+ * a secretless call that would touch an app holding a public origin, and an
+ * origin already claimed by another app is refused outright either way.
+ */
+export const isSecretlessOrigin = (value: string) => isDevOrigin(value) || isSchemeOrigin(value);
+
+/** True when the whole list can be claimed without a secret, and isn't empty. */
+export const secretlessOrigins = (origins: string[]) =>
+  origins.length > 0 && origins.every(isSecretlessOrigin);
+
 export type Registration = {
   slug: string;
   name: string;

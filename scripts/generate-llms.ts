@@ -69,12 +69,52 @@ const docs = markdownFiles(docsDir)
 const urlFor = (slug: string) => `${SITE}/docs${slug ? `/${slug}` : ""}`;
 const rawUrlFor = (slug: string) => `${SITE}/docs/${slug || "index"}.md`;
 
-const SUMMARY = `AussieAuth is a self-hosted authentication server built on Convex and Better Auth. It offers sixteen sign-in methods — Google, Google One Tap, GitHub, Apple, Solana wallet, passkeys, email/password, phone/password, username/password, magic links, email OTP, SMS codes, a shared demo account, anonymous sessions, Mullvad-style account numbers, and API keys for agents. Unlike a hosted auth provider it has no consent screen of its own: an app that uses AussieAuth talks to the Convex deployment from its own origin, so a user signing in with Google sees Google's consent screen and nothing else.`;
+const SUMMARY = `AussieAuth is a self-hosted authentication server built on Convex and Better Auth. It offers fifteen sign-in methods — Google, GitHub, Apple, Solana wallet, passkeys, email/password, phone/password, username/password, magic links, email OTP, SMS codes, a shared demo account, anonymous sessions, Mullvad-style account numbers, and API keys for agents. Unlike a hosted auth provider it has no consent screen of its own: an app that uses AussieAuth talks to the Convex deployment from its own origin, so a user signing in with Google sees Google's consent screen and nothing else.`;
+
+/**
+ * The first thing an agent reads, and the reason this block exists.
+ *
+ * An agent adding AussieAuth to someone's app has no way to obtain a secret,
+ * open a dashboard or pick a port — so if the docs leave any of those implied,
+ * it improvises, and the person it is working for gets handed a list of manual
+ * steps instead of a working sign-in. Stating the whole install in four lines,
+ * above everything else, is what stops that.
+ */
+const SETUP = `## Setting this up in an app (read this first)
+
+Three commands, in the app's directory. No secret, no dashboard, no account, no
+human:
+
+\`\`\`sh
+bun add @aussieljk/auth
+bunx aussieauth          # scaffolds, registers the dev origin, verifies
+bunx convex dev          # pushes convex/auth.config.ts
+\`\`\`
+
+Then \`bunx aussieauth doctor\` — it prints a pass/fail line per step and exits
+non-zero while anything is still wrong. Use it instead of guessing.
+
+Things that are true and worth not re-deriving:
+
+- Development origins (localhost, \`*.local\`, \`*.localhost\`, LAN addresses, any
+  port) need no credentials. They register without a secret and are trusted by
+  the deployment on sight. \`AUSSIEAUTH_SECRET\` is only for public origins.
+- \`bunx aussieauth\` works out the dev origin from the project, including the
+  \`https://<name>.localhost\` that portless serves on. Do not pass \`--origin\`
+  unless registering a public one.
+- It refuses to write anything if the deployment is unreachable, serves no auth,
+  or is older than the installed client. A failure is a real failure; there is
+  no half-done state to work around.
+- Do not point the app at its own Convex deployment — it answers, serves no auth,
+  and looks right. In hosted mode the auth URL is AussieAuth's own deployment,
+  and the CLI writes it itself.
+`;
 
 const llms = `# AussieAuth
 
 > ${SUMMARY}
 
+${SETUP}
 ## Docs
 
 ${docs.map((d) => `- [${d.title}](${urlFor(d.slug)}): ${d.description}`).join("\n")}
@@ -93,6 +133,8 @@ const llmsFull = `# AussieAuth — full documentation
 > ${SUMMARY}
 
 Generated from docs/*.docs.mdx. Canonical HTML: ${SITE}/docs
+
+${SETUP}
 
 ${docs.map((d) => `---\n\nSource: ${urlFor(d.slug)}\n\n${d.body}`).join("\n\n")}
 `;

@@ -15,19 +15,31 @@ Three commands, from a project that already has Convex:
 
 ```sh
 bun add @aussieljk/auth
-bunx aussieauth init
+bunx aussieauth
 bunx convex dev
 ```
 
-That's it. Sign-in works at `http://localhost:5173/sign-in`, with every method
-the hosted deployment has credentials for.
+That's it. Sign-in works at your dev server's `/sign-in`, with every method the
+hosted deployment has credentials for.
+
+**Nothing here needs a credential, a dashboard or a human.** There is no secret
+to fetch, no origin to add by hand and no account to create. An agent can run
+these three commands start to finish and check its own work with
+`bunx aussieauth doctor`, which exits non-zero while anything is still wrong.
 
 ## What each command did
 
 **`bun add @aussieljk/auth`** — the card, the client and the `aussieauth` CLI.
 
-**`bunx aussieauth init`** — worked out the framework (Vite, Next, TanStack
-Start or Expo), then wrote four things:
+**`bunx aussieauth`** — the whole install. (`aussieauth init` is the same thing
+with a name on it.) First it asks the deployment four questions — is it there,
+does it serve auth, does it publish a JWKS, is it current with this client —
+and refuses to write anything if any answer is wrong. A scaffold that completes
+against a deployment which cannot serve it is the worst outcome available: it
+reads as finished and fails later somewhere else.
+
+Then it worked out the framework (Vite, Next, TanStack Start or Expo) and wrote
+four things:
 
 | Written                  | Why                                                             |
 | ------------------------ | --------------------------------------------------------------- |
@@ -37,9 +49,24 @@ Start or Expo), then wrote four things:
 | `.env.local`             | `…_AUSSIEAUTH_URL`, pointing at the hosted deployment           |
 
 It also registered your dev origin, so `localhost` is trusted before you've read
-a word about origins. That step needs `AUSSIEAUTH_SECRET` in your environment;
-without it `init` prints the one command to run later and everything else still
-happens.
+a word about origins — **no secret required**. It works out the real origin from
+your dev script rather than guessing a port, including the
+`https://<name>.localhost` that [portless](https://github.com/vercel/portless)
+serves on. If registering fails, the command fails with it; it never reports
+success over a half-finished setup.
+
+## Why development origins need no secret
+
+A registration whose origins are all development ones — `localhost`, a `.local`
+name, a LAN address, on any port — is accepted without credentials, and any dev
+origin is trusted by the deployment the moment it asks, registered or not.
+
+That is deliberate, and it is not a hole. Sending a request from
+`http://localhost:5173` already means running code on that machine, so a shared
+secret in front of it protects nothing while costing the only thing that
+matters: an agent setting your project up cannot go and ask a human for a
+secret. Public origins are unchanged and still need `AUSSIEAUTH_SECRET`, and a
+secretless call is refused outright if the app slug it names already owns one.
 
 **`bunx convex dev`** — pushed `convex/auth.config.ts`. Skipping this is the one
 way to end up somewhere confusing: sign-in succeeds in the browser and every

@@ -19,9 +19,14 @@ code in your repo, no auth tables, no secrets:
 
 ```sh
 bun add @aussieljk/auth
-bunx aussieauth init
+bunx aussieauth
 bunx convex dev
 ```
+
+No secret, no dashboard, no account, no human. Development origins — localhost,
+a `*.local` name, a LAN address, on any port — and app schemes register without
+credentials, so an agent can run this start to finish and check its own work
+with `bunx aussieauth doctor`. Only a public origin needs `AUSSIEAUTH_SECRET`.
 
 **Self-hosted** — your own fork of AussieAuth mints it:
 
@@ -30,9 +35,15 @@ bunx aussieauth init --self-hosted     # this project's own deployment
 bunx aussieauth init --url https://…   # an AussieAuth of yours, elsewhere
 ```
 
-Either way `init` detects the framework (Vite, Next, TanStack Start, Expo),
-writes the provider, a sign-in route and `convex/auth.config.ts`, and registers
-the dev origin — so `localhost` works before you've read anything about origins.
+Either way it first asks the deployment whether it is reachable, serves auth,
+publishes a JWKS and is current with this client, and writes nothing if any
+answer is wrong — a scaffold finished against a deployment that cannot serve it
+reads as done and fails later somewhere else. Then it detects the framework
+(Vite, Next, TanStack Start, Expo), writes the provider, a sign-in route and
+`convex/auth.config.ts`, and registers the real dev origin, read out of your dev
+script rather than guessed — including the `https://<name>.localhost` portless
+serves on.
+
 `bunx convex dev` is the one step it can't do for you: without the push the
 config exists locally only, and every function keeps seeing `null` while sign-in
 appears to work.
@@ -231,12 +242,19 @@ for most broken integrations arrive with a command in them:
 ## CLI
 
 ```sh
-aussieauth init                      # scaffold into this app (hosted)
+aussieauth                           # the whole install: scaffold, register, verify
+aussieauth init                      # the same thing, named
 aussieauth init --self-hosted        # …minting from this project's deployment
+aussieauth doctor                    # pass/fail per step; exits 1 while anything is wrong
 aussieauth apps register --slug my-app --origin https://my-app.com
 aussieauth apps unregister --slug my-app   # dry run; --confirm to mean it
 aussieauth apps show --origin https://my-app.com
 ```
+
+`doctor` is the one to reach for when something isn't working. It checks the
+deployment is reachable, serves auth, publishes a JWKS and is not older than
+this client, that `convex/auth.config.ts` exists, and that each of this
+project's dev origins is trusted — and prints the fix beside each failure.
 
 `apps register` warns when an origin lands past WebAuthn's five-site
 related-origins limit, which is otherwise a silent passkey failure.

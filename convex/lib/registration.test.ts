@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isOrigin, isSchemeOrigin, parseRegistration, secretMatches } from "./registration";
+import {
+  isDevOrigin,
+  secretlessOrigins,
+  isOrigin,
+  isSchemeOrigin,
+  parseRegistration,
+  secretMatches,
+} from "./registration";
 
 /**
  * Registration is the one endpoint where a stranger can change what this
@@ -77,6 +84,66 @@ describe("isSchemeOrigin", () => {
     expect(isSchemeOrigin("1app://")).toBe(false);
     expect(isSchemeOrigin("app:/")).toBe(false);
     expect(isSchemeOrigin("app://x")).toBe(false);
+  });
+});
+
+/**
+ * `isDevOrigin` decides whether a registration needs a secret, so it is the
+ * whole gate for secretless setup. The cases that matter are the near misses:
+ * a public host that merely reads like a local one must not slip through,
+ * because that would let anyone register any origin without credentials.
+ */
+describe("isDevOrigin", () => {
+  it("accepts the loopback names on any port", () => {
+    expect(isDevOrigin("http://localhost:5173")).toBe(true);
+    expect(isDevOrigin("http://localhost:3000")).toBe(true);
+    expect(isDevOrigin("http://127.0.0.1:8080")).toBe(true);
+    expect(isDevOrigin("http://localhost")).toBe(true);
+  });
+
+  it("accepts the reserved local TLDs, which is what portless serves on", () => {
+    expect(isDevOrigin("https://myapp.localhost")).toBe(true);
+    expect(isDevOrigin("http://macbook.local:4000")).toBe(true);
+  });
+
+  it("accepts private LAN addresses, where an Expo dev server lands", () => {
+    expect(isDevOrigin("http://192.168.1.5:8081")).toBe(true);
+    expect(isDevOrigin("http://10.0.0.2:19000")).toBe(true);
+    expect(isDevOrigin("http://172.16.4.1:3000")).toBe(true);
+  });
+
+  it("rejects public hosts, including ones that read as local", () => {
+    expect(isDevOrigin("https://myapp.com")).toBe(false);
+    // The trap: a real domain whose name contains a local one.
+    expect(isDevOrigin("https://localhost.evil.com")).toBe(false);
+    expect(isDevOrigin("https://notlocalhost.com")).toBe(false);
+    // 172.32 is outside the private block, unlike 172.16–172.31.
+    expect(isDevOrigin("http://172.32.0.1:3000")).toBe(false);
+    // Routable, despite looking like a LAN address at a glance.
+    expect(isDevOrigin("http://11.0.0.2")).toBe(false);
+  });
+
+  it("rejects anything that isn't a bare http(s) origin", () => {
+    expect(isDevOrigin("http://localhost:3000/callback")).toBe(false);
+    expect(isDevOrigin("myapp://")).toBe(false);
+    expect(isDevOrigin("localhost:3000")).toBe(false);
+    expect(isDevOrigin("")).toBe(false);
+  });
+});
+
+describe("secretlessOrigins", () => {
+  it("is true only when nothing in the list is a public origin", () => {
+    expect(secretlessOrigins(["http://localhost:3000", "https://app.localhost"])).toBe(true);
+    // Native apps come in this way: a scheme is claimable without a secret,
+    // because otherwise the whole Expo path needs a human again.
+    expect(secretlessOrigins(["myapp://", "exp://"])).toBe(true);
+    // One public origin means the whole registration needs a secret.
+    expect(secretlessOrigins(["http://localhost:3000", "https://myapp.com"])).toBe(false);
+    expect(secretlessOrigins(["myapp://", "https://myapp.com"])).toBe(false);
+  });
+
+  it("is false for an empty list, so nothing is authorised by default", () => {
+    expect(secretlessOrigins([])).toBe(false);
   });
 });
 

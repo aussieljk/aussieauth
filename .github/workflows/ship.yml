@@ -1,0 +1,152 @@
+name: Ship
+
+# Everything a push to master has to update, in one place.
+#
+# It used to be none of them. The site had no git integration, the Convex
+# deployment was pushed by hand, and the package only shipped on a tag — so
+# master could hold a commit whose backend, website and npm package were three
+# different versions of the project. That is not a theoretical problem: the
+# hosted deployment sat on a build with no `/apps/me` while the published
+# client required it, and the only symptom anyone saw was a 404 on one path
+# during someone else's setup.
+#
+# So: checks first, then the three targets in parallel, then a smoke test that
+# proves the deployment can actually serve the client that was just published.
+#
+# Repository secrets this needs (Settings → Secrets and variables → Actions):
+#   CONVEX_DEPLOY_KEY  Convex dashboard → the aussieauth deployment → Settings
+#                      → Generate a deploy key
+#   VERCEL_TOKEN       vercel.com → Account Settings → Tokens
+#   VERCEL_ORG_ID      the orgId in your local .vercel/project.json
+#   VERCEL_PROJECT_ID  the projectId in that same file
+#   NPM_TOKEN          npmjs.com → Access Tokens → Automation
+#
+# Each job checks its own secrets first and says which one is missing, because
+# every one of these tools answers a missing credential with a message that
+# names neither the secret nor where it comes from.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  # A newer push supersedes an in-flight ship rather than racing it — two
+  # deploys landing out of order is worse than a slightly stale one.
+  group: ship
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # Everything else resolves @aussieljk/auth through its dist.
+      - run: bun run build
+        working-directory: packages/react
+      - run: bun run generated:check
+      - run: bunx playwright install --with-deps chromium
+      - run: bun run lint
+      - run: bun run test
+
+  # The backend goes first among the three, and the others wait for it. A
+  # website or a package that expects a capability the deployment doesn't have
+  # yet is exactly the drift this pipeline exists to end.
+  backend:
+    needs: checks
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the deploy key exists
+        run: |
+          if [ -z "${{ secrets.CONVEX_DEPLOY_KEY }}" ]; then
+            echo "::error::Missing repository secret CONVEX_DEPLOY_KEY"
+            echo "Convex dashboard → aussieauth → Settings → Generate a deploy key."
+            exit 1
+          fi
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      # `dev --once` rather than `deploy`: the deployment behind aussieauth.com
+      # is a dev one, and a deploy key issued for it drives this command.
+      - run: bunx convex dev --once
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+
+      # The one check that would have caught the original incident. A push that
+      # succeeds but leaves the deployment without the capabilities the client
+      # requires is a red build here rather than a 404 in somebody's setup.
+      - name: Prove the deployment serves what the client needs
+        run: |
+          set -e
+          URL=https://giddy-dinosaur-765.convex.site
+          BODY=$(curl -fsS "$URL/apps/health")
+          echo "$BODY"
+          for feature in apps/me dev-origins health; do
+            echo "$BODY" | jq -e --arg f "$feature" '.features | index($f)' >/dev/null \
+              || { echo "::error::$URL is missing the '$feature' capability"; exit 1; }
+          done
+          curl -fsS -o /dev/null "$URL/api/auth/ok"
+          curl -fsS -o /dev/null "$URL/api/auth/convex/jwks"
+
+  site:
+    needs: backend
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the deploy secrets exist
+        run: |
+          missing=""
+          [ -n "${{ secrets.VERCEL_TOKEN }}" ]      || missing="$missing VERCEL_TOKEN"
+          [ -n "${{ secrets.VERCEL_ORG_ID }}" ]     || missing="$missing VERCEL_ORG_ID"
+          [ -n "${{ secrets.VERCEL_PROJECT_ID }}" ] || missing="$missing VERCEL_PROJECT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repository secret(s):$missing"
+            echo "Add them under Settings → Secrets and variables → Actions:"
+            echo "  VERCEL_TOKEN       vercel.com → Account Settings → Tokens"
+            echo "  VERCEL_ORG_ID      the orgId in your local .vercel/project.json"
+            echo "  VERCEL_PROJECT_ID  the projectId in that same file"
+            exit 1
+          fi
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+        working-directory: packages/react
+      - name: Deploy
+        run: |
+          bunx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          bunx vercel build --prod --token="$VERCEL_TOKEN"
+          bunx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+  # Publishing is gated on the version having changed, so most pushes skip it
+  # silently. That is what makes it safe to run on every push instead of on a
+  # tag — and a tag was the step that let npm and the deployment drift apart.
+  npm:
+    needs: backend
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+        working-directory: packages/react
+      - name: Publish if this version isn't on npm yet
+        working-directory: packages/react
+        run: |
+          VERSION=$(jq -r .version package.json)
+          if npm view "@aussieljk/auth@$VERSION" version >/dev/null 2>&1; then
+            echo "@aussieljk/auth@$VERSION is already on npm — nothing to publish."
+          else
+            bun publish --access public
+          fi
+        env:
+          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,8 +1,9 @@
 name: CI
 
+# Pull requests only. The same checks run on master as the first job of
+# `ship.yml`, which gates the deploys behind them — running both there would
+# double every push for no extra signal.
 on:
-  push:
-    branches: [master]
   pull_request:
 
 jobs:

@@ -74,6 +74,27 @@ describe("passkeyOrigins", () => {
     ]);
   });
 
+  it("lets a production origin past a development one, whatever the order", () => {
+    // Every scratch project registers a `<name>.localhost`, and each one is a
+    // distinct label against the five-site cap. In registration order these
+    // would push `myapp.com` off the end and its passkeys would stop working
+    // with no error anywhere.
+    const { kept, dropped } = passkeyOrigins({
+      siteUrl: "https://aussieauth.com",
+      envOrigins: [],
+      appOrigins: [
+        "https://one.localhost",
+        "https://two.localhost",
+        "https://three.localhost",
+        "https://four.localhost",
+        "https://five.localhost",
+        "https://myapp.com",
+      ],
+    });
+    expect(kept).toContain("https://myapp.com");
+    expect(dropped).toEqual(["https://four.localhost", "https://five.localhost"]);
+  });
+
   it("leaves out native schemes, which no browser can act on", () => {
     const { kept } = passkeyOrigins({
       siteUrl: "https://aussieauth.com",

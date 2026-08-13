@@ -3,10 +3,11 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
+import { devOrigins, isLocalOrigin } from "./devOrigins";
+import { explainProbe, probeDeployment } from "./probe";
 import {
   authConfigFile,
   authUrlForMode,
-  DEV_ORIGIN,
   ENV_PREFIX,
   deploymentUrl,
   detectFramework,
@@ -58,11 +59,17 @@ Two ways to use it. The only difference is whose deployment mints the session.
                 forked the repo into it. Every provider credential is yours.
 
 Commands:
-  aussieauth init                    Scaffold auth into the app in this directory
+  aussieauth                         The whole install: scaffold, register, verify
+  aussieauth init                    Same thing, named
   aussieauth init expo               Force the Expo scaffold
+  aussieauth doctor                  Check every step, print pass/fail, exit 1 on any fail
   aussieauth apps register           Register this app's origins with a deployment
   aussieauth apps unregister         Revoke an app (dry run unless you confirm)
   aussieauth apps show               What a deployment says about an origin
+
+No secret is needed for a development origin — localhost, a *.local name, a LAN
+address, on any port. Those are trusted by the deployment on sight, and register
+without credentials. Only a public origin needs AUSSIEAUTH_SECRET.
 
 init
   --self-hosted                      Mint sessions from this project's own
@@ -76,7 +83,7 @@ init
 
 apps register
   --auth-url <url>                   Or AUSSIEAUTH_URL / EXPO_PUBLIC_AUSSIEAUTH_URL.
-  --secret <secret>                  Or AUSSIEAUTH_SECRET.
+  --secret <secret>                  Or AUSSIEAUTH_SECRET. Public origins only.
   --slug <name> --name "My App"
   --origin <url>                     Repeatable, or comma-separated.
   --scheme <myapp> [--dev-exp]       Native apps register a scheme, not an origin.
@@ -216,15 +223,34 @@ const webLayout = (framework: Framework, appName: string) => {
  */
 const appendEnv = async (cwd: string, entries: Record<string, string>) => {
   const file = path.join(cwd, ".env.local");
-  const existing = await readText(file);
+  let existing = await readText(file);
   const have = parseEnvFile(existing);
+
+  // One exception to "without touching what's there": a key we own that
+  // already holds a *different* value. Appending would be ignored by every
+  // dotenv reader, which is how a project ends up pointed at its own Convex
+  // deployment — a URL that answers, serves no auth, and looks right in the
+  // report because the report prints what we chose rather than what the file
+  // says. The value is checked, so a correction only happens when the file and
+  // the truth disagree.
+  const corrected: string[] = [];
+  for (const [key, value] of Object.entries(entries)) {
+    if (!value || !have[key] || have[key] === value) continue;
+    existing = existing.replace(
+      new RegExp(`^(\\s*(?:export\\s+)?${key}\\s*=).*$`, "m"),
+      `$1${value}`,
+    );
+    corrected.push(`${key} (was ${have[key]})`);
+  }
+  if (corrected.length) await writeFile(file, existing);
+
   const missing = Object.entries(entries).filter(([key, value]) => value && !have[key]);
-  if (!missing.length) return [];
+  if (!missing.length) return corrected;
 
   const block = missing.map(([key, value]) => `${key}=${value}`).join("\n");
   const prefix = existing && !existing.endsWith("\n") ? "\n" : "";
   await writeFile(file, `${existing}${prefix}\n# AussieAuth\n${block}\n`);
-  return missing.map(([key]) => key);
+  return [...corrected, ...missing.map(([key]) => key)];
 };
 
 /**
@@ -312,7 +338,13 @@ export default function SignIn() {
   return { url, origins: [`${scheme.replace(/:\/?\/?$/, "")}://`, "exp://"], scheme };
 }
 
-async function initWeb(framework: Framework, flags: Args, env: Record<string, string>, mode: Mode) {
+async function initWeb(
+  framework: Framework,
+  flags: Args,
+  repeated: Record<string, string[]>,
+  env: Record<string, string>,
+  mode: Mode,
+) {
   const cwd = process.cwd();
   const pkg = await readJson(path.join(cwd, "package.json")).catch(() => ({}));
   const slug = flag(flags, "slug") || String(pkg.name ?? "my-app").replace(/^@[^/]+\//, "");
@@ -336,7 +368,17 @@ async function initWeb(framework: Framework, flags: Args, env: Record<string, st
   });
 
   report(framework, mode, written, added, url);
-  return { url, origins: [flag(flags, "origin") || DEV_ORIGIN[framework]], slug, name: appName };
+  return {
+    url,
+    origins: devOrigins({
+      framework,
+      scripts: (pkg.scripts ?? {}) as Record<string, string | undefined>,
+      name: String(pkg.name ?? path.basename(cwd)),
+      explicit: repeated.origin ?? (flag(flags, "origin") ? [flag(flags, "origin")] : []),
+    }),
+    slug,
+    name: appName,
+  };
 }
 
 const report = (framework: string, mode: Mode, written: string[], env: string[], url: string) => {
@@ -369,7 +411,7 @@ const report = (framework: string, mode: Mode, written: string[], env: string[],
  * the app's own functions is the thing people assume they get and don't, and in
  * hosted mode it is the *only* backend file the app needs.
  */
-async function init(positional: string[], flags: Args) {
+async function init(positional: string[], flags: Args, repeated: Record<string, string[]>) {
   const cwd = process.cwd();
   const env = await readProjectEnv(cwd);
   const pkg = await readJson(path.join(cwd, "package.json")).catch(() => ({}));
@@ -389,24 +431,41 @@ async function init(positional: string[], flags: Args) {
     );
   }
 
+  // Before a single file is written. A URL that turns out to be the wrong
+  // deployment gets baked into `.env.local` and `convex/auth.config.ts`, and
+  // from then on every symptom points somewhere else.
+  const target = authUrlForMode(mode, env, flag(flags, "url"));
+  if (!target) {
+    throw new Error(
+      "Couldn't work out which deployment to use. Run `bunx convex dev` first, or pass " +
+        "--url <https://your-deployment.convex.site> — note .convex.site, not .convex.cloud.",
+    );
+  }
+  const probe = await probeDeployment(target);
+  const wrong = explainProbe(probe);
+  if (wrong) {
+    // Thrown rather than warned. A scaffold that completes against a
+    // deployment which cannot serve it is the exact outcome this whole command
+    // exists to prevent: everything reads as done, and the failure arrives
+    // later wearing a different face.
+    throw new Error(`${wrong}\n\n  Nothing was written.`);
+  }
+
   const result =
     framework === "expo"
       ? await initExpo(flags, env, mode)
-      : await initWeb(framework, flags, env, mode);
+      : await initWeb(framework, flags, repeated, env, mode);
 
   if (flags["no-register"]) return finish(mode);
 
   const secret = flag(flags, "secret") || process.env.AUSSIEAUTH_SECRET || "";
   const origins = result.origins.filter(Boolean);
-  if (!secret || !result.url || !origins.length) {
-    console.log(
-      `\n  Register this app when you have the deployment's secret:\n` +
-        `    export AUSSIEAUTH_SECRET=…\n` +
-        `    aussieauth apps register --auth-url ${result.url || "<url>"} ` +
-        `--slug ${"slug" in result ? result.slug : "<slug>"} ` +
-        origins.map((o) => `--origin ${o}`).join(" "),
+  if (!origins.length) {
+    // Expo without a scheme is the only way to get here.
+    throw new Error(
+      "No origin to register. Pass --scheme <myapp> for a native app, or --origin " +
+        "<https://…> for a web one.",
     );
-    return finish(mode);
   }
 
   console.log("");
@@ -457,7 +516,13 @@ type RegisterInput = {
 const post = async (authUrl: string, endpoint: string, secret: string, body: unknown) => {
   const response = await fetch(`${authUrl.replace(/\/$/, "")}${endpoint}`, {
     method: "POST",
-    headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+    headers: {
+      // Sent only when there is one. A dev-origin registration needs no
+      // secret, and an `Authorization: Bearer ` with nothing after it reads to
+      // the server as a wrong secret rather than as no secret.
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+      "content-type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   const parsed = await response.json().catch(() => ({}) as any);
@@ -485,8 +550,20 @@ async function register(input: RegisterInput) {
     methods: input.methods,
   });
 
-  console.log(`Registered "${input.slug}" with ${input.origins.length} origin(s):`);
-  for (const origin of input.origins) console.log(`  ${origin}`);
+  const skipped: string[] = Array.isArray(body.skipped) ? body.skipped : [];
+  const claimed = input.origins.filter((o) => !skipped.includes(o));
+
+  console.log(`Registered "${input.slug}" with ${claimed.length} origin(s):`);
+  for (const origin of claimed) console.log(`  ${origin}`);
+  if (skipped.length) {
+    // Worth a line rather than silence, and worth not being an error: another
+    // project on this machine got to that port first, and sign-in works from
+    // it regardless because dev origins are trusted whoever owns the row.
+    console.log(
+      `  also works on ${skipped.join(", ")} — already claimed by another app,\n` +
+        `  and trusted anyway because it's a development origin`,
+    );
+  }
   if (body.restored) {
     console.log(`  (restored from a previous revoke, with its method list intact)`);
   }
@@ -494,12 +571,17 @@ async function register(input: RegisterInput) {
   const passkeys = body.passkeyOrigins as
     | { limit: number; active: string[]; dropped: string[] }
     | undefined;
-  if (passkeys?.dropped?.length) {
+  // A dropped *dev* origin is not a problem to go and solve, and saying
+  // "⚠ passkeys will not work" about one sends the reader — an agent, usually
+  // — off fixing something that was never wrong. Passkeys on another machine's
+  // localhost are not a feature anyone is owed.
+  const droppedReal = (passkeys?.dropped ?? []).filter((o) => !isLocalOrigin(o));
+  if (droppedReal.length && passkeys) {
     console.warn(
-      `\n  ⚠ Passkeys will not work on ${passkeys.dropped.length} origin(s).\n` +
+      `\n  ⚠ Passkeys will not work on ${droppedReal.length} origin(s).\n` +
         `    WebAuthn honours related origins on at most ${passkeys.limit} distinct sites, and\n` +
         `    browsers ignore the rest without an error anywhere. Past the limit:\n` +
-        passkeys.dropped.map((o) => `      ${o}`).join("\n") +
+        droppedReal.map((o) => `      ${o}`).join("\n") +
         `\n    Unregister an app you no longer use, or consolidate onto fewer sites.`,
     );
   } else if (passkeys) {
@@ -526,7 +608,10 @@ const requireEnv = (flags: Args) => {
     "";
   const secret = flag(flags, "secret") || process.env.AUSSIEAUTH_SECRET || "";
   if (!authUrl) throw new Error("--auth-url or AUSSIEAUTH_URL is required");
-  if (!secret) throw new Error("--secret or AUSSIEAUTH_SECRET is required");
+  // The secret is not required here any more. A registration whose origins are
+  // all development ones is accepted without it, and only the server can tell
+  // whether that is the case — refusing here would put a check in front of the
+  // endpoint that is stricter than the endpoint.
   return { authUrl: siteUrlFromConvexUrl(authUrl), secret };
 };
 
@@ -582,6 +667,9 @@ async function unregisterCommand(flags: Args) {
   const { authUrl, secret } = requireEnv(flags);
   const slug = flag(flags, "slug");
   if (!slug) throw new Error("--slug is required");
+  // Revoking has no secretless form, unlike registering: taking access away is
+  // not something an origin can ask for on its own behalf.
+  if (!secret) throw new Error("--secret or AUSSIEAUTH_SECRET is required to revoke an app");
 
   const preview = await post(authUrl, "/apps/unregister", secret, { slug });
   if (!preview.wouldRemove) {
@@ -652,10 +740,93 @@ async function showCommand(flags: Args) {
   console.log(`  methods: ${body.methods ? body.methods.join(", ") : "all"}`);
 }
 
+/**
+ * Every check that stands between this project and a working sign-in, run in
+ * one go and printed as a table.
+ *
+ * The audience is an agent as much as a person. Something reading this needs
+ * to know which of six things is wrong without inferring it from a stack
+ * trace, so every line is `ok`/`FAIL` with the fix on the failing ones, and
+ * the exit code carries the same answer for anything that only reads that.
+ */
+async function doctorCommand(flags: Args) {
+  const cwd = process.cwd();
+  const env = await readProjectEnv(cwd);
+  const pkg = await readJson(path.join(cwd, "package.json")).catch(() => ({}));
+  const deps: Record<string, string> = { ...pkg.dependencies, ...pkg.devDependencies };
+  const framework = detectFramework(deps, (file) => existsSync(path.join(cwd, file)));
+
+  const url = siteUrlFromConvexUrl(
+    flag(flags, "url") || flag(flags, "auth-url") || deploymentUrl(env) || HOSTED_AUTH_URL,
+  );
+  const origins = devOrigins({
+    framework,
+    scripts: (pkg.scripts ?? {}) as Record<string, string | undefined>,
+    name: String(pkg.name ?? path.basename(cwd)),
+    explicit: flag(flags, "origin") ? [flag(flags, "origin")] : [],
+  });
+
+  const lines: string[] = [];
+  let failed = false;
+  const check = (ok: boolean, label: string, fix = "") => {
+    lines.push(`  ${ok ? "ok  " : "FAIL"}  ${label}`);
+    if (!ok) {
+      failed = true;
+      if (fix) lines.push(`        ${fix}`);
+    }
+  };
+
+  console.log(`AussieAuth doctor · ${framework} · ${url}\n`);
+
+  const probe = await probeDeployment(url);
+  check(probe.reachable, "deployment answers", "wrong URL, or nothing deployed there");
+  check(probe.servesAuth, "serves auth (/api/auth/ok)", "this is not an AussieAuth deployment");
+  check(probe.publishesKeys, "publishes a JWKS", "tokens minted here can't be verified");
+  check(
+    probe.health && !probe.missing.length,
+    "up to date with this client",
+    probe.health ? `missing: ${probe.missing.join(", ")}` : "no /apps/health — push the deployment",
+  );
+
+  const hasConfig = existsSync(path.join(cwd, "convex", "auth.config.ts"));
+  check(
+    hasConfig || !existsSync(path.join(cwd, "convex")),
+    "convex/auth.config.ts exists",
+    "run `aussieauth init` — without it every function sees a null identity",
+  );
+
+  // Asked per origin rather than once, because being trusted is a property of
+  // the origin and a project can be served on more than one.
+  for (const origin of origins) {
+    const answer = await fetch(`${url}/apps/me`, { headers: { origin } })
+      .then((r) => (r.ok ? (r.json() as Promise<{ trusted?: boolean; slug?: string | null }>) : null))
+      .catch(() => null);
+    check(
+      Boolean(answer?.trusted),
+      `${origin} is trusted${answer?.slug ? ` (as "${answer.slug}")` : ""}`,
+      `aussieauth apps register --auth-url ${url} --slug <app> --origin ${origin}`,
+    );
+  }
+
+  console.log(lines.join("\n"));
+  if (failed) {
+    process.exitCode = 1;
+    console.log(`\n${explainProbe(probe) || "  Fix the FAIL lines above and run this again."}`);
+  } else {
+    console.log(`\n  Nothing to do. Sign-in works from ${origins.join(", ") || "this project"}.`);
+  }
+}
+
 async function main() {
   const { positional, flags, repeated } = parse(process.argv.slice(2));
   const [scope, command] = positional;
-  if (scope === "init") return init(positional, flags);
+  // No subcommand is the whole install. The command an agent reaches for first
+  // should be the one that finishes the job, not a help screen — the previous
+  // behaviour was to print usage and let the reader pick, which is how a setup
+  // ends up half-done in three different ways.
+  if (!scope) return init(["init"], flags, repeated);
+  if (scope === "init") return init(positional, flags, repeated);
+  if (scope === "doctor") return doctorCommand(flags);
   if (scope === "apps" && command === "register") return registerCommand(flags, repeated);
   if (scope === "apps" && command === "unregister") return unregisterCommand(flags);
   if (scope === "apps" && (command === "show" || command === "me")) return showCommand(flags);

@@ -10,7 +10,7 @@ import {
 } from "./auth";
 import { env, httpAction } from "./_generated/server";
 import { invalidateApps, isTrustedOrigin, RELATED_ORIGIN_LABEL_LIMIT } from "./lib/apps";
-import { parseRegistration, secretMatches } from "./lib/registration";
+import { parseRegistration, secretlessOrigins, secretMatches } from "./lib/registration";
 
 const http = httpRouter();
 
@@ -109,34 +109,51 @@ http.route({
  * from the other app's Convex, which sends no `Origin` header, and Better
  * Auth's CSRF check rejects an originless POST outright. Provisioning isn't an
  * auth operation anyway; the bearer secret is the whole authorization story.
+ *
+ * Except for one case, which is the one that matters most: a registration
+ * whose origins are all development origins needs no secret. A secret is a
+ * human step, and the setup this endpoint exists to serve is usually being run
+ * by an agent that has no way to obtain one. Guarding localhost with a secret
+ * protects nothing — sending that request already means running code on the
+ * developer's machine — while costing the entire no-touch install. Public
+ * origins still need the secret, and `apps.register` refuses to let a
+ * secretless call anywhere near an app that owns one.
  */
 http.route({
   path: "/apps/register",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const expected = env.AUSSIEAUTH_SECRET;
-    if (!expected) {
-      // Refuse rather than accept anything: an unset secret must not read as
-      // "registration is open".
-      return Response.json(
-        { error: "Registration is not configured on this deployment" },
-        { status: 503 },
-      );
-    }
-
-    const given = (request.headers.get("authorization") ?? "").replace(/^Bearer /, "");
-    if (!secretMatches(given, expected)) {
-      return Response.json({ error: "Bad or missing secret" }, { status: 401 });
-    }
-
     const body: unknown = await request.json().catch(() => null);
     const parsed = parseRegistration(body);
     if ("error" in parsed) {
       return Response.json({ error: parsed.error }, { status: 400 });
     }
 
+    const expected = env.AUSSIEAUTH_SECRET;
+    const given = (request.headers.get("authorization") ?? "").replace(/^Bearer /, "");
+    const authorised = Boolean(expected) && secretMatches(given, expected ?? "");
+    const secretless = secretlessOrigins(parsed.app.origins);
+
+    if (!authorised && !secretless) {
+      // The message names the way through in both directions, because the two
+      // failures look identical from the caller's side and the fix is not.
+      return Response.json(
+        {
+          error: given
+            ? "Bad secret. Public origins need the deployment's AUSSIEAUTH_SECRET."
+            : "Public origins need the deployment's AUSSIEAUTH_SECRET. Development " +
+              "origins (localhost, *.local, LAN addresses) and app schemes " +
+              "(myapp://) register without one.",
+        },
+        { status: 401 },
+      );
+    }
+
     try {
-      const result = await ctx.runMutation(internal.apps.register, parsed.app);
+      const result = await ctx.runMutation(internal.apps.register, {
+        ...parsed.app,
+        unauthenticated: !authorised,
+      });
       // So this isolate stops serving the pre-registration origin list.
       invalidateApps();
       // WebAuthn honours related origins on at most five distinct sites, and a
@@ -230,7 +247,10 @@ http.route({
 
     const [app, origins] = await Promise.all([
       ctx.runQuery(internal.apps.forOrigin, { origin }),
-      trustedOrigins(ctx),
+      // Passed the origin for the same reason the auth layer is: a dev origin
+      // is trusted on sight, and an answer of "not trusted" to an origin whose
+      // requests will in fact be accepted is worse than no answer at all.
+      trustedOrigins(ctx, origin),
     ]);
 
     return Response.json(
@@ -257,6 +277,55 @@ http.route({
 
 http.route({
   path: "/apps/me",
+  method: "OPTIONS",
+  handler: httpAction(async () => new Response(null, { status: 204, headers: ME_CORS })),
+});
+
+/**
+ * What this deployment can do, so a client can tell "old deployment" from
+ * "broken deployment".
+ *
+ * This exists because of a real failure. The published client expected
+ * `/apps/me`, the hosted deployment had not been pushed since before that
+ * route landed, and the only symptom was a 404 on one path. Everything else
+ * answered, so the setup looked healthy and failed later, somewhere else. A
+ * client that can read the feature list says "this deployment is older than
+ * this client, push it" instead of leaving that to be deduced.
+ *
+ * Add a capability here in the same commit that adds the capability. A name
+ * is only ever appended, never renamed — an old client asking for a name that
+ * has been renamed reads it as missing.
+ */
+const FEATURES = [
+  /** `/apps/me` answers what a deployment knows about the calling origin. */
+  "apps/me",
+  /** `/apps/register` takes dev-origin registrations without a secret. */
+  "dev-origins",
+  /** Development origins are trusted on sight, registered or not. */
+  "dev-origins-implicit",
+  /** This endpoint. */
+  "health",
+];
+
+http.route({
+  path: "/apps/health",
+  method: "GET",
+  handler: httpAction(async () => {
+    const registrationOpen = Boolean(env.AUSSIEAUTH_SECRET);
+    return Response.json(
+      {
+        ok: true,
+        features: FEATURES,
+        /** Whether a *public* origin could register here. Dev origins always can. */
+        registrationOpen,
+      },
+      { headers: ME_CORS },
+    );
+  }),
+});
+
+http.route({
+  path: "/apps/health",
   method: "OPTIONS",
   handler: httpAction(async () => new Response(null, { status: 204, headers: ME_CORS })),
 });

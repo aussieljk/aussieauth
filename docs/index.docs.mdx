@@ -63,11 +63,13 @@ code in your repo, no auth tables in your schema, no secrets to collect.
 
 ```sh
 bun add @aussieljk/auth
-bunx aussieauth init
+bunx aussieauth
 bunx convex dev
 ```
 
-Start here. → [Way 1 — lazy](/docs/lazy)
+Nothing in there needs a credential, a dashboard or a human: development origins
+and app schemes register without a secret, and `bunx aussieauth doctor` checks
+the result. Start here. → [Way 1 — lazy](/docs/lazy)
 
 ### [Way 2 — self-hosted](/docs/self-hosted)
 
