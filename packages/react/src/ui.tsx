@@ -159,6 +159,26 @@ export function RedirectOverlay({ label, icon }: { label: string; icon?: ReactNo
   );
 }
 
+/**
+ * Grows its children into view instead of popping them in.
+ *
+ * The grid track is the trick: `0fr → 1fr` on a single row animates to the
+ * content's own height without anyone having to measure it, which `height:
+ * auto` can't do. The children stay mounted throughout, so whatever they hold —
+ * a half-typed password, focus — survives a collapse.
+ */
+export function Reveal({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+        open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+      }`}
+    >
+      <div className="overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
 export function PanelForm({ onSubmit, children }: { onSubmit: () => void; children: ReactNode }) {
   return (
     <form

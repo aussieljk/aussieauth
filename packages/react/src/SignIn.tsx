@@ -3,9 +3,7 @@ import {
   Badge,
   Button,
   Card,
-  HStack,
   Link as UiLink,
-  Separator,
   Typography,
   VStack,
 } from "ljkui";
@@ -70,8 +68,8 @@ const DEFAULT_PRIMARY = "email-password";
 
 /**
  * The sign-in card. The front shows any accounts this browser already knows,
- * then the featured social buttons plus the primary form; picking anything
- * from "more ways to sign in" swaps the body for that method's panel.
+ * then the primary form, then the featured social buttons underneath it.
+ * Picking a remembered account swaps the body for that method's panel.
  */
 export function SignIn({
   appName = "AussieAuth",
@@ -147,6 +145,8 @@ export function SignIn({
 
       <RememberedAccounts onNeedsPanel={open} />
 
+      <PrimaryPanel />
+
       {/* Stretch container: the social buttons are full-width, so this stays a
           flex column rather than a content-hugging VStack. */}
       <div className="flex flex-col gap-2">
@@ -154,12 +154,6 @@ export function SignIn({
           <SocialButton key={id} id={id} disabled={needsSetup(id)} />
         ))}
       </div>
-
-      <OrDivider label={`or continue with ${byId(resolvedPrimary).label.toLowerCase()}`} />
-
-      <PrimaryPanel />
-
-      <OrDivider label="more ways to sign in" />
 
       {/* Chips rather than underlined text: even tap targets, even rows, and
           the same surface language as the rest of the card. */}
@@ -188,7 +182,7 @@ function Shell({ children }: { children: React.ReactNode }) {
     // scrolls instead of overflowing off the top edge where nothing can reach
     // it.
     <div className="flex min-h-screen p-6">
-      <Card className="m-auto w-[420px]">
+      <Card size="4" className="m-auto w-[420px]">
         <div className="flex flex-col gap-5">{children}</div>
       </Card>
     </div>
@@ -286,12 +280,3 @@ function SetupHint({ id }: { id: string }) {
   );
 }
 
-function OrDivider({ label }: { label: string }) {
-  return (
-    <HStack spacing={12}>
-      <Separator className="flex-1" />
-      <Text color="gray">{label}</Text>
-      <Separator className="flex-1" />
-    </HStack>
-  );
-}

@@ -4,7 +4,19 @@ import { useAuthClient, useCallbackURL } from "./context";
 import { PENDING_ACCOUNT_NUMBER } from "./storage";
 import { byId, ctaFor } from "./providers";
 import { useRunner } from "./useRunner";
-import { BigButton, CodeField, Feedback, Field, PanelForm, RedirectOverlay, Submit } from "./ui";
+import {
+  BigButton,
+  CodeField,
+  Feedback,
+  Field,
+  PanelForm,
+  RedirectOverlay,
+  Reveal,
+  Submit,
+} from "./ui";
+
+/** Enough of an address to be worth asking for a password. Not validation. */
+const looksLikeEmail = (value: string) => /^\S+@\S+\.\S+$/.test(value.trim());
 
 const { Code, Text } = Typography;
 
@@ -240,14 +252,19 @@ export function EmailPasswordPanel({ prefill = "" }: PanelProps) {
           placeholder="you@example.com"
           onChange={(e) => setEmail(e.target.value)}
         />
-        <Field
-          label="Password"
-          type="password"
-          required
-          value={password}
-          autoComplete={creating ? "new-password" : "current-password"}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        {/* No password box until there's an address to attach it to: it's the
+            one field that can't usefully be filled first, and asking for it up
+            front is most of what makes the form look long. */}
+        <Reveal open={looksLikeEmail(email)}>
+          <Field
+            label="Password"
+            type="password"
+            required={looksLikeEmail(email)}
+            value={password}
+            autoComplete={creating ? "new-password" : "current-password"}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Reveal>
         <Submit pending={pending}>{creating ? "Create account" : "Sign in"}</Submit>
       </PanelForm>
       <Feedback error={error} notice={notice} />
