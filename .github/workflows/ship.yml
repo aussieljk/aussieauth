@@ -19,7 +19,13 @@ name: Ship
 #   VERCEL_TOKEN       vercel.com → Account Settings → Tokens
 #   VERCEL_ORG_ID      the orgId in your local .vercel/project.json
 #   VERCEL_PROJECT_ID  the projectId in that same file
-#   NPM_TOKEN          npmjs.com → Access Tokens → Automation
+#
+# npm needs no secret: the publish authenticates over OIDC trusted publishing,
+# configured on npmjs.com against this repo + `ship.yml` (environment blank).
+# That filename is part of the trust config, so publishing has to stay in this
+# workflow. The tag-triggered `release.yml` that used to be the other route to
+# npm is gone; it was token-based, and two routes is how npm and the deployment
+# drifted apart in the first place.
 #
 # Each job checks its own secrets first and says which one is missing, because
 # every one of these tools answers a missing credential with a message that
@@ -130,23 +136,39 @@ jobs:
   # silently. That is what makes it safe to run on every push instead of on a
   # tag — and a tag was the step that let npm and the deployment drift apart.
   npm:
-    needs: backend
+    # `needs: checks`, not `needs: backend`. Publishing the client does not
+    # depend on the Convex deployment landing, and coupling them is what kept
+    # 0.4.0 off npm for three weeks: `backend` hard-fails when
+    # CONVEX_DEPLOY_KEY is absent, so the publish was never even attempted.
+    needs: checks
     runs-on: ubuntu-latest
-    environment: production
+    # No `environment:` — the npmjs.com trusted-publisher config leaves its
+    # environment field blank, and the two have to agree or the publish is
+    # rejected.
+    permissions:
+      contents: read
+      # Mints the OIDC token npm trades for short-lived publish rights.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      # Trusted publishing needs npm >= 11.5.1 / node >= 22.14.0; node 24 ships
+      # npm 11. `npm publish` is what talks OIDC to the registry — `bun publish`
+      # does not, which is why the publish below is not a bun command.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
       - run: bun install --frozen-lockfile
       - run: bun run build
         working-directory: packages/react
       - name: Publish if this version isn't on npm yet
         working-directory: packages/react
+        # There is no NPM_TOKEN. Setting NODE_AUTH_TOKEN here would send npm
+        # back down the legacy token path and silently skip trusted publishing.
         run: |
           VERSION=$(jq -r .version package.json)
           if npm view "@aussieljk/auth@$VERSION" version >/dev/null 2>&1; then
             echo "@aussieljk/auth@$VERSION is already on npm — nothing to publish."
           else
-            bun publish --access public
+            npm publish --access public
           fi
-        env:
-          NPM_CONFIG_TOKEN: ${{ secrets.NPM_TOKEN }}
